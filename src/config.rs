@@ -245,7 +245,7 @@ fn read_yaml(path: &Path) -> Result<Value> {
 }
 
 /// JSON Valueへの直接読込は重複キーを後勝ちにする。YAMLのマージだけを追加する。
-fn expand_yaml_merges(value: &mut Value, path: &str) -> Result<()> {
+pub(crate) fn expand_yaml_merges(value: &mut Value, path: &str) -> Result<()> {
     match value {
         Value::Object(map) => {
             let merge = map.remove("<<");
