@@ -4,10 +4,14 @@
 //! 位置比較を優先する。辞書・配列を含む配列は最初から位置比較する。
 
 mod path;
+mod scalar;
 
 pub use path::{PathSegment, format_path, get_by_diff_key};
 
 use serde_json::Value;
+use std::collections::{HashMap, HashSet};
+
+use scalar::{ScalarKey, number_equal};
 
 /// ソート済みの差分パス。indexの基準はDeepDiffのopcodeに従う。
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -84,16 +88,22 @@ fn compare(one: &Value, other: &Value, path: &str, result: &mut DiffKeys) {
                 compare_pairs(a, b, 0, 0, path)
             };
             // DeepDiffのmutual_add_removes_to_become_value_changesに対応する。
-            let mutual: Vec<_> = changes
+            let removed: HashSet<_> = changes.removed.iter().collect();
+            let mutual: HashSet<_> = changes
                 .added
                 .iter()
-                .filter(|p| changes.removed.contains(p))
+                .filter(|p| removed.contains(p))
                 .cloned()
                 .collect();
             changes.added.retain(|p| !mutual.contains(p));
             changes.removed.retain(|p| !mutual.contains(p));
             changes.changed.extend(mutual);
             result.extend(changes);
+        }
+        (Value::Number(a), Value::Number(b)) => {
+            if !number_equal(a, b) {
+                result.changed.push(path.into());
+            }
         }
         _ if one != other => result.changed.push(path.into()),
         _ => {}
@@ -115,28 +125,44 @@ fn compare_pairs(a: &[Value], b: &[Value], a_start: usize, b_start: usize, path:
 }
 
 /// difflibの最長連続一致を分割統治で列挙する。同長なら左側の最初の一致を選ぶ。
-/// 作業メモリは配列長に対して線形。autojunk=Falseなので頻出要素も一致候補となる。
+/// b2jは全体から1回構築する。各探索区間では一致候補だけをj2lenで伸ばす。
+/// 全体のコストは各探索区間のaの走査・候補位置の検索・一致候補数の総和。
+/// 不一致の組み合わせは走査しないが、重複や分割次第で線形時間にはならない。
+/// メモリは入力長に対して線形。
+/// autojunk=Falseなので頻出要素も省かず、i・jの昇順で同長一致の優先順位を保つ。
 fn matching_blocks(a: &[Value], b: &[Value]) -> Vec<(usize, usize, usize)> {
+    let a: Vec<_> = a.iter().map(ScalarKey::from).collect();
+    let mut b2j: HashMap<ScalarKey, Vec<usize>> = HashMap::new();
+    for (j, value) in b.iter().enumerate() {
+        b2j.entry(ScalarKey::from(value)).or_default().push(j);
+    }
     let mut pending = vec![(0, a.len(), 0, b.len())];
     let mut blocks = Vec::new();
     while let Some((alo, ahi, blo, bhi)) = pending.pop() {
         let (mut ai, mut bi, mut size) = (alo, blo, 0);
-        let mut lengths = vec![0; bhi - blo + 1];
+        let mut j2len: HashMap<usize, usize> = HashMap::new();
+        let mut next = HashMap::new();
         for (i, x) in a.iter().enumerate().take(ahi).skip(alo) {
-            let mut previous = 0;
-            for j in blo..bhi {
-                let old = lengths[j - blo + 1];
-                let length = if python_equal(x, &b[j]) {
-                    previous + 1
-                } else {
-                    0
-                };
-                lengths[j - blo + 1] = length;
-                previous = old;
-                if length > size {
-                    (ai, bi, size) = (i + 1 - length, j + 1 - length, length);
+            next.clear();
+            if let Some(positions) = b2j.get(x) {
+                let start = positions.partition_point(|&j| j < blo);
+                for &j in &positions[start..] {
+                    if j >= bhi {
+                        break;
+                    }
+                    let length = j
+                        .checked_sub(1)
+                        .and_then(|j| j2len.get(&j))
+                        .copied()
+                        .unwrap_or(0)
+                        + 1;
+                    next.insert(j, length);
+                    if length > size {
+                        (ai, bi, size) = (i + 1 - length, j + 1 - length, length);
+                    }
                 }
             }
+            std::mem::swap(&mut j2len, &mut next);
         }
         if size != 0 {
             blocks.push((ai, bi, size));
@@ -170,28 +196,4 @@ fn compare_sequence(a: &[Value], b: &[Value], path: &str) -> DiffKeys {
         bi = j + size;
     }
     result
-}
-
-// SequenceMatcherの一致だけはPythonの == を使う。True == 1 == 1.0。
-// 通常の値比較ではserde_jsonの型を保つ。整数をf64化して丸めてはならない。
-fn python_equal(a: &Value, b: &Value) -> bool {
-    fn integer(v: &Value) -> Option<i128> {
-        match v {
-            Value::Bool(b) => Some(i128::from(*b)),
-            Value::Number(n) => n
-                .as_i64()
-                .map(i128::from)
-                .or_else(|| n.as_u64().map(i128::from)),
-            _ => None,
-        }
-    }
-    match (integer(a), integer(b)) {
-        (Some(x), Some(y)) => x == y,
-        (Some(x), None) if b.is_f64() => {
-            let y = b.as_f64().unwrap();
-            y.fract() == 0.0 && y >= i128::MIN as f64 && y < i128::MAX as f64 && x == y as i128
-        }
-        (None, Some(_)) if a.is_f64() => python_equal(b, a),
-        _ => a == b,
-    }
 }

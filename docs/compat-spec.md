@@ -48,6 +48,10 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - index: changed・removedは変更前、addedは変更後のindexを使う。
 - 辞書のキー集合の和が2件以上で、共通キー率が0.33未満なら辞書全体をchangedにする。
   - 除外: `__`で始まるキーはDeepDiffの既定設定に従い比較対象外とする。
+- JSONの整数は桁を落とさず保持し、多倍長整数として比較する。小数・指数表記はPythonと同じくf64として比較する。
+  - 例: `18446744073709551616` と `18446744073709551617` はchanged、`1e2` と `100.0` は同値。
+  - 実装: serde_jsonの `arbitrary_precision` を有効にする。通常の `Value` の等値比較は数値リテラルの表記に依存するため、差分判定には使わない。
+  - 保存への影響: 大きな整数はJSON numberのまま往復できる。小数の末尾ゼロや指数表記も保持されるため、reportの再出力はPythonのfloat再シリアライズとbyte単位では異なる場合がある。reportの統合時に検証する。
 - HTMLはBeautifulSoup+lxmlの補完とprettify後のdictを基準にする。
   - 内容: 属性 `#attr`、本文 `##value`、同名タグのリスト、空タグ、script、混在テキストの空白。
 - XMLはxmltodictのdictを基準にする。

@@ -120,6 +120,14 @@ def main():
         ("large-integers", [9007199254740992], [9007199254740993]),
         ("large-int-float", [9007199254740993], [9007199254740992.0]),
         ("float-negative-zero", -0.0, 0.0),
+        ("beyond-u64-array", [2**64], [2**64 + 1]),
+        ("beyond-u64-dict", {"a": 2**70}, {"a": 2**70 + 1}),
+        ("below-i64-array", [-2**63 - 1], [-2**63 - 2]),
+        ("bigint-float-equal-array", [2**200], [float(2**200)]),
+        ("bigint-float-neighbor-array", [2**200 + 1], [float(2**200)]),
+        ("bigint-float-type-dict", {"a": 2**200}, {"a": float(2**200)}),
+        ("bigint-negative-float-array", [-2**200], [-float(2**200)]),
+        ("bigint-beyond-f64", [10**400], [10**400 + 1]),
     ]
     for name, one, other in pairs:
         add("diff", name, {"operation": "diff", "one": one, "other": other}, lambda: diff(one, other))

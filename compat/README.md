@@ -103,6 +103,8 @@ JUMEAUX_DIFF_FIXTURES="$DIFF_FIXTURE_DIR/diff/cases.json" cargo test --test diff
 
 - `--diff-matrix` はscalar配列1,600組と型の混在する配列5,329組を追加する。
 - `JUMEAUX_DIFF_FIXTURES` は検証用のfixture差し替え。通常のテストはリポジトリのfixtureを使う。
+- `JUMEAUX_DIFF_TIMINGS=1` と `--nocapture` を指定すると、各diffの処理時間を秒で表示する。
+  - 計測範囲: JSONの読み込みと期待値との照合を除いた差分検出。性能比較は `--release` で実行する。
 
 ### E2E比較ハーネスの検証
 
