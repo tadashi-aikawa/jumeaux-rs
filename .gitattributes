@@ -1,0 +1,2 @@
+# Pythonの実出力をbyte単位で固定する。空白と改行をGitで書き換えない。
+compat/python-baseline/** -text -whitespace

@@ -1,0 +1,47 @@
+title: xml
+
+one:
+  name: One endpoint
+  host: http://localhost:8000/api/one
+
+other:
+  name: Other endpoint
+  host: http://localhost:8000/api/other
+
+output:
+  response_dir: responses
+
+addons:
+  log2reqs:
+    name: plain
+
+  res2dict:
+    - name: xml
+
+  store_criterion:
+    - name: free
+      config:
+        when_any:
+          - status == 'different'
+
+  did_challenge:
+    - name: tag
+      config:
+        conditions:
+          - tag: "over $10 (id={{ res_one_props.catalog.book[0]['@id'] }})"
+            when: res_one_props.catalog.book[0].price|int > 10
+          - tag: "over $10 (id={{ res_one_props.catalog.book[1]['@id'] }})"
+            when: res_one_props.catalog.book[1].price|int > 10
+
+  dump:
+    - name: xml
+
+  final:
+    - name: json
+    - name: viewer
+  #   - name: miroir
+  #     config:
+  #       table: miroir
+  #       bucket: mamansoft-miroir
+  #       cache_max_age: 120
+

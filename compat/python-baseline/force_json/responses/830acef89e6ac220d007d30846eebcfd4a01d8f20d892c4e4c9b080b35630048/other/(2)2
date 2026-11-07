@@ -1,0 +1,28 @@
+{
+    "count": 3,
+    "ignored_id": 456,
+    "members": [
+        {
+            "favorite": [
+                "apple",
+                "orange"
+            ],
+            "id": 1,
+            "name": "Ichiro"
+        },
+        {
+            "favorite": [
+                "orange"
+            ],
+            "id": 2,
+            "name": "Jiro"
+        },
+        {
+            "favorite": [
+                "apple"
+            ],
+            "id": 3,
+            "name": "Saburo"
+        }
+    ]
+}

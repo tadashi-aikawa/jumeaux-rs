@@ -1,0 +1,10 @@
+# report.keyはexecutor.hash_from_argsが生成する実行IDであり、認証情報ではない。
+# 検出ルール・保存先・フィールド表記をすべて限定する。本文中の他の秘密は除外しない。
+filter = '''
+finding["rule_id"] == "generic-api-key" &&
+filter.matchesAny(attributes["path"], [`^compat/python-baseline/[^/]+/(responses/[0-9a-f]{64}/)?(source-)?report\.json$`, `^compat/fixtures/retry\.json$`]) &&
+filter.matchesAny(finding["match"], [`^key": "[0-9a-f]{64}"$`])
+'''
+
+[extend]
+useDefault = true

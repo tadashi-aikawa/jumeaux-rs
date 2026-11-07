@@ -1,0 +1,102 @@
+/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/util.py:136: DeprecationWarning: codecs.open() is deprecated. Use open() instead.
+  with codecs.open(fpath, encoding=encoding) as f:
+Traceback (most recent call last):
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/main.py", line 24, in <module>
+    main()
+    ~~~~^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/main.py", line 16, in main
+    owcli.run(
+    ~~~~~~~~~^
+        cli="jumeaux",
+        ^^^^^^^^^^^^^^
+        version=__version__,
+        ^^^^^^^^^^^^^^^^^^^^
+        root=os.path.dirname(os.path.realpath(__file__)),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owcli/__init__.py", line 135, in run
+    cmd_module.run(
+    ~~~~~~~~~~~~~~^
+        cmd_module.Args.from_dict(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        )
+        ^
+    )
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/commands/run/main.py", line 47, in run
+    executor.run(
+    ~~~~~~~~~~~~^
+        args=MergedArgs.from_dict(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+        skip_addon_tag=TOption(args.skip_addon_tag or None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/executor.py", line 886, in run
+    addon_executor = AddOnExecutor(config.addons)
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/addons/__init__.py", line 60, in __init__
+    addons.res2res.map(lambda x: create_addon(x, "res2res"))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/owlcollections.py", line 87, in map
+    return TList(map(func, self))
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/addons/__init__.py", line 60, in <lambda>
+    addons.res2res.map(lambda x: create_addon(x, "res2res"))
+                                 ~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/addons/__init__.py", line 33, in create_addon
+    return getattr(import_module(relative_name), a.cls_name)(a.config.get())
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/addons/res2res/json_sort.py", line 68, in __init__
+    self.config: Config = Config.from_dict(config or {})
+                          ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/__init__.py", line 320, in from_dict
+    traverse(
+    ~~~~~~~~^
+        type_=t,
+        ^^^^^^^^
+    ...<5 lines>...
+        restrict=restrict,
+        ^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/__init__.py", line 94, in traverse
+    traverse(
+    ~~~~~~~~^
+        g_type[0],
+        ^^^^^^^^^^
+    ...<5 lines>...
+        restrict,
+        ^^^^^^^^^
+    )
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/__init__.py", line 72, in traverse
+    return type_.from_dict(
+           ~~~~~~~~~~~~~~~^
+        value,
+        ^^^^^^
+    ...<2 lines>...
+        restrict=restrict,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/__init__.py", line 311, in from_dict
+    assert_extra(properties, d, cls)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/__init__.py", line 36, in assert_extra
+    raise UnknownPropertiesError(cls=cls, props=sorted(extra_keys))
+owlmixin.errors.UnknownPropertiesError: 
+.        ∧,,_∧      ,___________________
+     ⊂ ( ･ω･ )つ-  <  Unknown properties error
+   ／／/     /::/     `-------------------
+   |::|/⊂ヽノ|::|」
+／￣￣旦￣￣￣／|
+＿＿＿＿＿＿／  | |
+|------ー----ー|／
+
+`jumeaux.addons.res2res.json_sort.Sorter` has unknown properties ['conditions']!!
+
+    * If you want to allow unknown properties, set `restrict=False`
+    * If you want to disallow unknown properties, add `conditions` to jumeaux.addons.res2res.json_sort.Sorter
+        

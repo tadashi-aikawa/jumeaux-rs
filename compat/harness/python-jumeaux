@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+JUMEAUX_PYTHON_ROOT="${JUMEAUX_PYTHON_ROOT:-$HOME/git/github.com/tadashi-aikawa/jumeaux}"
+export PYTHONPATH="$JUMEAUX_PYTHON_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONDONTWRITEBYTECODE=1
+exec "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B "$JUMEAUX_PYTHON_ROOT/jumeaux/main.py" "$@"
