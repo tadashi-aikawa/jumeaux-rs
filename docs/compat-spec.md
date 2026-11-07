@@ -156,6 +156,15 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 `qs`と`headers`は挿入順を保つ。Responseの本文は`Arc<[u8]>`で共有し、未知プロパティは未定義値を返す。
 
+- JSON入力は`values::from_json`でMiniJinjaの値へ再帰変換する。
+  - 数値: i64、u64、i128の順で整数を扱い、それ以外をf64へ変換する。`arbitrary_precision`の内部mapを式へ渡さない。
+  - 経路: ルートのdict・配列・Requestの`json`と`form`で同じ変換を使う。
+- 設定読み込み時は`TemplateEngine::load`で検査する。
+  - 再利用: 同じソースのAST検査・コンパイルは一度だけ行い、`render`で保持済みテンプレートを使う。
+- 正規表現の設定は用途ごとに読み込む。
+  - `search`・置換: `Regex::new`。
+  - Jumeauxの`exact_match`・`reg`: `Regex::new_exact`。Python同様、`^(pattern)$`で包んだ後のフラグ位置とgroup番号を検査する。
+
 ## テンプレートのサポート外
 
 | 分類 | サポート外 |
@@ -166,6 +175,12 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 | 演算 | `"%d" % n` |
 
 MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合する。コメント内は対象外とし、未実行分岐・macro・filterブロックも検査する。
+
+- MiniJinja固有のfilter・testを登録から除外する。
+  - filter: `bool`、`chain`、`lines`、`split`、`zip`。
+  - test: `startingwith`、`endingwith`、`safe`。
+- MiniJinjaとminijinja-contribは`=3.0.5`に固定する。
+  - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
 
 ## 未決
 
@@ -179,7 +194,13 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 現実装: 互換アダプターで`?`置換とUTF-16のendian・BOMを補い、fixtureでは一致する。ライブラリの差をそのまま許容する決定はしていない。
 - Python固有codecと、Encoding Standardの対応表の外側の扱い。
   - 現実装: EUC-JIS-2004等はLookupError。UTF-32には専用アダプターを置く。主要codecの対応範囲・別名は[文字コード表](encoding.md#codecと別名)に固定する。
+  - 差異: Pythonが処理できる`koi8-r`・`gbk`も専用対応がないためLookupError。WHATWGへのfallbackは行わず、fixtureで拒否を固定する。
   - 制限: 主要codecでも全Unicode対応表・全不正bytes列の網羅互換は未検証。
+- EUC-JP・CP949・ISO-2022-JPのdecodeの差異。
+  - EUC-JP: JIS X 0212の`8FA2B7`はPythonで`~`、Rustで`〜`。末尾の不完全な`8FA2`をreplaceで読むとPythonはU+FFFD 1文字、Rustは2文字。
+  - CP949: `8180`・`A180`・`C680`をreplaceで読むとPythonはU+FFFD 2文字、Rustは1文字。読み直し位置が異なる。
+  - ISO-2022-JP: NEC拡張のreplaceはPythonのU+FFFD 1文字に対しRustは2文字。`ESC ( I 31 ESC ( B`はPythonのU+FFFD＋`1`に対しRustはU+FFFD 3文字＋`1`。
+  - 検証: strictの不正列拒否は一致する。上記の差異は各fixtureの`rust_expected`で固定する。
 - WHATWGの`replacement`へ写るcodecを拒否する差異。
   - 実測: Pythonの`hz-gb-2312`と`iso-2022-kr`はASCIIを変換できる。Rustは読み込み時にLookupErrorとする。strict・replaceのencode/decodeをfixtureで固定する。
 - 未定義値・異種比較の差異。
@@ -205,8 +226,15 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 実測: `when`の`x +`はPythonでTemplateSyntaxError、Rustで`x`の値になる。
   - 実測: `(1, 2)`と`range(3)`の描画はRustでリスト表記になる。非表示文字U+200BはPythonの`\\u200b`に対しRustは文字をそのまま描画する。
   - 制限: ZeroDivisionError等のPython例外種別を網羅的には対応付けない。
+- 連結・round・abs・リスト乗算・groupbyの差異。
+  - 連結: `"n=" ~ 1e20`はPythonで`n=1e+20`、Rustで`n=100000000000000000000.0`。MiniJinja内部の連結はformatterを経由しない。
+  - 表示の対応範囲: 直接描画・`string`・`join`・`tojson`ではPythonのfloat reprを使う。`tojson`は各階層のキーをソートする。
+  - round: `1|round(2, "floor")`の描画はPythonで`1.0`、Rustで`1`。
+  - abs: `true|abs`はPythonで`1`、RustでTypeError。
+  - リスト乗算: `[1, 2] * 1.0`はPythonでTypeError、Rustで`[1, 2]`。
+  - groupby: 大小を無視したgroupのキーはPythonが最初の値の表記`A`を保つが、Rustは`a`へ正規化する。groupのtupleもRustではリスト表記になる。
 - 正規表現のサポート範囲の差異。
-  - 明示拒否: POSIXクラス、文字集合の積、条件付きgroup、`\N{…}`。Pythonで構文として通る例もPatternErrorとする。
+  - 明示拒否: POSIXクラス、文字集合の積・差・対称差に見える`&&`・`--`・`~~`、条件付きgroup、`\N{…}`。Pythonで構文として通る例もPatternErrorとする。
   - 実測: Pythonの`\s`はU+001C〜U+001Fにも一致する。Rustは一致しない。
   - 検証: Pythonでも不正なRust固有escape・group名構文の拒否、Pythonで有効な`[[]`・8進escape・`(?a)`の受理もfixtureに含める。
 - `rustpython-parser`への依存と暫定モデルの配置。

@@ -87,8 +87,9 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
   - 条件: `original_config` は意味上の入力契約を示す。旧reportだけから復元できることは主張しない。
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
-  - 件数: template 167、regex 57、encoding 175。既存ケースの期待値は保持し、不足した境界ケースを追加した。
-  - 差異: template 15件、regex 8件、encoding 9件を明示検証する。encodingの`detect-euc`は決定案Aの例としてPython期待値とRust結果を両方assertする。
+  - 件数: template 213、regex 77、encoding 257。既存ケースの期待値は保持し、不足した境界ケースを追加した。
+  - 差異: template 20件、regex 10件、encoding 23件を明示検証する。encodingの`detect-euc`は決定案Aの例としてPython期待値とRust結果を両方assertする。
+  - 別名: Windows-31J・cswindows31jはPythonにない別名。`input.python_codec`のcp932を参照codecとして比較する。
   - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
   - 出力: `python-baseline/unit-tests.*`、版一覧、lock、README。

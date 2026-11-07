@@ -2724,5 +2724,578 @@
     "expected": {
       "value": "%f"
     }
+  },
+  {
+    "name": "round2-numbers",
+    "input": {
+      "operation": "render",
+      "template": "{{ i }} {{ u }} {{ big }} {{ f }}",
+      "data": {
+        "i": -9223372036854775808,
+        "u": 18446744073709551615,
+        "big": 1208925819614629174706176,
+        "f": 1.25
+      }
+    },
+    "expected": {
+      "value": "-9223372036854775808 18446744073709551615 1208925819614629174706176 1.25"
+    }
+  },
+  {
+    "name": "round2-nested-numbers",
+    "input": {
+      "operation": "render",
+      "template": "{{ obj['items'][0] + 1 }} {{ obj['items'][1] * 2 }}",
+      "data": {
+        "obj": {
+          "items": [
+            42,
+            1.25
+          ]
+        }
+      }
+    },
+    "expected": {
+      "value": "43 2.5"
+    }
+  },
+  {
+    "name": "round2-beyond-i128",
+    "input": {
+      "operation": "render",
+      "template": "{{ big }}",
+      "data": {
+        "big": 1e+50
+      }
+    },
+    "expected": {
+      "value": "1e+50"
+    }
+  },
+  {
+    "name": "round2-request.json.get().n == 1180591620717411303424",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.json.get().n == 1180591620717411303424",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-request.json.get().nested[0] == 1.5",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.json.get().nested[0] == 1.5",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-request.form.get().n == 42",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.form.get().n == 42",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-'１２'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'１２'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 12
+    }
+  },
+  {
+    "name": "round2-'٣'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'٣'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 3
+    }
+  },
+  {
+    "name": "round2-'１.５'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'１.５'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1.5
+    }
+  },
+  {
+    "name": "round2-'0_7'|int(base=2)",
+    "input": {
+      "operation": "when",
+      "expression": "'0_7'|int(base=2)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "round2-none|int(default=7)",
+    "input": {
+      "operation": "when",
+      "expression": "none|int(default=7)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "round2-none|float(default=7.5)",
+    "input": {
+      "operation": "when",
+      "expression": "none|float(default=7.5)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7.5
+    }
+  },
+  {
+    "name": "round2-'１_０００'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'１_０００'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000.0
+    }
+  },
+  {
+    "name": "round2-{{ 1e20|string }} {{ 1e-5|string }} {{ 'NaN'|float|string }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e20|string }} {{ 1e-5|string }} {{ 'NaN'|float|string }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20 1e-05 nan"
+    }
+  },
+  {
+    "name": "round2-{{ [1e20, 1e-5, 'NaN'|float]|join('/') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1e20, 1e-5, 'NaN'|float]|join('/') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20/1e-05/nan"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': [1e20, {'z': 1e-5, 'a': '日本'}], 'a': 1}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': [1e20, {'z': 1e-5, 'a': '日本'}], 'a': 1}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"a\": 1, \"z\": [1e+20, {\"a\": \"\\u65e5\\u672c\", \"z\": 1e-05}]}"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': 1, 'a': {'b': 2, 'a': 1}}|tojson(2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': 1, 'a': {'b': 2, 'a': 1}}|tojson(2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\n  \"a\": {\n    \"a\": 1,\n    \"b\": 2\n  },\n  \"z\": 1\n}"
+    }
+  },
+  {
+    "name": "round2-{{ {10: 'ten', 2: 'two', True: 'one', -1: 'negative'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {10: 'ten', 2: 'two', True: 'one', -1: 'negative'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"-1\": \"negative\", \"true\": \"one\", \"2\": \"two\", \"10\": \"ten\"}"
+    }
+  },
+  {
+    "name": "round2-{{ {None: 'none'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {None: 'none'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"null\": \"none\"}"
+    }
+  },
+  {
+    "name": "round2-{{ {1: 'int', 'x': 'str'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {1: 'int', 'x': 'str'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "round2-{{ 'NaN'|float|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'NaN'|float|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "NaN"
+    }
+  },
+  {
+    "name": "round2-{{ 'abcdef'|truncate(4, True, '..', 0) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'abcdef'|truncate(4, True, '..', 0) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "ab.."
+    }
+  },
+  {
+    "name": "round2-{{ 'one two three'|wordwrap(7, True, '|', False) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two three'|wordwrap(7, True, '|', False) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "one two|three"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace('a', 'x', 2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace('a', 'x', 2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "xxaa"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace(old='a', new='x', count=2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace(old='a', new='x', count=2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "xxaa"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace('a') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace('a') }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "round2-{{ [1e20, 1e-5]|join(None) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1e20, 1e-5]|join(None) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20None1e-05"
+    }
+  },
+  {
+    "name": "round2-{{ 1024|filesizeformat(True) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1024|filesizeformat(True) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0 KiB"
+    }
+  },
+  {
+    "name": "round2-{{ ['b', 'A']|sort(True, True) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ ['b', 'A']|sort(True, True) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "['b', 'A']"
+    }
+  },
+  {
+    "name": "round2-{{ ['a', 'A', 'b']|unique(True)|list }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ ['a', 'A', 'b']|unique(True)|list }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "['a', 'A', 'b']"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': 1, 'a': 2}|dictsort(False, 'value', True)|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': 1, 'a': 2}|dictsort(False, 'value', True)|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "[[\"a\", 2], [\"z\", 1]]"
+    }
+  },
+  {
+    "name": "round2-{{ {'q': 'a b', 'x y': '/日本'}|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'q': 'a b', 'x y': '/日本'}|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "q=a+b&x+y=%2F%E6%97%A5%E6%9C%AC"
+    }
+  },
+  {
+    "name": "round2-{{ [('q', 'a b'), ('q', '/日本')]|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [('q', 'a b'), ('q', '/日本')]|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "q=a+b&q=%2F%E6%97%A5%E6%9C%AC"
+    }
+  },
+  {
+    "name": "round2-filter-bool",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|bool }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-chain",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|chain }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-lines",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|lines }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-split",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|split }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-zip",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|zip }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-startingwith",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is startingwith }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-endingwith",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is endingwith }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-safe",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is safe }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-difference-{{ 'n=' ~ 1e20 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'n=' ~ 1e20 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "n=1e+20"
+    },
+    "rust_expected": {
+      "value": "n=100000000000000000000.0"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ 1|round(2, 'floor') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1|round(2, 'floor') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0"
+    },
+    "rust_expected": {
+      "value": "1"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ true|abs }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ true|abs }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ [1, 2] * 1.0 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1, 2] * 1.0 }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": "[1, 2]"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ [{'key': 'b'}, {'key': 'A'}, {'key': 'a'}]|groupby('key') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [{'key': 'b'}, {'key': 'A'}, {'key': 'a'}]|groupby('key') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "[('A', [{'key': 'A'}, {'key': 'a'}]), ('b', [{'key': 'b'}])]"
+    },
+    "rust_expected": {
+      "value": "[['a', [{'key': 'A'}, {'key': 'a'}]], ['b', [{'key': 'b'}]]]"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
   }
 ]

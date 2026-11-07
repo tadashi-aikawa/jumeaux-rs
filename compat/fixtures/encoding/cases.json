@@ -2192,5 +2192,1049 @@
         }
       ]
     }
+  },
+  {
+    "name": "round2-encode-cp932-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "￢",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "81ca"
+    }
+  },
+  {
+    "name": "round2-encode-cp932-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "￢",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "81ca"
+    }
+  },
+  {
+    "name": "round2-encode-cp932-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "f040f07ef080f0fcf140f9fc"
+    }
+  },
+  {
+    "name": "round2-encode-cp932-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "f040f07ef080f0fcf140f9fc"
+    }
+  },
+  {
+    "name": "round2-encode-cp932-2-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ⅰ髙",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "eeefeee0"
+    }
+  },
+  {
+    "name": "round2-encode-cp932-2-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ⅰ髙",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "eeefeee0"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "1b24422141214221712172224c215d1b2842"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "1b24422141214221712172224c215d1b2842"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "～∥￠￡￢－",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "～∥￠￡￢－",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f3f3f3f3f3f"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-2-strict",
+    "input": {
+      "operation": "encode",
+      "text": "№",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-2-replace",
+    "input": {
+      "operation": "encode",
+      "text": "№",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-3-strict",
+    "input": {
+      "operation": "encode",
+      "text": "℡",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-3-replace",
+    "input": {
+      "operation": "encode",
+      "text": "℡",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-4-strict",
+    "input": {
+      "operation": "encode",
+      "text": "Ⅰ",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-4-replace",
+    "input": {
+      "operation": "encode",
+      "text": "Ⅰ",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-5-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ｱ",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-iso2022_jp-5-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ｱ",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "round2-encode-ansi_x3.4-1968-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "ansi_x3.4-1968",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "round2-encode-ansi_x3.4-1968-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "ansi_x3.4-1968",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "round2-encode-latin5-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "latin5",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-latin5-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "latin5",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-l5-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "l5",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-l5-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "l5",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-iso-8859-9-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "iso-8859-9",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-iso-8859-9-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ĞİŞğış",
+      "encoding": "iso-8859-9",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "d0dddef0fdfe80"
+    }
+  },
+  {
+    "name": "round2-encode-cp819-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "cp819",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-cp819-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "cp819",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-iso-ir-100-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "iso-ir-100",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-iso-ir-100-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "iso-ir-100",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-csisolatin1-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "csisolatin1",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-csisolatin1-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "csisolatin1",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-ibm819-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "ibm819",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-ibm819-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "é",
+      "encoding": "ibm819",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80e9"
+    }
+  },
+  {
+    "name": "round2-encode-koi8-r-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "abc",
+      "encoding": "koi8-r",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "616263"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: 専用対応のないcodecを拒否"
+  },
+  {
+    "name": "round2-encode-koi8-r-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "abc",
+      "encoding": "koi8-r",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "616263"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: 専用対応のないcodecを拒否"
+  },
+  {
+    "name": "round2-encode-gbk-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "abc",
+      "encoding": "gbk",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "616263"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: 専用対応のないcodecを拒否"
+  },
+  {
+    "name": "round2-encode-gbk-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "abc",
+      "encoding": "gbk",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "616263"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: 専用対応のないcodecを拒否"
+  },
+  {
+    "name": "round2-decode-cp932-81caf040f07ef080f0fcf140f9fc-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "81caf040f07ef080f0fcf140f9fc",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "￢"
+    }
+  },
+  {
+    "name": "round2-decode-cp932-81caf040f07ef080f0fcf140f9fc-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "81caf040f07ef080f0fcf140f9fc",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "￢"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24422141214221712172224c1b2842-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24422141214221712172224c1b2842",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "〜‖¢£¬"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24422141214221712172224c1b2842-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24422141214221712172224c1b2842",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "〜‖¢£¬"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24422d211b2842-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24422d211b2842",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24422d211b2842-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24422d211b2842",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    },
+    "rust_expected": {
+      "value": "��"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b244279211b2842-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b244279211b2842",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b244279211b2842-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b244279211b2842",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    },
+    "rust_expected": {
+      "value": "��"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24427c7e1b2842-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24427c7e1b2842",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b24427c7e1b2842-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b24427c7e1b2842",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    },
+    "rust_expected": {
+      "value": "��"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b2849311b2842-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b2849311b2842",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-iso2022_jp-1b2849311b2842-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b2849311b2842",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�1"
+    },
+    "rust_expected": {
+      "value": "���1"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-ansi_x3.4-1968-80-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80",
+      "encoding": "ansi_x3.4-1968",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-ansi_x3.4-1968-80-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80",
+      "encoding": "ansi_x3.4-1968",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "round2-decode-latin5-80d0dddef0fdfe-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80d0dddef0fdfe",
+      "encoding": "latin5",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "ĞİŞğış"
+    }
+  },
+  {
+    "name": "round2-decode-latin5-80d0dddef0fdfe-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80d0dddef0fdfe",
+      "encoding": "latin5",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "ĞİŞğış"
+    }
+  },
+  {
+    "name": "round2-decode-l5-80d0dddef0fdfe-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80d0dddef0fdfe",
+      "encoding": "l5",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "ĞİŞğış"
+    }
+  },
+  {
+    "name": "round2-decode-l5-80d0dddef0fdfe-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80d0dddef0fdfe",
+      "encoding": "l5",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "ĞİŞğış"
+    }
+  },
+  {
+    "name": "round2-decode-cp819-8091e9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "cp819",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-cp819-8091e9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "cp819",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-iso-ir-100-8091e9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "iso-ir-100",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-iso-ir-100-8091e9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "iso-ir-100",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-csisolatin1-8091e9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "csisolatin1",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-csisolatin1-8091e9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "csisolatin1",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-ibm819-8091e9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "ibm819",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-ibm819-8091e9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8091e9",
+      "encoding": "ibm819",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "é"
+    }
+  },
+  {
+    "name": "round2-decode-euc_jp-8fa2b7-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fa2b7",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "~"
+    },
+    "rust_expected": {
+      "value": "〜"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-euc_jp-8fa2b7-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fa2b7",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "~"
+    },
+    "rust_expected": {
+      "value": "〜"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-euc_jp-8fa2-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fa2",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-euc_jp-8fa2-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fa2",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    },
+    "rust_expected": {
+      "value": "��"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-euc_jp-8f-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8f",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-euc_jp-8f-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8f",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-8140-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8140",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-8140-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8140",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�@"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-8180-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8180",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-8180-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8180",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    },
+    "rust_expected": {
+      "value": "�"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-cp949-a180-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a180",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-a180-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a180",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    },
+    "rust_expected": {
+      "value": "�"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-decode-cp949-c680-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c680",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "round2-decode-cp949-c680-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c680",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    },
+    "rust_expected": {
+      "value": "�"
+    },
+    "difference": "compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置"
+  },
+  {
+    "name": "round2-alias-encode-Windows-31J",
+    "input": {
+      "operation": "encode",
+      "text": "￢ⅰ髙",
+      "encoding": "Windows-31J",
+      "errors": "strict",
+      "python_codec": "cp932"
+    },
+    "expected": {
+      "value": "81caeeefeee0f040f9fc"
+    }
+  },
+  {
+    "name": "round2-alias-decode-Windows-31J",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a0fd81caeeefeee0f040f9fc",
+      "encoding": "Windows-31J",
+      "errors": "strict",
+      "python_codec": "cp932"
+    },
+    "expected": {
+      "value": "￢ⅰ髙"
+    }
+  },
+  {
+    "name": "round2-alias-encode-cswindows31j",
+    "input": {
+      "operation": "encode",
+      "text": "￢ⅰ髙",
+      "encoding": "cswindows31j",
+      "errors": "strict",
+      "python_codec": "cp932"
+    },
+    "expected": {
+      "value": "81caeeefeee0f040f9fc"
+    }
+  },
+  {
+    "name": "round2-alias-decode-cswindows31j",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a0fd81caeeefeee0f040f9fc",
+      "encoding": "cswindows31j",
+      "errors": "strict",
+      "python_codec": "cp932"
+    },
+    "expected": {
+      "value": "￢ⅰ髙"
+    }
   }
 ]

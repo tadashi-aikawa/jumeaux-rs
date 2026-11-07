@@ -561,6 +561,111 @@ def main():
             file.write_bytes(body)
             add("encoding", name, {"operation": "plain_input", "body_hex": body.hex(), "encoding": encoding}, lambda: Plain({"encoding": encoding}).exec(Log2ReqsAddOnPayload.from_dict({"file": str(file)})).to_dicts())
 
+    # 2周目レビュー。arbitrary_precision有効下の数値入力とJinja2の引数契約。
+    for name, data, fmt in [
+        ("numbers", {"i": -2**63, "u": 2**64 - 1, "big": 2**80, "f": 1.25}, "{{ i }} {{ u }} {{ big }} {{ f }}"),
+        ("nested-numbers", {"obj": {"items": [42, 1.25]}}, "{{ obj['items'][0] + 1 }} {{ obj['items'][1] * 2 }}"),
+        ("beyond-i128", {"big": 1e50}, "{{ big }}"),
+    ]:
+        add("template", "round2-" + name, {"operation": "render", "template": fmt, "data": data}, lambda: utils.jinja2_format(fmt, data))
+    request_data = {"path": "/", "json": {"n": 2**70, "nested": [1.5]}, "form": {"n": 42}}
+    for expression in ("request.json.get().n == 1180591620717411303424", "request.json.get().nested[0] == 1.5", "request.form.get().n == 42"):
+        add("template", "round2-" + expression, {"operation": "request_when", "expression": expression, "request": request_data}, lambda: utils.when_filter(expression, {"request": Request.from_dict(request_data)}))
+    for expression in (
+        "'１２'|int", "'٣'|int", "'１.５'|float", "'0_7'|int(base=2)",
+        "none|int(default=7)", "none|float(default=7.5)", "'１_０００'|float",
+    ):
+        add("template", "round2-" + expression, {"operation": "when", "expression": expression, "data": {}}, lambda: utils.when_filter(expression, {}))
+    for fmt in (
+        "{{ 1e20|string }} {{ 1e-5|string }} {{ 'NaN'|float|string }}",
+        "{{ [1e20, 1e-5, 'NaN'|float]|join('/') }}",
+        "{{ {'z': [1e20, {'z': 1e-5, 'a': '日本'}], 'a': 1}|tojson }}",
+        "{{ {'z': 1, 'a': {'b': 2, 'a': 1}}|tojson(2) }}",
+        "{{ {10: 'ten', 2: 'two', True: 'one', -1: 'negative'}|tojson }}",
+        "{{ {None: 'none'}|tojson }}", "{{ {1: 'int', 'x': 'str'}|tojson }}",
+        "{{ 'NaN'|float|tojson }}",
+        "{{ 'abcdef'|truncate(4, True, '..', 0) }}",
+        "{{ 'one two three'|wordwrap(7, True, '|', False) }}",
+        "{{ 'aaaa'|replace('a', 'x', 2) }}",
+        "{{ 'aaaa'|replace(old='a', new='x', count=2) }}",
+        "{{ 'aaaa'|replace('a') }}", "{{ [1e20, 1e-5]|join(None) }}",
+        "{{ 1024|filesizeformat(True) }}",
+        "{{ ['b', 'A']|sort(True, True) }}",
+        "{{ ['a', 'A', 'b']|unique(True)|list }}",
+        "{{ {'z': 1, 'a': 2}|dictsort(False, 'value', True)|tojson }}",
+        "{{ {'q': 'a b', 'x y': '/日本'}|urlencode }}",
+        "{{ [('q', 'a b'), ('q', '/日本')]|urlencode }}",
+    ):
+        add("template", "round2-" + fmt, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}))
+    for name in ("bool", "chain", "lines", "split", "zip"):
+        fmt = "{{ x|" + name + " }}"
+        add("template", "round2-filter-" + name, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}))
+    for name in ("startingwith", "endingwith", "safe"):
+        fmt = "{{ x is " + name + " }}"
+        add("template", "round2-test-" + name, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}))
+    for fmt, rust in (
+        ("{{ 'n=' ~ 1e20 }}", {"value": "n=100000000000000000000.0"}),
+        ("{{ 1|round(2, 'floor') }}", {"value": "1"}),
+        ("{{ true|abs }}", {"error": "TypeError"}),
+        ("{{ [1, 2] * 1.0 }}", {"value": "[1, 2]"}),
+        ("{{ [{'key': 'b'}, {'key': 'A'}, {'key': 'a'}]|groupby('key') }}", {"value": "[['a', [{'key': 'A'}, {'key': 'a'}]], ['b', [{'key': 'b'}]]]"}),
+    ):
+        add("template", "round2-difference-" + fmt, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}), rust_expected=rust, difference="compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異")
+
+    for pattern in (r"a{2,1}", r"{1}", r"a{1}{2}", r"\G", r"(?U)a", r"(?R)", r"(*FAIL)", r"(?'n'a)", r"\K", r"(?P<n>a)\g<n>", r"[a-z--b]", r"[a-z~~b]"):
+        rejected = "--" in pattern or "~~" in pattern
+        add("regex", "round2-" + pattern, {"operation": "search", "pattern": pattern, "target": "aa"}, lambda: bool(re.search(pattern, "aa")), rust_expected={"error": "PatternError"} if rejected else None, difference="compat-spec.md: 集合演算に見える文字クラスを拒否" if rejected else None)
+    for pattern, target in [(r"(?i)a", "A"), (r"(a)\1", "aa"), (r"(a)\2", "aa"), (r"(?i:a)", "A")]:
+        add("regex", "round2-exact-" + pattern, {"operation": "exact_match", "pattern": pattern, "target": target}, lambda: utils.exact_match(target, pattern))
+    for pattern, target in [(r"(?i)(?m)^a$", "A"), (r"a(?i)b", "ab"), (r"(?a:\w+)\w", "a日"), (r"a{2,3}?", "aaa")]:
+        add("regex", "round2-search-" + pattern, {"operation": "search", "pattern": pattern, "target": target}, lambda: bool(re.search(pattern, target)))
+
+    for encoding, texts in [
+        ("cp932", ["￢", "\ue000\ue03e\ue03f\ue0bb\ue0bc\ue757", "ⅰ髙"]),
+        ("iso2022_jp", ["〜‖¢£¬−", "～∥￠￡￢－", "№", "℡", "Ⅰ", "ｱ"]),
+        ("ansi_x3.4-1968", ["é"]),
+        ("latin5", ["ĞİŞğış\x80"]), ("l5", ["ĞİŞğış\x80"]),
+        ("iso-8859-9", ["ĞİŞğış\x80"]),
+        ("cp819", ["\x80é"]), ("iso-ir-100", ["\x80é"]),
+        ("csisolatin1", ["\x80é"]), ("ibm819", ["\x80é"]),
+        ("koi8-r", ["abc"]), ("gbk", ["abc"]),
+    ]:
+        for index, text in enumerate(texts):
+            for errors in ("strict", "replace"):
+                unsupported = encoding in ("koi8-r", "gbk")
+                add("encoding", f"round2-encode-{encoding}-{index}-{errors}", {"operation": "encode", "text": text, "encoding": encoding, "errors": errors}, lambda: text.encode(encoding, errors=errors).hex(), rust_expected={"error": "LookupError"} if unsupported else None, difference="compat-spec.md: 専用対応のないcodecを拒否" if unsupported else None)
+    for encoding, bodies in [
+        ("cp932", ["81caf040f07ef080f0fcf140f9fc"]),
+        ("iso2022_jp", ["1b24422141214221712172224c1b2842", "1b24422d211b2842", "1b244279211b2842", "1b24427c7e1b2842", "1b2849311b2842"]),
+        ("ansi_x3.4-1968", ["80"]),
+        ("latin5", ["80d0dddef0fdfe"]), ("l5", ["80d0dddef0fdfe"]),
+        ("cp819", ["8091e9"]), ("iso-ir-100", ["8091e9"]),
+        ("csisolatin1", ["8091e9"]), ("ibm819", ["8091e9"]),
+        ("euc_jp", ["8fa2b7", "8fa2", "8f"]), ("cp949", ["8140", "8180", "a180", "c680"]),
+    ]:
+        for body_hex in bodies:
+            body = bytes.fromhex(body_hex)
+            for errors in ("strict", "replace"):
+                rust = None
+                if encoding == "euc_jp" and body_hex == "8fa2b7":
+                    rust = {"value": "〜"}
+                elif errors == "replace":
+                    if encoding == "euc_jp" and body_hex == "8fa2":
+                        rust = {"value": "��"}
+                    elif encoding == "iso2022_jp" and body_hex in ("1b24422d211b2842", "1b244279211b2842", "1b24427c7e1b2842"):
+                        rust = {"value": "��"}
+                    elif encoding == "iso2022_jp" and body_hex == "1b2849311b2842":
+                        rust = {"value": "���1"}
+                    elif encoding == "cp949" and body_hex in ("8180", "a180", "c680"):
+                        rust = {"value": "�"}
+                add("encoding", f"round2-decode-{encoding}-{body_hex}-{errors}", {"operation": "decode", "body_hex": body_hex, "encoding": encoding, "errors": errors}, lambda: body.decode(encoding, errors=errors), rust_expected=rust, difference="compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置" if rust else None)
+    # WHATWG名はPythonが登録していないため、cp932を参照codecとして比較する。
+    for alias in ("Windows-31J", "cswindows31j"):
+        text = "￢ⅰ髙\ue000\ue757"
+        body = bytes.fromhex("a0fd81caeeefeee0f040f9fc")
+        add("encoding", "round2-alias-encode-" + alias, {"operation": "encode", "text": text, "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: text.encode("cp932").hex())
+        add("encoding", "round2-alias-decode-" + alias, {"operation": "decode", "body_hex": body.hex(), "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: body.decode("cp932"))
+
     # retryの実処理を、送信直前の__runだけ差し替えて観測する。
     report = json.loads((ROOT / "compat/python-baseline/post/report.json").read_text())
     settings = {"judge_response_header": True, "ignore_response_header_keys": ["X-Ignore"]}

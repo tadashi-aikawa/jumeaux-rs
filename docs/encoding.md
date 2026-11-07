@@ -46,10 +46,11 @@
 | UTF-8-SIG | utf-8-sig、utf_8_sig | 先頭BOMだけ除く | BOMを付ける |
 | UTF-16 | utf-16、utf16、utf_16 | BOMでendianを選択。bytes単体でBOMなしならnative endian | native endianのBOMを付ける |
 | UTF-16 LE/BE | utf-16-le、utf-16-be、utf16le、utf16be | 指定endian。BOMも文字として保持 | BOMなし |
-| ASCII | ascii、us-ascii、646 | 0x80以上をstrictエラーまたはU+FFFD | 非ASCIIをstrictエラーまたは`?` |
-| Latin-1 | latin1、latin-1、iso-8859-1、iso8859-1、l1 | 0x00〜FFを同値のUnicodeへ | U+00FFまで。Windows-1252へは寄せない |
+| ASCII | ascii、us-ascii、646、ansi_x3.4-1968 | 0x80以上をstrictエラーまたはU+FFFD | 非ASCIIをstrictエラーまたは`?` |
+| Latin-1 | latin1、latin-1、iso-8859-1、iso8859-1、l1、cp819、iso-ir-100、csisolatin1、ibm819 | 0x00〜FFを同値のUnicodeへ | U+00FFまで。Windows-1252へは寄せない |
+| Latin-5 | latin5、l5、iso-8859-9、iso8859_9 | Latin-1との6文字の差を補正。0x80はU+0080 | 同じ対応表を逆引き。Windows-1254へは寄せない |
 | Shift_JIS | shift_jis、shiftjis、sjis、s_jis | JISの対応。0x8160はU+301C。CP932拡張を受理しない | JISの対応。CP932だけの文字をstrictエラーまたは`?` |
-| CP932 | cp932、ms932、mskanji、ms_kanji | 0x8160はU+FF5E。A0・FD〜FFはU+F8F0〜F8F3 | Python追加写像を補正。ⅰ・髙はEEEF・EEE0。¥・‾はstrictエラーか`?` |
+| CP932 | cp932、ms932、mskanji、ms_kanji、Windows-31J、cswindows31j | 0x8160はU+FF5E。A0・FD〜FFはU+F8F0〜F8F3 | ￢は81CA、ⅰ・髙はEEEF・EEE0。U+E000〜E757はF040〜F9FC。¥・‾はstrictエラーか`?` |
 | EUC-JP | euc-jp、euc_jp、eucjp、ujis | A1C1はU+301CなどJIS写像へ補正。NEC拡張を拒否 | JIS写像とJIS X 0212の3バイト列を生成 |
 | EUC-KR | euc_kr、euckr、ks_c_5601_1987、ksx1001 | KS X 1001とfiller付きjamoから音節を復元 | KS X 1001にないHangul音節はfillerと3つのjamoで表現 |
 | CP949 | cp949、ms949、uhc | encoding_rsのEUC_KR拡張込み | 同左 |
@@ -59,18 +60,31 @@
 | UTF-32 | utf-32、utf32、utf_32 | BOMでendianを選択。bytes単体のBOMなしはnative endian | native endianのBOMを付ける |
 | UTF-32 LE/BE | utf-32-le、utf-32-be、utf32le、utf32be | 指定endian。BOMも文字として保持 | BOMなし |
 | Windows-1252/1254 | windows-1252、windows-1254、cp1252、cp1254 | Pythonの未定義バイトはstrictエラーかU+FFFD | 未定義C1制御文字はstrictエラーか`?` |
-| ISO-2022-JP | iso2022_jp、iso-2022-jp、iso2022jp | 状態付きdecode | 状態を保ってencode。非対応文字はstrictエラーまたは`?` |
-| その他 | encoding_rsが受理するlabel | Encoding Standardの対応表 | 同左 |
-| 非対応 | encoding_rsにも専用アダプターにもないcodec | LookupError | LookupError |
+| ISO-2022-JP | iso2022_jp、iso-2022-jp、iso2022jp | JIS写像へ補正。13区・75〜7E行・ESC ( Iをstrictで拒否 | JIS写像へ補正して状態付きencode。№・℡・Ⅰ・半角カナはstrictエラーまたは`?` |
+| 非対応 | 上記の明示対応にないcodec。例: koi8-r、gbk、euc_jis_2004 | LookupError。WHATWGのlabelへfallbackしない | LookupError |
 | 明示拒否 | hz-gb-2312、iso-2022-kr、replacement | LookupError | LookupError |
 
 - 主な別名は大小を区別しない。
+- Windows-31J・cswindows31jは互換アダプター独自の別名としてCP932へ接続する。
+  - 検証: Pythonにはこの別名がないため、fixtureの`python_codec: cp932`を参照codecとして採取する。
 - decodeの指定codecは別種のBOMで上書きしない。
 - strictのエラー分類はUnicodeDecodeError・UnicodeEncodeError。
 - 表の外にあるPython固有codecの互換性は保証しない。
   - 例: EUC-JIS-2004は専用アダプター未実装。
 - CP932などの全Unicode対応表をPythonと網羅比較したものではない。
   - 検証: 日本語・波ダッシュ・NEC拡張・不正bytesをfixtureで固定する。
+
+## decodeの未決の差異
+
+| codec・入力bytes | 条件 | Python | Rust |
+| --- | --- | --- | --- |
+| EUC-JP `8FA2B7` | strict・replace | `~` | `〜` |
+| EUC-JP `8FA2` | replace | U+FFFD 1文字 | U+FFFD 2文字 |
+| CP949 `8180`・`A180`・`C680` | replace | U+FFFD 2文字 | U+FFFD 1文字 |
+| ISO-2022-JP `ESC $ B 2D21 ESC ( B`などのNEC拡張 | replace | U+FFFD 1文字 | U+FFFD 2文字 |
+| ISO-2022-JP `ESC ( I 31 ESC ( B` | replace | U+FFFD＋`1` | U+FFFD 3文字＋`1` |
+
+これらはJIS X 0212の写像と、不正列を消費した後の読み直し位置の差異。Python期待値を保持し、`rust_expected`でRustの現出力を固定する。
 
 ## 推定の差異
 

@@ -677,5 +677,233 @@
       "value": false
     },
     "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "round2-a{2,1}",
+    "input": {
+      "operation": "search",
+      "pattern": "a{2,1}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-{1}",
+    "input": {
+      "operation": "search",
+      "pattern": "{1}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-a{1}{2}",
+    "input": {
+      "operation": "search",
+      "pattern": "a{1}{2}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-\\G",
+    "input": {
+      "operation": "search",
+      "pattern": "\\G",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?U)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?U)a",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?R)",
+    "input": {
+      "operation": "search",
+      "pattern": "(?R)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(*FAIL)",
+    "input": {
+      "operation": "search",
+      "pattern": "(*FAIL)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?'n'a)",
+    "input": {
+      "operation": "search",
+      "pattern": "(?'n'a)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-\\K",
+    "input": {
+      "operation": "search",
+      "pattern": "\\K",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?P<n>a)\\g<n>",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)\\g<n>",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-[a-z--b]",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z--b]",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 集合演算に見える文字クラスを拒否"
+  },
+  {
+    "name": "round2-[a-z~~b]",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z~~b]",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 集合演算に見える文字クラスを拒否"
+  },
+  {
+    "name": "round2-exact-(?i)a",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(?i)a",
+      "target": "A"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-exact-(a)\\1",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(a)\\1",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-exact-(a)\\2",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(a)\\2",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-exact-(?i:a)",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(?i:a)",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-(?i)(?m)^a$",
+    "input": {
+      "operation": "search",
+      "pattern": "(?i)(?m)^a$",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-a(?i)b",
+    "input": {
+      "operation": "search",
+      "pattern": "a(?i)b",
+      "target": "ab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-search-(?a:\\w+)\\w",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a:\\w+)\\w",
+      "target": "a日"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-a{2,3}?",
+    "input": {
+      "operation": "search",
+      "pattern": "a{2,3}?",
+      "target": "aaa"
+    },
+    "expected": {
+      "value": true
+    }
   }
 ]
