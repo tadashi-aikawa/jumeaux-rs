@@ -8,17 +8,54 @@ use crate::{
     models::{OutputSummary, Report},
 };
 use std::io::{Seek, Write};
-use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, OnceLock},
+};
 
-static STDOUT: OnceLock<Mutex<EncodedWriter<std::io::Stdout>>> = OnceLock::new();
-static STDERR: OnceLock<Mutex<EncodedWriter<std::io::Stderr>>> = OnceLock::new();
+type Writers<W> = OnceLock<Mutex<HashMap<String, ProcessWriter<W>>>>;
+static STDOUT: Writers<std::io::Stdout> = OnceLock::new();
+static STDERR: Writers<std::io::Stderr> = OnceLock::new();
+
+/// encodingごとの共有ハンドル。ロックは各書き込みの間だけ保持する。
+pub struct ProcessWriter<W> {
+    inner: Arc<Mutex<EncodedWriter<W>>>,
+}
+impl<W> Clone for ProcessWriter<W> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
+    }
+}
+impl<W: Write> ProcessWriter<W> {
+    pub fn write_text(&self, text: &str) -> Result<()> {
+        self.inner
+            .lock()
+            .map_err(|_| stream_lock_error())?
+            .write_text(text)
+    }
+    pub fn flush(&self) -> Result<()> {
+        self.inner.lock().map_err(|_| stream_lock_error())?.flush()
+    }
+}
+fn stream_lock_error() -> Error {
+    Error::new("IOError", "output stream lock poisoned")
+}
 
 fn process_writer<W: Write>(
-    slot: &'static OnceLock<Mutex<EncodedWriter<W>>>,
+    slot: &Writers<W>,
     writer: W,
     output: &OutputSummary,
     position: Option<u64>,
-) -> Result<MutexGuard<'static, EncodedWriter<W>>> {
+) -> Result<ProcessWriter<W>> {
+    let mut writers = slot
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .map_err(|_| stream_lock_error())?;
+    if let Some(writer) = writers.get(&output.encoding) {
+        return Ok(writer.clone());
+    }
     let mut initial = EncodedWriter::new(writer, output)?;
     // TextIOWrapperはseek不能なpipe/TTYでUTF-16/32のBOMを書かない。
     // UTF-8-SIGはpipeでも書く。seek可能な出力先では位置0のときだけ書く。
@@ -27,17 +64,11 @@ fn process_writer<W: Write>(
         Some(position) => position != 0,
         None => !bom.is_empty() && bom != [0xef, 0xbb, 0xbf],
     };
-    let guard = slot
-        .get_or_init(|| Mutex::new(initial))
-        .lock()
-        .map_err(|_| Error::new("IOError", "output stream lock poisoned"))?;
-    if guard.encoding != output.encoding {
-        return Err(Error::new(
-            "ConfigError",
-            "process output encoding is already initialized",
-        ));
-    }
-    Ok(guard)
+    let writer = ProcessWriter {
+        inner: Arc::new(Mutex::new(initial)),
+    };
+    writers.insert(output.encoding.clone(), writer.clone());
+    Ok(writer)
 }
 
 #[cfg(unix)]
@@ -121,7 +152,7 @@ impl OutputSummary {
     pub fn writer<W: Write>(&self, writer: W) -> Result<EncodedWriter<W>> {
         EncodedWriter::new(writer, self)
     }
-    pub fn stdout(&self) -> Result<MutexGuard<'static, EncodedWriter<std::io::Stdout>>> {
+    pub fn stdout(&self) -> Result<ProcessWriter<std::io::Stdout>> {
         process_writer(
             &STDOUT,
             std::io::stdout(),
@@ -129,7 +160,7 @@ impl OutputSummary {
             stream_position(&std::io::stdout()),
         )
     }
-    pub fn stderr(&self) -> Result<MutexGuard<'static, EncodedWriter<std::io::Stderr>>> {
+    pub fn stderr(&self) -> Result<ProcessWriter<std::io::Stderr>> {
         process_writer(
             &STDERR,
             std::io::stderr(),

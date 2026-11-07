@@ -356,7 +356,8 @@ fn retry_fixture_restores_raw_and_requires_explicit_header_settings() {
     for case in cases.as_array().unwrap() {
         let report: Report = serde_json::from_value(case["input"]["report"].clone()).unwrap();
         let headers = serde_json::from_value(case["input"]["original_config"].clone()).unwrap();
-        let config = Config::from_report_with_headers(&report, headers).unwrap();
+        let (config, warnings) = Config::from_report_with_headers(&report, headers).unwrap();
+        assert!(warnings.is_empty());
         let trials: Vec<_> = report
             .trials
             .iter()

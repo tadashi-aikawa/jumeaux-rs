@@ -116,22 +116,25 @@ impl Config {
         }
     }
 
-    pub fn from_report(report: &Report) -> Result<Self> {
-        let headers = report.summary.comparison.clone().unwrap_or_else(|| {
-            eprintln!("warning: report.summary.comparison: missing; using Python defaults (false, Content-Length/Date)");
-            HeaderJudgementSettings::default()
-        });
-        Self::from_report_with_headers(report, headers)
+    /// 警告の表示は呼出元の責務とする。
+    pub fn from_report(report: &Report) -> Result<(Self, Vec<String>)> {
+        let headers = report.summary.comparison.clone().unwrap_or_default();
+        let (config, mut warnings) = Self::from_report_with_headers(report, headers)?;
+        if report.summary.comparison.is_none() {
+            warnings.insert(0, "report.summary.comparison: missing; using Python defaults (false, Content-Length/Date)".into());
+        }
+        Ok((config, warnings))
     }
 
     /// 元configを明示指定する呼出元向け。通常のretryは保存済みcomparisonを使う。
     pub fn from_report_with_headers(
         report: &Report,
         headers: HeaderJudgementSettings,
-    ) -> Result<Self> {
+    ) -> Result<(Self, Vec<String>)> {
+        let mut warnings = Vec::new();
         let mut output = report.summary.output.clone();
-        if output.logger.take().is_some() {
-            eprintln!("warning: report.summary.output.logger: ignored obsolete setting");
+        if output.logger.take().is_some_and(|value| !value.is_null()) {
+            warnings.push("report.summary.output.logger: ignored obsolete setting".into());
         }
         validate_output(&output)?;
         let addons = report
@@ -147,22 +150,25 @@ impl Config {
                 )?;
             }
         }
-        Ok(Self {
-            one: report.summary.one.clone(),
-            other: report.summary.other.clone(),
-            output,
-            threads: 1,
-            processes: None,
-            max_retries: max_retries(),
-            title: Some(report.title.clone()),
-            description: report.description.clone(),
-            tags: None,
-            input_files: None,
-            notifiers: report.notifiers.clone(),
-            addons,
-            judge_response_header: headers.judge_response_header,
-            ignore_response_header_keys: headers.ignore_response_header_keys,
-        })
+        Ok((
+            Self {
+                one: report.summary.one.clone(),
+                other: report.summary.other.clone(),
+                output,
+                threads: 1,
+                processes: None,
+                max_retries: max_retries(),
+                title: Some(report.title.clone()),
+                description: report.description.clone(),
+                tags: None,
+                input_files: None,
+                notifiers: report.notifiers.clone(),
+                addons,
+                judge_response_header: headers.judge_response_header,
+                ignore_response_header_keys: headers.ignore_response_header_keys,
+            },
+            warnings,
+        ))
     }
 
     /// CLIのtruthy判定は項目ごとに異なる。threads/max_retriesは0も上書きする。
@@ -232,12 +238,47 @@ pub(crate) fn invalid(path: &str, message: impl std::fmt::Display) -> Error {
 
 fn read_yaml(path: &Path) -> Result<Value> {
     let text = fs::read_to_string(path).map_err(|e| invalid(&path.display().to_string(), e))?;
-    let mut yaml: serde_yaml_ng::Value =
+    let mut yaml: Value =
         serde_yaml_ng::from_str(&text).map_err(|e| invalid(&path.display().to_string(), e))?;
-    yaml.apply_merge()
-        .map_err(|e| invalid(&path.display().to_string(), e))?;
-    // JSONからYAMLへの直列化を経由しないためarbitrary_precisionの内部mapは漏れない。
-    Value::deserialize(yaml).map_err(|e| invalid(&path.display().to_string(), e))
+    expand_yaml_merges(&mut yaml, &path.display().to_string())?;
+    Ok(yaml)
+}
+
+/// JSON Valueへの直接読込は重複キーを後勝ちにする。YAMLのマージだけを追加する。
+fn expand_yaml_merges(value: &mut Value, path: &str) -> Result<()> {
+    match value {
+        Value::Object(map) => {
+            let merge = map.remove("<<");
+            for (key, value) in map.iter_mut() {
+                expand_yaml_merges(value, &error_path(path, key))?;
+            }
+            if let Some(mut merge) = merge {
+                let merge_path = error_path(path, "<<");
+                expand_yaml_merges(&mut merge, &merge_path)?;
+                let sources = match merge {
+                    Value::Object(source) => vec![Value::Object(source)],
+                    Value::Array(sources) => sources,
+                    _ => return Err(invalid(&merge_path, "expected mapping or list of mappings")),
+                };
+                for source in sources {
+                    let Value::Object(source) = source else {
+                        return Err(invalid(&merge_path, "expected mapping in merge list"));
+                    };
+                    for (key, value) in source {
+                        // 明示キーが最優先。マージリストは先頭のマッピングを優先する。
+                        map.entry(key).or_insert(value);
+                    }
+                }
+            }
+        }
+        Value::Array(values) => {
+            for (index, value) in values.iter_mut().enumerate() {
+                expand_yaml_merges(value, &format!("{path}[{index}]"))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 /// includeだけをファイル単位で解決する。キー・名前・型の検証はマージ後。
@@ -338,7 +379,7 @@ pub fn load<P: AsRef<Path>>(paths: &[P], skip_tags: &[String]) -> Result<Config>
         if merged
             .get("output")
             .and_then(Value::as_object)
-            .is_some_and(|o| o.contains_key("logger"))
+            .is_some_and(|o| o.get("logger").is_some_and(|v| !v.is_null()))
         {
             return Err(invalid(
                 "output.logger",

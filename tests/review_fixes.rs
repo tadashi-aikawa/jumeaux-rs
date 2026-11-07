@@ -70,7 +70,9 @@ fn python_review_regressions() {
                     }
                 );
                 assert!(warnings.iter().all(|w| w.starts_with("report.")));
-                let config = Config::from_report(&report).unwrap();
+                let (config, warnings) = Config::from_report(&report).unwrap();
+                assert_eq!(warnings.len(), 1);
+                assert!(warnings[0].contains("summary.comparison"));
                 assert_eq!(config.comparison(), HeaderJudgementSettings::default());
                 assert!(config.output.logger.is_none());
                 // 通常のserde入口も同じ未知キー処理を通る。
@@ -147,7 +149,7 @@ fn retry_round_trips_comparison_and_old_reports_default() {
         .unwrap();
     let mut report: Report = serde_json::from_value(case["input"].clone()).unwrap();
     assert_eq!(
-        Config::from_report(&report).unwrap().comparison(),
+        Config::from_report(&report).unwrap().0.comparison(),
         HeaderJudgementSettings::default()
     );
     let headers = HeaderJudgementSettings {
@@ -167,7 +169,9 @@ fn retry_round_trips_comparison_and_old_reports_default() {
         serde_json::to_value(&headers).unwrap()
     );
     let reread: Report = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(Config::from_report(&reread).unwrap().comparison(), headers);
+    let (config, warnings) = Config::from_report(&reread).unwrap();
+    assert_eq!(config.comparison(), headers);
+    assert!(warnings.is_empty());
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -217,14 +221,18 @@ fn output_stream_child() {
         encoding,
         logger: None,
     };
+    let first_stdout = output.stdout().unwrap();
+    let first_stderr = output.stderr().unwrap();
     for chunk in ["日本", "語\n"] {
-        // 呼び出しごとにguardを解放し、再取得する。
-        let mut stdout = output.stdout().unwrap();
+        // 最初のハンドルを持ったまま再取得する。
+        let stdout = output.stdout().unwrap();
         stdout.write_text(chunk).unwrap();
         stdout.flush().unwrap();
-        let mut stderr = output.stderr().unwrap();
+        let stderr = output.stderr().unwrap();
         stderr.write_text(chunk).unwrap();
         stderr.flush().unwrap();
     }
+    first_stdout.flush().unwrap();
+    first_stderr.flush().unwrap();
     eprintln!("ログ");
 }

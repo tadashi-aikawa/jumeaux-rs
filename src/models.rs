@@ -6,6 +6,7 @@ use serde_json::{Map, Value};
 use std::sync::Arc;
 
 pub(crate) mod defaults;
+mod report_fields;
 pub use crate::diff::DiffKeys;
 use defaults::{null_default, null_default_with};
 pub type Object = Map<String, Value>;
@@ -449,58 +450,18 @@ impl Report {
     pub fn from_value_with_warnings(
         mut value: Value,
     ) -> crate::compat::Result<(Self, Vec<String>)> {
-        let mut warnings = Vec::new();
-        if let Some(output) = value
-            .pointer_mut("/summary/output")
-            .and_then(Value::as_object_mut)
-            && output.remove("logger").is_some()
-        {
-            warnings.push("report.summary.output.logger: ignored obsolete setting".into());
-        }
-        loop {
-            match serde_path_to_error::deserialize::<_, ReportFields>(&value) {
-                Ok(report) => return Ok((report.into(), warnings)),
-                Err(error) => {
-                    // 型・必須キーのエラーは緩めない。未知キーだけをモデルの定義から判定する。
-                    if !error.inner().to_string().starts_with("unknown field `") {
-                        return Err(crate::config::invalid(
-                            &crate::config::error_path("report", &error.path().to_string()),
-                            error.inner(),
-                        ));
-                    }
-                    let segments: Vec<_> = error.path().iter().collect();
-                    let mut parent = &mut value;
-                    for segment in &segments[..segments.len().saturating_sub(1)] {
-                        parent = match segment {
-                            serde_path_to_error::Segment::Map { key } => &mut parent[key],
-                            serde_path_to_error::Segment::Seq { index } => &mut parent[*index],
-                            _ => return Err(crate::config::invalid("report", error.inner())),
-                        };
-                    }
-                    let removed = match (parent.as_object_mut(), segments.last()) {
-                        (Some(map), Some(serde_path_to_error::Segment::Map { key })) => {
-                            map.remove(key).is_some()
-                        }
-                        _ => false,
-                    };
-                    if !removed {
-                        return Err(crate::config::invalid("report", error.inner()));
-                    }
-                    warnings.push(format!("report.{}: ignored unknown key", error.path()));
-                }
-            }
-        }
+        let warnings = report_fields::prune(&mut value);
+        let fields: ReportFields = crate::config::deserialize(&value, "report")?;
+        Ok((fields.into(), warnings))
     }
 }
 
 impl<'de> Deserialize<'de> for Report {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // serdeの入口には副作用を持たせない。警告が必要なCLIは明示APIを使う。
         let value = Value::deserialize(deserializer)?;
-        let (report, warnings) =
+        let (report, _) =
             Self::from_value_with_warnings(value).map_err(serde::de::Error::custom)?;
-        for warning in warnings {
-            eprintln!("warning: {warning}");
-        }
         Ok(report)
     }
 }

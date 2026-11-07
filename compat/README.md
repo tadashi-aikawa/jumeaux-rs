@@ -15,6 +15,7 @@ compat/
 │   ├── config/          マージ・includeの入力YAML
 │   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
 │   ├── review-fixes.json null・YAMLマージ・report読込・34アドオン設定の回帰fixture
+│   ├── review-round2.json 重複キー・マージ優先順位・null logger・report走査の回帰fixture
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
 ├── gen/                 Python版からのfixture・環境情報生成
 └── harness/             バイナリ差し替え、記録用受信先、比較規則
@@ -148,6 +149,13 @@ diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
   - エラー: Python例外とRustのデシリアライズエラーを必須欠落・型違反・未知キーで対応付ける。
   - 実行: `cargo test --test review_fixes -- --nocapture`。
   - 再採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/review_fixes.py` を一時ファイルへ出力して比較する。
+- `review-round2.json` は10件。
+  - Python一致: 9件。重複キーとマージの優先順位、null logger、reportの既知キー保持・未知キー除去を検証する。
+  - 意図的な差異: 1件。非nullのlogger設定を拒否する。
+  - 性能: 8,000 trialへ展開するfixtureで、未知キー除去とモデル生成が1秒未満であることを確認する。JSON解析時間も別途表示する。
+  - 並列性: 出力ハンドルの再取得・別encodingの併用・16スレッドの書き込みを検証する。ライブラリが警告を直接出力しないことも確認する。
+  - 実行: `cargo test --test review_round2 -- --nocapture`。
+  - 再採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/review_round2.py` を一時ファイルへ出力して比較する。
 - CLIのrun/retryは引き続きスケルトン。
   - 残件: HTTP・各アドオン本体・CLI接続後にE2Eハーネスを実行する。
 

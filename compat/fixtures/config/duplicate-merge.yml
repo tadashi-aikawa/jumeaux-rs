@@ -1,0 +1,25 @@
+one: &ep
+  name: One
+  host: http://localhost/first
+  host: http://localhost/last
+  headers: {X-Duplicate: first, X-Duplicate: last}
+other:
+  name: Early
+  <<: [*ep, {name: Fallback, host: http://localhost/unused, query: {remove: [x]}}]
+  name: Other
+output: {response_dir: responses}
+threads: 2
+threads: 3
+addons:
+  log2reqs:
+    name: plain
+    config: {encoding: ascii, encoding: utf8}
+  reqs2reqs:
+    - name: head
+      config:
+        size: 1
+        <<: [{size: 2}, {size: 3}]
+        size: 4
+    - name: repeat
+      config:
+        <<: [{times: 2}, {times: 3}]
