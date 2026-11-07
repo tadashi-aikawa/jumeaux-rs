@@ -26,6 +26,8 @@ struct ExplicitElements<S> {
     after_body: Rc<Cell<bool>>,
     after_html: Cell<bool>,
     in_head: Cell<bool>,
+    head_started: Cell<bool>,
+    head_text: Cell<bool>,
 }
 
 impl<S: TokenSink> TokenSink for ExplicitElements<S> {
@@ -45,16 +47,61 @@ impl<S: TokenSink> TokenSink for ExplicitElements<S> {
                 self.after_html.set(true);
             }
         }
+        if let Token::CharacterTokens(text) = &token
+            && !self.head_text.get()
+            && !text.trim().is_empty()
+        {
+            self.in_head.set(false);
+        }
         if let Token::TagToken(tag) = &mut token {
             if tag.name.as_ref() == "head" {
                 self.in_head.set(tag.kind == TagKind::StartTag);
+                self.head_started.set(true);
             }
-            if tag.name.as_ref() == "body" {
+            if matches!(tag.name.as_ref(), "title" | "script" | "style") {
+                self.head_text
+                    .set(tag.kind == TagKind::StartTag && !tag.self_closing);
+            }
+            if tag.kind == TagKind::StartTag
+                && !matches!(
+                    tag.name.as_ref(),
+                    "html"
+                        | "head"
+                        | "base"
+                        | "basefont"
+                        | "bgsound"
+                        | "link"
+                        | "meta"
+                        | "title"
+                        | "script"
+                        | "style"
+                        | "noscript"
+                        | "template"
+                )
+            {
                 self.in_head.set(false);
+            }
+            if tag.kind == TagKind::StartTag
+                && matches!(
+                    tag.name.as_ref(),
+                    "base"
+                        | "basefont"
+                        | "bgsound"
+                        | "link"
+                        | "meta"
+                        | "title"
+                        | "script"
+                        | "style"
+                )
+                && self.in_head.get()
+            {
+                self.head_started.set(true);
             }
             if tag.name.as_ref() == "noscript" {
                 if tag.kind == TagKind::StartTag {
-                    if !self.in_head.get() {
+                    // noscript単独ではlxmlはbodyを補完する。先行するhead要素があればhead内。
+                    if !self.in_head.get() || !self.head_started.get() {
+                        self.in_head.set(false);
                         let body = html5ever::tokenizer::Tag {
                             kind: TagKind::StartTag,
                             name: "body".into(),
@@ -303,7 +350,7 @@ fn convert_element(
                 .prefix
                 .as_ref()
                 .map_or_else(|| name.local.to_string(), |p| format!("{p}:{}", name.local));
-            (name, value.to_string())
+            (name.to_ascii_lowercase(), value.to_string())
         })
         .collect();
     attrs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -311,7 +358,10 @@ fn convert_element(
         .attrs
         .iter()
         .find(|(name, _)| name.ns.as_ref() == MARKER_NS && name.local.as_ref() == "original")
-        .map_or_else(|| source.name().to_string(), |(_, value)| value.to_string());
+        .map_or_else(
+            || source.name().to_ascii_lowercase(),
+            |(_, value)| value.to_string(),
+        );
     for (key, value) in &mut attrs {
         if is_list_attribute(&name, key) {
             *value = value.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -476,7 +526,7 @@ fn render(element: &Element, depth: usize, inline: bool, output: &mut String) {
                         output.push_str(&" ".repeat(depth + 1));
                     }
                     output.push_str("<!--");
-                    output.push_str(if preserve { text } else { text.trim() });
+                    output.push_str(text);
                     output.push_str("-->");
                     if !preserve {
                         output.push('\n');
@@ -519,7 +569,9 @@ pub fn pretty(input: &str) -> Result<String, Error> {
             next_id: Cell::new(0),
             after_body,
             after_html: Cell::new(false),
-            in_head: Cell::new(false),
+            in_head: Cell::new(true),
+            head_started: Cell::new(false),
+            head_text: Cell::new(false),
         },
         input,
     );

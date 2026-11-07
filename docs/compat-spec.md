@@ -127,14 +127,16 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 未決
 
-- HTML/XMLの先行実装では203fixture中168件がPythonと完全一致する。
-  - 差異: 以下の35件は許容を決定したものではない。`tests/markup_differences.json`にRustの現出力を固定し、Python期待値との不一致も検証する。
-  - 維持: レビュー前の110件のPython期待値は変更していない。
+- HTML/XMLの先行実装では221fixture中179件がPythonと完全一致する。
+  - 差異: 以下の42件は許容を決定したものではない。`tests/markup_differences.json`にRustの現出力を固定し、Python期待値との不一致も検証する。
+  - 維持: 2周目レビュー前の203件のPython期待値は変更していない。
 - APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
   - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
   - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
 - table内テキストの移動と不正なインラインタグの複製は修正済み。
   - 検証: 以前の4差異fixtureもPython期待値と一致する。
+- コメント前後の空白とSVG・MathML名の大小は修正済み。
+  - 検証: 以前の3差異fixtureもPython期待値と一致する。空コメントの差異は引き続き未決。
 
 以下の出力はfixtureと同じ`value`または`error`のJSONで示す。dump文字列の改行・空白はJSONエスケープで保持する。
 
@@ -259,23 +261,6 @@ prettyのRust出力:
 {"value":"<?xml version=\"1.0\" ?>\n<r a=\"&amp;amp;\">&amp;amp;</r>\n"}
 ```
 
-### HTMLのコメント前後の空白
-
-- 入力: `<p>a<!--  comment  -->b</p>`
-- 理由: dump/htmlでコメント前後の空白をtrimする。
-
-prettyのPython出力:
-
-```json
-{"value":"<html>\n <body>\n  <p>\n   a\n   <!--  comment  -->\n   b\n  </p>\n </body>\n</html>\n"}
-```
-
-prettyのRust出力:
-
-```json
-{"value":"<html>\n <body>\n  <p>\n   a\n   <!--comment-->\n   b\n  </p>\n </body>\n</html>\n"}
-```
-
 ### HTMLの空コメント
 
 - 入力: `<p>a<!---->b</p>`
@@ -291,40 +276,6 @@ prettyのRust出力:
 
 ```json
 {"value":"<html>\n <body>\n  <p>\n   a\n   <!---->\n   b\n  </p>\n </body>\n</html>\n"}
-```
-
-### HTMLのSVG名の大小
-
-- 入力: `<svg viewBox="0 0 10 10"><linearGradient/></svg>`
-- 理由: HTML5はSVGの要素名・属性名をキャメルケースへ補正する。
-
-prettyのPython出力:
-
-```json
-{"value":"<html>\n <body>\n  <svg viewbox=\"0 0 10 10\">\n   <lineargradient>\n   </lineargradient>\n  </svg>\n </body>\n</html>\n"}
-```
-
-prettyのRust出力:
-
-```json
-{"value":"<html>\n <body>\n  <svg viewBox=\"0 0 10 10\">\n   <linearGradient>\n   </linearGradient>\n  </svg>\n </body>\n</html>\n"}
-```
-
-### HTMLのMathML名の大小
-
-- 入力: `<math definitionURL="x"><mi>x</mi></math>`
-- 理由: HTML5はMathMLの属性名をキャメルケースへ補正する。
-
-prettyのPython出力:
-
-```json
-{"value":"<html>\n <body>\n  <math definitionurl=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"}
-```
-
-prettyのRust出力:
-
-```json
-{"value":"<html>\n <body>\n  <math definitionURL=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"}
 ```
 
 ### HTML5の木構造: h1内のh2
@@ -606,6 +557,151 @@ dictのRust出力:
 {"value":{"html":{"head":{"template":{"p":{"##value":"x"}}}}}}
 ```
 
+### HTMLのDOCTYPEなしでのp・table
+
+- 入力: `<p>a<table><tr><td>x</td></tr></table></p>`
+- 理由: DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"p":{"##value":"a"},"table":{"tr":{"td":{"##value":"x"}}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"p":{"##value":"a","table":{"tr":{"td":{"##value":"x"}}}}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"}
+```
+
+### HTML 4.01 Transitionalでのp・table
+
+- 入力: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><p>a<table><tr><td>x</td></tr></table></p>`
+- 理由: HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"p":{"##value":"a"},"table":{"tr":{"td":{"##value":"x"}}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"p":{"##value":"a","table":{"tr":{"td":{"##value":"x"}}}}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"}
+```
+
+### HTMLの開いた要素内にあるbody終了タグ
+
+- 入力: `<body><div>a</body>b</div>`
+- 理由: body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"##value":"b","body":{"div":{"##value":"a"}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"div":{"##value":"ab"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <div>\n   a\n  </div>\n </body>\n b\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <div>\n   ab\n  </div>\n </body>\n</html>\n"}
+```
+
+### HTMLの自己終了head後のtitle
+
+- 入力: `<head/><title>t</title>`
+- 理由: HTML5はhead終了後のtitleをheadへ戻す。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"head":{},"title":{"##value":"t"}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"head":{"title":{"##value":"t"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <head>\n </head>\n <title>\n  t\n </title>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n</html>\n"}
+```
+
+### XMLのATTLIST既定値中の不正な文字
+
+- 入力: `<!DOCTYPE r [<!ATTLIST r a CDATA "<x>">]><r/>`
+- 理由: ATTLIST宣言の既定値を解釈しないため、値に`<`を含む不正な宣言を拒否しない。
+
+dictのPython出力:
+
+```json
+{"error":"ExpatError"}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"r":null}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"Include invalid token\n\n        <!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>\n        "}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r/>\n"}
+```
+
 ### HTML/XMLの深さ上限
 
 - RustはXMLを1000要素まで、HTMLをルートのhtmlを0とする深さ1000まで処理する。
@@ -642,7 +738,8 @@ dictのRust出力:
   - dict本文: xmltodictに合わせて一般エンティティ展開を無効にする。この経路の本文は展開量に加算しない。
   - 上限: エンティティ再帰は1000まで。循環はエラーとする。
 - 外部DTD・外部エンティティはネットワークやファイルから読み込まない。
-  - 互換: SYSTEM/PUBLIC付き外部DTDで未定義参照がある場合、dictは空にし、dumpはinvalid token文字列を返す。
+  - 互換: SYSTEM/PUBLIC付き外部DTDの未定義参照は、属性ではdict・dumpとも読み飛ばす。本文ではdictは読み飛ばし、dumpはinvalid token文字列を返す。
+  - 検証: `external-dtd-attribute`は属性の`before&missing;after`が`beforeafter`となることを比較する。本文の既存fixtureも継続して検証する。
 - DTD内のパラメーターエンティティ宣言は読み飛ばす。
   - 境界: DTD全体やパラメーターエンティティの展開を実装したものではない。
 

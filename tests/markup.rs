@@ -170,8 +170,8 @@ fn xml_pretty_fixtures() {
 fn fixture_manifest_has_no_duplicates_or_unused_differences() {
     let cases = fixtures();
     let differences = differences();
-    assert_eq!(cases.len(), 203);
-    assert_eq!(differences.len(), 35);
+    assert_eq!(cases.len(), 221);
+    assert_eq!(differences.len(), 42);
     let mut keys = std::collections::HashSet::new();
     for case in &cases {
         let (format, operation, _) = key(case);

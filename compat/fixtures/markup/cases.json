@@ -1107,6 +1107,176 @@
     }
   },
   {
+    "name": "implicit-head-noscript",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title><noscript><link rel=\"stylesheet\" href=\"x\"></noscript><p>x</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            },
+            "noscript": {
+              "link": {
+                "#href": "x",
+                "#rel": "stylesheet",
+                "##value": ""
+              }
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "x"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-ended-by-text",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title>body<noscript><b>x</b></noscript>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            }
+          },
+          "body": {
+            "##value": "body",
+            "noscript": {
+              "b": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-ended-by-element",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title><p>x</p><noscript><b>y</b></noscript>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "x"
+            },
+            "noscript": {
+              "b": {
+                "##value": "y"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "quirks-paragraph-table",
+    "input": {
+      "format": "html",
+      "body": "<p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a"
+            },
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "transitional-paragraph-table",
+    "input": {
+      "format": "html",
+      "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a"
+            },
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "body-end-in-element",
+    "input": {
+      "format": "html",
+      "body": "<body><div>a</body>b</div>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "##value": "b",
+          "body": {
+            "div": {
+              "##value": "a"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "self-closing-head-title",
+    "input": {
+      "format": "html",
+      "body": "<head/><title>t</title>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {},
+          "title": {
+            "##value": "t"
+          }
+        }
+      }
+    }
+  },
+  {
     "name": "mixed-text",
     "input": {
       "format": "xml",
@@ -1619,6 +1789,30 @@
           "@a": "&"
         }
       }
+    }
+  },
+  {
+    "name": "external-dtd-attribute",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r SYSTEM \"fixture.dtd\"><r a=\"before&missing;after\"/>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "beforeafter"
+        }
+      }
+    }
+  },
+  {
+    "name": "invalid-dtd-default",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>"
+    },
+    "expected": {
+      "error": "ExpatError"
     }
   },
   {
@@ -2250,6 +2444,83 @@
     }
   },
   {
+    "name": "dump-implicit-head-noscript",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title><noscript><link rel=\"stylesheet\" href=\"x\"></noscript><p>x</p>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n  <noscript>\n   <link href=\"x\" rel=\"stylesheet\"/>\n  </noscript>\n </head>\n <body>\n  <p>\n   x\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-ended-by-text",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title>body<noscript><b>x</b></noscript>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n <body>\n  body\n  <noscript>\n   <b>\n    x\n   </b>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-ended-by-element",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title><p>x</p><noscript><b>y</b></noscript>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n <body>\n  <p>\n   x\n  </p>\n  <noscript>\n   <b>\n    y\n   </b>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-quirks-paragraph-table",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-transitional-paragraph-table",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-body-end-in-element",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<body><div>a</body>b</div>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n   a\n  </div>\n </body>\n b\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-self-closing-head-title",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<head/><title>t</title>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n </head>\n <title>\n  t\n </title>\n</html>\n"
+    }
+  },
+  {
     "name": "dump-mixed-text",
     "input": {
       "operation": "pretty",
@@ -2687,6 +2958,28 @@
     },
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r a=\"&amp;\">&amp;</r>\n"
+    }
+  },
+  {
+    "name": "dump-external-dtd-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r SYSTEM \"fixture.dtd\"><r a=\"before&missing;after\"/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"beforeafter\"/>\n"
+    }
+  },
+  {
+    "name": "dump-invalid-dtd-default",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>\n        "
     }
   },
   {

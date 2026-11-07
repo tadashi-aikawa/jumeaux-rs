@@ -94,8 +94,8 @@ cargo test --test markup -- --nocapture
 ```
 
 - `input.operation`が`pretty`のケースはdumpの整形文字列を比較する。省略時はdict化。
-- 203件中168件はPython期待値と完全一致する。
-- 未決の35件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
+- 221件中179件はPython期待値と完全一致する。
+- 未決の42件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
   - 規則: Python期待値は変更しない。差異の重複・未使用・理由欠落・解消済みの差異はテストで検出する。
   - 詳細: [互換仕様の未決](../docs/compat-spec.md#未決)。
 - 条件式付き2件はdictの参照と比較を検証する。

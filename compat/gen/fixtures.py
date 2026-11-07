@@ -164,6 +164,13 @@ def main():
         ("second-body", '<body id="first">a<body class="second">b</body>'),
         ("plaintext", '<plaintext>a<b>b</b>'),
         ("head-template", '<template><p>x</p></template>'),
+        ("implicit-head-noscript", '<title>t</title><noscript><link rel="stylesheet" href="x"></noscript><p>x</p>'),
+        ("head-ended-by-text", '<title>t</title>body<noscript><b>x</b></noscript>'),
+        ("head-ended-by-element", '<title>t</title><p>x</p><noscript><b>y</b></noscript>'),
+        ("quirks-paragraph-table", '<p>a<table><tr><td>x</td></tr></table></p>'),
+        ("transitional-paragraph-table", '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><p>a<table><tr><td>x</td></tr></table></p>'),
+        ("body-end-in-element", '<body><div>a</body>b</div>'),
+        ("self-closing-head-title", '<head/><title>t</title>'),
     ]
     for name, body in html_cases:
         data = {"format": "html", "body": body}
@@ -211,6 +218,8 @@ def main():
         ("dtd-fixed-attribute", '<!DOCTYPE r [<!ATTLIST r a CDATA #FIXED "fixed">]><r/>'),
         ("non-ascii-element", '<日本語>本文</日本語>'),
         ("entity-amp-number", '<!DOCTYPE r [<!ENTITY x "&#38;amp;">]><r a="&x;">&x;</r>'),
+        ("external-dtd-attribute", '<!DOCTYPE r SYSTEM "fixture.dtd"><r a="before&missing;after"/>'),
+        ("invalid-dtd-default", '<!DOCTYPE r [<!ATTLIST r a CDATA "<x>">]><r/>'),
     ]
     for name, body in xml_cases:
         add("markup", name, {"format": "xml", "body": body}, lambda: XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get())

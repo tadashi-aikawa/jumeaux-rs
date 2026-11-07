@@ -191,15 +191,6 @@
   {
     "format": "html",
     "operation": "pretty",
-    "name": "dump-comment-padding",
-    "reason": "dump/htmlでコメント前後の空白をtrimする。docs/compat-spec.mdの未決を参照。",
-    "expected": {
-      "value": "<html>\n <body>\n  <p>\n   a\n   <!--comment-->\n   b\n  </p>\n </body>\n</html>\n"
-    }
-  },
-  {
-    "format": "html",
-    "operation": "pretty",
     "name": "dump-empty-comment",
     "reason": "dump/htmlで空コメントに空白を補わない。docs/compat-spec.mdの未決を参照。",
     "expected": {
@@ -231,15 +222,6 @@
     "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの未決を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <isindex prompt=\"x\">\n   after\n  </isindex>\n </body>\n</html>\n"
-    }
-  },
-  {
-    "format": "html",
-    "operation": "pretty",
-    "name": "dump-mathml-case",
-    "reason": "HTML5はMathMLの属性名をキャメルケースへ補正する。docs/compat-spec.mdの未決を参照。",
-    "expected": {
-      "value": "<html>\n <body>\n  <math definitionURL=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"
     }
   },
   {
@@ -285,15 +267,6 @@
     "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの未決を参照。",
     "expected": {
       "value": "<html>\n <body class=\"second\" id=\"first\">\n  ab\n </body>\n</html>\n"
-    }
-  },
-  {
-    "format": "html",
-    "operation": "pretty",
-    "name": "dump-svg-case",
-    "reason": "HTML5はSVGの要素名・属性名をキャメルケースへ補正する。docs/compat-spec.mdの未決を参照。",
-    "expected": {
-      "value": "<html>\n <body>\n  <svg viewBox=\"0 0 10 10\">\n   <linearGradient>\n   </linearGradient>\n  </svg>\n </body>\n</html>\n"
     }
   },
   {
@@ -425,6 +398,144 @@
     "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
     "expected": {
       "error": "LimitExceeded"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "quirks-paragraph-table",
+    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a",
+              "table": {
+                "tr": {
+                  "td": {
+                    "##value": "x"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "transitional-paragraph-table",
+    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a",
+              "table": {
+                "tr": {
+                  "td": {
+                    "##value": "x"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "body-end-in-element",
+    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "div": {
+              "##value": "ab"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "self-closing-head-title",
+    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "dict",
+    "name": "invalid-dtd-default",
+    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-invalid-dtd-default",
+    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-quirks-paragraph-table",
+    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-transitional-paragraph-table",
+    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-body-end-in-element",
+    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n   ab\n  </div>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-self-closing-head-title",
+    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n</html>\n"
     }
   }
 ]

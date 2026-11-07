@@ -326,7 +326,12 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
             }
             Event::GeneralRef(name) => {
                 let name = name.decode().map_err(|_| Error::InvalidXml)?;
-                let value = reference(&name, &entities, expand_entities, 0, &mut budget)?;
+                // ElementTreeは外部DTDの未定義参照を属性では無視し、本文では拒否する。
+                let external_dtd = entities.external_dtd;
+                entities.external_dtd &= !expand_entities;
+                let value = reference(&name, &entities, expand_entities, 0, &mut budget);
+                entities.external_dtd = external_dtd;
+                let value = value?;
                 stack.last_mut().ok_or(Error::InvalidXml)?.text(&value);
             }
             Event::DocType(text) => {
@@ -335,8 +340,6 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
                 }
                 doctype_seen = true;
                 entities = entities_from_doctype(&text.decode().map_err(|_| Error::InvalidXml)?)?;
-                // xmltodictは外部DTD中の未定義参照を無視し、ElementTreeはエラーにする。
-                entities.external_dtd &= !expand_entities;
             }
             Event::Decl(decl) => {
                 if start_position != 0
