@@ -74,7 +74,13 @@
 - CP932などの全Unicode対応表をPythonと網羅比較したものではない。
   - 検証: 日本語・波ダッシュ・NEC拡張・不正bytesをfixtureで固定する。
 
-## decodeの未決の差異
+## decodeで許容した差異
+
+以下の差異はタダシが2026-11-07の質問票で許容したもの。
+
+実利用で問題になったときに個別に再検討する。
+
+詳細: [互換仕様の許容した差異](compat-spec.md#許容した差異)
 
 | codec・入力bytes | 条件 | Python | Rust |
 | --- | --- | --- | --- |
@@ -99,7 +105,7 @@
 | detect-euc | euc_jis_2004 | EUC-JP |
 
 - テストはPythonの期待値を保持し、Rustの結果も明示的にassertする。
-- 進行役の決定案Aにより、推定codec名のPython一致は保証しない。
+- タダシが許容した差異として、推定codec名のPython一致は保証しない。
   - 条件: EUC-JPでdecodeした本文の写像はPythonに合わせる。
 - ASCII・UTF-8・CP932・ISO-2022-JP・UTF-8 BOMの採取例は一致する。
   - 制限: 推定器が異なるため、任意の入力で一致するという保証ではない。
@@ -117,7 +123,8 @@
   - 補正: Pythonの`?`へ事前置換し、その文字列をまとめてencodeする。
 - encoding_rsはUTF-16をencodeしない。
   - 補正: RustのUTF-16コードユニットからendian・BOMを明示してbytesを作る。
-- これらのライブラリ差は、差異を許容した決定ではない。
-  - 詳細: [互換仕様の未決](compat-spec.md#未決)
+- これらのライブラリ差の補正は維持する。
+  - 範囲: 文字コードの残る差異はタダシが許容した差異として扱う。
+  - 詳細: [互換仕様の許容した差異](compat-spec.md#許容した差異)
 
 参照: [encoding_rs 0.8.44](https://docs.rs/encoding_rs/0.8.44/encoding_rs/)、[chardetng 1.0.0](https://docs.rs/chardetng/1.0.0/chardetng/)。

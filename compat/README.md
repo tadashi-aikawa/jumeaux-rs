@@ -88,7 +88,7 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
   - 件数: template 216、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
-  - 差異: template 22件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`は決定案Aの例としてPython期待値とRust結果を両方assertする。
+  - 許容した差異: template 22件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
   - 別名: Windows-31J・cswindows31jはPythonでもcp932へ解決される。別名をそのまま指定して採取し、`input.python_codec`に解決先を記載する。
   - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
@@ -103,9 +103,9 @@ cargo test --test markup -- --nocapture
 
 - `input.operation`が`pretty`のケースはdumpの整形文字列を比較する。省略時はdict化。
 - 221件中179件はPython期待値と完全一致する。
-- 未決の42件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
+- 許容した差異の42件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
   - 規則: Python期待値は変更しない。差異の重複・未使用・理由欠落・解消済みの差異はテストで検出する。
-  - 詳細: [互換仕様の未決](../docs/compat-spec.md#未決)。
+  - 詳細: [互換仕様の許容した差異](../docs/compat-spec.md#許容した差異)。
 - 条件式付き2件はdictの参照と比較を検証する。
   - 制限: 条件式エンジンの統合検証は後続タスクで行う。
 - `input.summary: "expansion"`は属性と本文のエンティティ展開量を検証する。

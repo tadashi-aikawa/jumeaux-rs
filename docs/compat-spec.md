@@ -56,6 +56,13 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 内容: 属性 `#attr`、本文 `##value`、同名タグのリスト、空タグ、script、混在テキストの空白。
 - XMLはxmltodictのdictを基準にする。
   - 内容: 属性 `@attr`、本文 `#text`、空要素null、同名要素のリスト、名前空間、CDATA、エンティティ。
+- APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
+  - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
+  - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
+- table内テキストの移動と不正なインラインタグの複製は修正済み。
+  - 検証: 以前の4差異fixtureもPython期待値と一致する。
+- コメント前後の空白とSVG・MathML名の大小は修正済み。
+  - 検証: 以前の3差異fixtureもPython期待値と一致する。空コメントは「許容した差異」に記載する。
 - 条件式は描画後の `ast.literal_eval` に相当する値を返す。文字列描画と区別する。
   - 例: 描画された `False` はboolのfalse。未定義値の単独条件評価はエラー。
 - 独自拡張は `reg`、`calc_distance_km`、`equals_without_host`、`$DATETIME` を含む。
@@ -145,54 +152,26 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 規則: 機能は廃止しない。Pythonモジュール名を暗黙に直接実行しない。
 - 並列実装方式は変えてよい。concurrencyの出力は前述の規則を保つ。
 
-## 式へ渡すRequestの形
+## 許容した差異
 
-| addon | Pythonの入力 | Rustの入口 | Noneの扱い |
-| --- | --- | --- | --- |
-| res2res/json | `{"req": req, "res": res}` | `req.to_template_value()`を`req`キーへ渡す | `req.raw.is_none()`・`req.name.get()`等のOptionメソッドを公開 |
-| reqs2reqs/filter | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
-| reqs2reqs/rename | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
-| res2res/json_sort | `payload.req.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+以下はPython版と一致しない差異として、タダシが2026-11-07の質問票で許容したもの。
 
-`qs`と`headers`は挿入順を保つ。Responseの本文は`Arc<[u8]>`で共有し、未知プロパティは未定義値を返す。
-
-- JSON入力は`values::from_json`でMiniJinjaの値へ再帰変換する。
-  - 数値: i64、u64、i128の順で整数を扱い、それ以外をf64へ変換する。`arbitrary_precision`の内部mapを式へ渡さない。
-  - 経路: ルートのdict・配列・Requestの`json`と`form`で同じ変換を使う。
-- 設定読み込み時は`TemplateEngine::load`で検査する。
-  - 再利用: 同じソースのAST検査・コンパイルは一度だけ行い、`render`で保持済みテンプレートを使う。
-- 正規表現の設定は用途ごとに読み込む。
-  - `search`・置換: `Regex::new`。
-  - Jumeauxの`exact_match`・`reg`: `Regex::new_exact`で専用型`ExactRegex`を生成する。Python同様、`^(pattern)$`で包んだ後のフラグ位置とgroup番号を検査する。
-  - 型の制約: 通常の`Regex`には`exact_match`を公開しない。`(a)\2`を包む前に検査して拒否する経路をなくす。
-
-## テンプレートのサポート外
-
-| 分類 | サポート外 |
-| --- | --- |
-| filter | `center`、`forceescape`、`urlize`、`xmlattr` |
-| test | `callable` |
-| Python文字列メソッド | `rsplit`、`index`、`partition`、`zfill`、`encode` |
-| 演算 | `"%d" % n` |
-
-MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合する。コメント内は対象外とし、未実行分岐・macro・filterブロックも検査する。
-
-- MiniJinja固有のfilter・testを登録から除外する。
-  - filter: `bool`、`chain`、`lines`、`split`、`zip`。
-  - test: `startingwith`、`endingwith`、`safe`。
-- MiniJinjaとminijinja-contribは`=3.0.5`に固定する。
-  - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
-
-## 未決
+- Q1: HTML/XMLの42件と、以下に記載する互換範囲の制限を許容する。
+- Q2: テンプレート式・正規表現・文字コードの65件と、以下に記載する互換範囲の制限を許容する。
+- 実利用で問題になったときに個別に再検討する。
+- fixtureはPython期待値と`rust_expected`の両方を保持し、黙った除外にしない。
+  - HTML/XML: Python期待値は`compat/fixtures/markup/cases.json`、Rust期待値は`tests/markup_differences.json`の`expected`に保持する。
+  - 文字コード推定名: `detect-euc`はテスト内でPython期待値とRust結果を明示検証する。
+- 既存の互換アダプターによる補正と、一致するfixtureの検証は維持する。
 
 - 文字コード推定名の差異。
-  - 決定案A: 推定したencoding名はPythonのcodec名との一致を保証しない。EUC-JPの本文写像は合わせる。
+  - 方針: 推定したencoding名はPythonのcodec名との一致を保証しない。EUC-JPの本文写像は合わせる。
   - 実測: `encoding/detect-euc`はPython charset-normalizerが`euc_jis_2004`、Rust chardetngが`EUC-JP`を返す。元の期待値は変えず、Rustの差異をテスト内で明示する。
   - 制限: chardetngはJIS X 0213のcodecを推定しない。同名への機械的な置換で一致扱いにはしない。
   - 詳細: [文字コードの互換境界](encoding.md)
 - encoding_rsのencodeを直接使う場合の差異。
   - 差異: 表現できない文字はPythonの`?`と異なり数値文字参照になる。UTF-16のencodeも提供しない。
-  - 現実装: 互換アダプターで`?`置換とUTF-16のendian・BOMを補い、fixtureでは一致する。ライブラリの差をそのまま許容する決定はしていない。
+  - 現実装: 互換アダプターで`?`置換とUTF-16のendian・BOMを補い、fixtureでは一致する。この補正は維持する。
 - Python固有codecと、Encoding Standardの対応表の外側の扱い。
   - 現実装: EUC-JIS-2004等はLookupError。UTF-32には専用アダプターを置く。主要codecの対応範囲・別名は[文字コード表](encoding.md#codecと別名)に固定する。
   - 差異: Pythonが処理できる`koi8-r`・`gbk`も専用対応がないためLookupError。WHATWGへのfallbackは行わず、fixtureで拒否を固定する。
@@ -226,7 +205,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 - `$DATETIME`の`int()`と`strftime`の差異。
   - 実測: 秒の`1_000`と全角数字はPythonが受理し、RustはValueError。`|int`・`|float`のunderscore対応とは別経路。
   - 実測: `%Q`はPythonが文字列`Q`を返し、RustはValueError。`%3f`はPythonが`3f`、Rustが`000`を返す。Pythonの結果は採取環境macOSのstrftimeに依存する。
-  - 残件: 実時刻経路の`%Z`はchronoのoffset名を使うため、Pythonの`JST`等の略称とは一致しない。
+  - 差異: 実時刻経路の`%Z`はchronoのoffset名を使うため、Pythonの`JST`等の略称とは一致しない。
 - 空白制御・repr・例外種別の差異。
   - 実測: `when`の`x +`はPythonでTemplateSyntaxError、Rustで`x`の値になる。
   - 実測: `(1, 2)`と`range(3)`の描画はRustでリスト表記になる。非表示文字U+200BはPythonの`\\u200b`に対しRustは文字をそのまま描画する。
@@ -250,19 +229,9 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 経路: JSON入力をテンプレート値へ変換するとき、2^127以上の整数はf64になる。Pythonの整数精度を保持しない。
   - 実測: 2^127と2^127+1の描画はRustでどちらも`1.7014118346046923e+38`。Pythonは異なる整数の10進表記を保持する。
   - 境界: 2^127−1はi128のまま描画し、Pythonと一致する。
-- `rustpython-parser`への依存と暫定モデルの配置。
-  - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
-  - 後続: `plain_requests`は「設定・モデル」タスクでlog2reqsへ移す。入力ファイル・query fixtureは移動後も維持する。
 - HTML/XMLの先行実装では221fixture中179件がPythonと完全一致する。
-  - 差異: 以下の42件は許容を決定したものではない。`tests/markup_differences.json`にRustの現出力を固定し、Python期待値との不一致も検証する。
+  - 差異: 以下の42件を許容する。`tests/markup_differences.json`にRustの現出力を固定し、Python期待値との不一致も検証する。
   - 維持: 2周目レビュー前の203件のPython期待値は変更していない。
-- APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
-  - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
-  - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
-- table内テキストの移動と不正なインラインタグの複製は修正済み。
-  - 検証: 以前の4差異fixtureもPython期待値と一致する。
-- コメント前後の空白とSVG・MathML名の大小は修正済み。
-  - 検証: 以前の3差異fixtureもPython期待値と一致する。空コメントの差異は引き続き未決。
 
 以下の出力はfixtureと同じ`value`または`error`のJSONで示す。dump文字列の改行・空白はJSONエスケープで保持する。
 
@@ -838,7 +807,7 @@ prettyのRust出力:
 - fixtureは深さ1000・1001の比較を明示する。
   - 入力生成: XMLは`"<r>" * depth + "x" + "</r>" * depth`、HTMLは`"<div>" * depth + "x" + "</div>" * depth`。
   - 出力要約: dictはrを辿った深さと末端値、dumpはinvalid token判定と文字数。巨大な整形文字列そのものはfixtureに格納しない。
-  - 理由: Pythonの再帰上限とRustの明示上限は異なる。以下の4差異の扱いは未決。
+  - 理由: Pythonの再帰上限とRustの明示上限は異なる。以下の4差異も許容する。
 
 - 入力パラメーター: `{"format":"xml","operation":"dict","summary":"depth","depth":1001}`
   - Python: `{"value":{"depth":1001,"leaf":"x"}}`
@@ -868,6 +837,50 @@ prettyのRust出力:
   - 検証: `external-dtd-attribute`は属性の`before&missing;after`が`beforeafter`となることを比較する。本文の既存fixtureも継続して検証する。
 - DTD内のパラメーターエンティティ宣言は読み飛ばす。
   - 境界: DTD全体やパラメーターエンティティの展開を実装したものではない。
+
+## 式へ渡すRequestの形
+
+| addon | Pythonの入力 | Rustの入口 | Noneの扱い |
+| --- | --- | --- | --- |
+| res2res/json | `{"req": req, "res": res}` | `req.to_template_value()`を`req`キーへ渡す | `req.raw.is_none()`・`req.name.get()`等のOptionメソッドを公開 |
+| reqs2reqs/filter | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+| reqs2reqs/rename | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+| res2res/json_sort | `payload.req.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+
+`qs`と`headers`は挿入順を保つ。Responseの本文は`Arc<[u8]>`で共有し、未知プロパティは未定義値を返す。
+
+- JSON入力は`values::from_json`でMiniJinjaの値へ再帰変換する。
+  - 数値: i64、u64、i128の順で整数を扱い、それ以外をf64へ変換する。`arbitrary_precision`の内部mapを式へ渡さない。
+  - 経路: ルートのdict・配列・Requestの`json`と`form`で同じ変換を使う。
+- 設定読み込み時は`TemplateEngine::load`で検査する。
+  - 再利用: 同じソースのAST検査・コンパイルは一度だけ行い、`render`で保持済みテンプレートを使う。
+- 正規表現の設定は用途ごとに読み込む。
+  - `search`・置換: `Regex::new`。
+  - Jumeauxの`exact_match`・`reg`: `Regex::new_exact`で専用型`ExactRegex`を生成する。Python同様、`^(pattern)$`で包んだ後のフラグ位置とgroup番号を検査する。
+  - 型の制約: 通常の`Regex`には`exact_match`を公開しない。`(a)\2`を包む前に検査して拒否する経路をなくす。
+
+## テンプレートのサポート外
+
+| 分類 | サポート外 |
+| --- | --- |
+| filter | `center`、`forceescape`、`urlize`、`xmlattr` |
+| test | `callable` |
+| Python文字列メソッド | `rsplit`、`index`、`partition`、`zfill`、`encode` |
+| 演算 | `"%d" % n` |
+
+MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合する。コメント内は対象外とし、未実行分岐・macro・filterブロックも検査する。
+
+- MiniJinja固有のfilter・testを登録から除外する。
+  - filter: `bool`、`chain`、`lines`、`split`、`zip`。
+  - test: `startingwith`、`endingwith`、`safe`。
+- MiniJinjaとminijinja-contribは`=3.0.5`に固定する。
+  - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
+
+## 未決
+
+- `rustpython-parser`への依存と暫定モデルの配置。
+  - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
+  - 後続: `plain_requests`は「設定・モデル」タスクでlog2reqsへ移す。入力ファイル・query fixtureは移動後も維持する。
 
 ### その他の未決
 

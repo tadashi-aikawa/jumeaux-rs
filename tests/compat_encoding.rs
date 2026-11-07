@@ -85,7 +85,7 @@ fn python_encoding_fixtures() {
             Err(error) => json!({"error": error.kind}),
         };
         if case["name"] == "detect-euc" {
-            // 決定案A: 推定名の一致は保証しない。本文のEUC-JP写像は別に検証する。
+            // 許容した差異: 推定名の一致は保証しない。本文のEUC-JP写像は別に検証する。
             assert_eq!(case["expected"], json!({"value": "euc_jis_2004"}));
             assert_eq!(actual, json!({"value": "EUC-JP"}));
             differences += 1;

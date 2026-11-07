@@ -141,7 +141,7 @@ fn check_fixtures(target_format: &str, target_operation: &str) {
     );
     assert!(checked > 0);
     println!(
-        "{target_format}/{target_operation}: {checked}件検証、Python完全一致{}件、未決差異{mismatches}件",
+        "{target_format}/{target_operation}: {checked}件検証、Python完全一致{}件、許容した差異{mismatches}件",
         checked - mismatches
     );
 }

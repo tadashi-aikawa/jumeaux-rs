@@ -3,7 +3,7 @@
     "format": "html",
     "operation": "dict",
     "name": "head-template",
-    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの未決を参照。",
+    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -22,7 +22,7 @@
     "format": "html",
     "operation": "dict",
     "name": "image-alias",
-    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -41,7 +41,7 @@
     "format": "html",
     "operation": "dict",
     "name": "isindex",
-    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -59,7 +59,7 @@
     "format": "html",
     "operation": "dict",
     "name": "nested-form",
-    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -78,7 +78,7 @@
     "format": "html",
     "operation": "dict",
     "name": "nested-headings",
-    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -99,7 +99,7 @@
     "format": "html",
     "operation": "dict",
     "name": "nested-nobr",
-    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -122,7 +122,7 @@
     "format": "html",
     "operation": "dict",
     "name": "orphan-table-elements",
-    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -137,7 +137,7 @@
     "format": "html",
     "operation": "dict",
     "name": "plaintext",
-    "reason": "Pythonのdictは__parent__を残す循環参照になり、JSON保存でValueErrorになる。docs/compat-spec.mdの未決を参照。",
+    "reason": "Pythonのdictは__parent__を残す循環参照になり、JSON保存でValueErrorになる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -154,7 +154,7 @@
     "format": "html",
     "operation": "dict",
     "name": "second-body",
-    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -171,7 +171,7 @@
     "format": "html",
     "operation": "dict",
     "name": "table-form",
-    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -192,7 +192,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-empty-comment",
-    "reason": "dump/htmlで空コメントに空白を補わない。docs/compat-spec.mdの未決を参照。",
+    "reason": "dump/htmlで空コメントに空白を補わない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <p>\n   a\n   <!---->\n   b\n  </p>\n </body>\n</html>\n"
     }
@@ -201,7 +201,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-head-template",
-    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの未決を参照。",
+    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <head>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </head>\n</html>\n"
     }
@@ -210,7 +210,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-image-alias",
-    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <img src=\"x\"/>\n  after\n </body>\n</html>\n"
     }
@@ -219,7 +219,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-isindex",
-    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <isindex prompt=\"x\">\n   after\n  </isindex>\n </body>\n</html>\n"
     }
@@ -228,7 +228,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-nested-form",
-    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <form id=\"a\">\n   x\n  </form>\n  y\n </body>\n</html>\n"
     }
@@ -237,7 +237,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-nested-headings",
-    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <h1>\n   a\n  </h1>\n  <h2>\n   b\n  </h2>\n  c\n </body>\n</html>\n"
     }
@@ -246,7 +246,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-nested-nobr",
-    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <nobr>\n   a\n  </nobr>\n  <nobr>\n   b\n  </nobr>\n  c\n </body>\n</html>\n"
     }
@@ -255,7 +255,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-orphan-table-elements",
-    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  x\n </body>\n</html>\n"
     }
@@ -264,7 +264,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-second-body",
-    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body class=\"second\" id=\"first\">\n  ab\n </body>\n</html>\n"
     }
@@ -273,7 +273,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-table-form",
-    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <table>\n   <form>\n   </form>\n   <input name=\"x\"/>\n  </table>\n </body>\n</html>\n"
     }
@@ -282,7 +282,7 @@
     "format": "xml",
     "operation": "dict",
     "name": "dtd-default-attribute",
-    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "r": null
@@ -293,7 +293,7 @@
     "format": "xml",
     "operation": "dict",
     "name": "dtd-fixed-attribute",
-    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "r": null
@@ -304,7 +304,7 @@
     "format": "xml",
     "operation": "dict",
     "name": "entity-amp-number",
-    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "r": {
@@ -317,7 +317,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-dtd-default-attribute",
-    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
     }
@@ -326,7 +326,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-dtd-fixed-attribute",
-    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
     }
@@ -335,7 +335,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-entity-amp-number",
-    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r a=\"&amp;amp;\">&amp;amp;</r>\n"
     }
@@ -344,7 +344,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-markup-entity",
-    "reason": "エンティティ置換内のタグを要素として再パースしない。docs/compat-spec.mdの未決を参照。",
+    "reason": "エンティティ置換内のタグを要素として再パースしない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"
     }
@@ -353,7 +353,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-non-ascii-element",
-    "reason": "PythonのElementTree→minidom経路は非ASCII要素名でExpatErrorになる。docs/compat-spec.mdの未決を参照。",
+    "reason": "PythonのElementTree→minidom経路は非ASCII要素名でExpatErrorになる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<日本語>本文</日本語>\n"
     }
@@ -362,7 +362,7 @@
     "format": "xml",
     "operation": "dict",
     "name": "depth-1001",
-    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "error": "ExpatError"
     }
@@ -371,7 +371,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "depth-1000",
-    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "invalid": false,
@@ -383,7 +383,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "depth-1001",
-    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "invalid": true,
@@ -395,7 +395,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "depth-1000",
-    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "error": "LimitExceeded"
     }
@@ -404,7 +404,7 @@
     "format": "html",
     "operation": "dict",
     "name": "quirks-paragraph-table",
-    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -428,7 +428,7 @@
     "format": "html",
     "operation": "dict",
     "name": "transitional-paragraph-table",
-    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -452,7 +452,7 @@
     "format": "html",
     "operation": "dict",
     "name": "body-end-in-element",
-    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの未決を参照。",
+    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -469,7 +469,7 @@
     "format": "html",
     "operation": "dict",
     "name": "self-closing-head-title",
-    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "html": {
@@ -486,7 +486,7 @@
     "format": "xml",
     "operation": "dict",
     "name": "invalid-dtd-default",
-    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": {
         "r": null
@@ -497,7 +497,7 @@
     "format": "xml",
     "operation": "pretty",
     "name": "dump-invalid-dtd-default",
-    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの未決を参照。",
+    "reason": "ATTLIST宣言の既定値を解釈しないため、値に<を含む不正な宣言を拒否しない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
     }
@@ -506,7 +506,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-quirks-paragraph-table",
-    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "reason": "DOCTYPEなしのHTML5 quirksモードではtable開始時にpを閉じない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"
     }
@@ -515,7 +515,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-transitional-paragraph-table",
-    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML 4.01 Transitionalのシステム識別子なしDOCTYPEはquirksモードになり、table開始時にpを閉じない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <p>\n   a\n   <table>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </table>\n  </p>\n </body>\n</html>\n"
     }
@@ -524,7 +524,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-body-end-in-element",
-    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの未決を参照。",
+    "reason": "body終了後も開いた子要素へのテキスト追加はhtml直下へ移されない。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <body>\n  <div>\n   ab\n  </div>\n </body>\n</html>\n"
     }
@@ -533,7 +533,7 @@
     "format": "html",
     "operation": "pretty",
     "name": "dump-self-closing-head-title",
-    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの未決を参照。",
+    "reason": "HTML5はhead終了後のtitleをheadへ戻す。docs/compat-spec.mdの「許容した差異」を参照。",
     "expected": {
       "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n</html>\n"
     }
