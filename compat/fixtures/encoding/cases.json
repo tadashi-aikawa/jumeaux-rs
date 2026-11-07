@@ -1,5 +1,1189 @@
 [
   {
+    "name": "review-encode-cp932-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "816081618191819281ca817c"
+    }
+  },
+  {
+    "name": "review-encode-cp932-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "816081618191819281ca817c"
+    }
+  },
+  {
+    "name": "review-encode-cp932-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "¥",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-cp932-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "¥",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "review-encode-cp932-2-strict",
+    "input": {
+      "operation": "encode",
+      "text": "‾",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-cp932-2-replace",
+    "input": {
+      "operation": "encode",
+      "text": "‾",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "review-encode-cp932-3-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ⅰ髙",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "eeefeee0"
+    }
+  },
+  {
+    "name": "review-encode-cp932-3-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ⅰ髙",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "eeefeee0"
+    }
+  },
+  {
+    "name": "review-encode-cp932-4-strict",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "a0fdfeff"
+    }
+  },
+  {
+    "name": "review-encode-cp932-4-replace",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "a0fdfeff"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "a1c1a1c2a1f1a1f2a2cca1dd"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "〜‖¢£¬−",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "a1c1a1c2a1f1a1f2a2cca1dd"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "～∥￠￡￢－",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "～∥￠￡￢－",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f3f3f3f3f3f"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-2-strict",
+    "input": {
+      "operation": "encode",
+      "text": "①髙",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-2-replace",
+    "input": {
+      "operation": "encode",
+      "text": "①髙",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f3f"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-3-strict",
+    "input": {
+      "operation": "encode",
+      "text": "丂",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "8fb0a1"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-3-replace",
+    "input": {
+      "operation": "encode",
+      "text": "丂",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "8fb0a1"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-4-strict",
+    "input": {
+      "operation": "encode",
+      "text": "˘",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "8fa2af"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-4-replace",
+    "input": {
+      "operation": "encode",
+      "text": "˘",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "8fa2af"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-5-strict",
+    "input": {
+      "operation": "encode",
+      "text": "¥‾",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "5c7e"
+    }
+  },
+  {
+    "name": "review-encode-euc_jp-5-replace",
+    "input": {
+      "operation": "encode",
+      "text": "¥‾",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "5c7e"
+    }
+  },
+  {
+    "name": "review-encode-iso8859_15-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "€ŠšŽžŒœŸ",
+      "encoding": "iso8859_15",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "a4a6a8b4b8bcbdbe"
+    }
+  },
+  {
+    "name": "review-encode-iso8859_15-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "€ŠšŽžŒœŸ",
+      "encoding": "iso8859_15",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "a4a6a8b4b8bcbdbe"
+    }
+  },
+  {
+    "name": "review-encode-mac-roman-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "Äé",
+      "encoding": "mac-roman",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "808e"
+    }
+  },
+  {
+    "name": "review-encode-mac-roman-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "Äé",
+      "encoding": "mac-roman",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "808e"
+    }
+  },
+  {
+    "name": "review-encode-cp437-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "Çα■",
+      "encoding": "cp437",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "80e0fe"
+    }
+  },
+  {
+    "name": "review-encode-cp437-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "Çα■",
+      "encoding": "cp437",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80e0fe"
+    }
+  },
+  {
+    "name": "review-encode-utf-32-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-32",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "fffe0000e56500002c67000000f60100"
+    }
+  },
+  {
+    "name": "review-encode-utf-32-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-32",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "fffe0000e56500002c67000000f60100"
+    }
+  },
+  {
+    "name": "review-encode-utf-32-be-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-32-be",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "000065e50000672c0001f600"
+    }
+  },
+  {
+    "name": "review-encode-utf-32-be-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-32-be",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "000065e50000672c0001f600"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "한국",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "c7d1b1b9"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "한국",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "c7d1b1b9"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "갂쀍힣",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "a4d4a4a1a4bfa4a2a4d4a4b3a4cea4aaa4d4a4bea4d3a4be"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "갂쀍힣",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "a4d4a4a1a4bfa4a2a4d4a4b3a4cea4aaa4d4a4bea4d3a4be"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-2-strict",
+    "input": {
+      "operation": "encode",
+      "text": "ㅤ",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "a4d4"
+    }
+  },
+  {
+    "name": "review-encode-euc_kr-2-replace",
+    "input": {
+      "operation": "encode",
+      "text": "ㅤ",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "a4d4"
+    }
+  },
+  {
+    "name": "review-encode-cp949-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "한국",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "c7d1b1b9"
+    }
+  },
+  {
+    "name": "review-encode-cp949-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "한국",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "c7d1b1b9"
+    }
+  },
+  {
+    "name": "review-encode-cp949-1-strict",
+    "input": {
+      "operation": "encode",
+      "text": "갂쀍힣",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "814197cdc652"
+    }
+  },
+  {
+    "name": "review-encode-cp949-1-replace",
+    "input": {
+      "operation": "encode",
+      "text": "갂쀍힣",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "814197cdc652"
+    }
+  },
+  {
+    "name": "review-encode-windows-1252-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "windows-1252",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-windows-1252-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "windows-1252",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "review-encode-windows-1254-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "windows-1254",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "review-encode-windows-1254-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "windows-1254",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "review-encode-hz-gb-2312-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "x",
+      "encoding": "hz-gb-2312",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "78"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-encode-hz-gb-2312-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "x",
+      "encoding": "hz-gb-2312",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "78"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-encode-iso-2022-kr-0-strict",
+    "input": {
+      "operation": "encode",
+      "text": "x",
+      "encoding": "iso-2022-kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "78"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-encode-iso-2022-kr-0-replace",
+    "input": {
+      "operation": "encode",
+      "text": "x",
+      "encoding": "iso-2022-kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "78"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-decode-cp932-a0fdfeff-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a0fdfeff",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "review-decode-cp932-a0fdfeff-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a0fdfeff",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "review-decode-cp932-eeefeee0-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "eeefeee0",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "ⅰ髙"
+    }
+  },
+  {
+    "name": "review-decode-cp932-eeefeee0-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "eeefeee0",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "ⅰ髙"
+    }
+  },
+  {
+    "name": "review-decode-cp932-816081618191819281ca-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "816081618191819281ca",
+      "encoding": "cp932",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "～∥￠￡￢"
+    }
+  },
+  {
+    "name": "review-decode-cp932-816081618191819281ca-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "816081618191819281ca",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "～∥￠￡￢"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-a1c1a1c2a1dda1f1a1f2a2cc-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a1c1a1c2a1dda1f1a1f2a2cc",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "〜‖−¢£¬"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-a1c1a1c2a1dda1f1a1f2a2cc-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a1c1a1c2a1dda1f1a1f2a2cc",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "〜‖−¢£¬"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-ada1-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "ada1",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-ada1-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "ada1",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-f9a1-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "f9a1",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-f9a1-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "f9a1",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-fcfe-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "fcfe",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-fcfe-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "fcfe",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "��"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-8fb0a1-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fb0a1",
+      "encoding": "euc_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "丂"
+    }
+  },
+  {
+    "name": "review-decode-euc_jp-8fb0a1-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "8fb0a1",
+      "encoding": "euc_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "丂"
+    }
+  },
+  {
+    "name": "review-decode-windows-1252-818d8f909d-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "818d8f909d",
+      "encoding": "windows-1252",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-windows-1252-818d8f909d-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "818d8f909d",
+      "encoding": "windows-1252",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�����"
+    }
+  },
+  {
+    "name": "review-decode-windows-1254-818d8e8f909d9e-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "818d8e8f909d9e",
+      "encoding": "windows-1254",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-windows-1254-818d8e8f909d9e-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "818d8e8f909d9e",
+      "encoding": "windows-1254",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�������"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-c7d1b1b9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c7d1b1b9",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "한국"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-c7d1b1b9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c7d1b1b9",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "한국"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4a4a1a4bfa4a2-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4a4a1a4bfa4a2",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "갂"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4a4a1a4bfa4a2-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4a4a1a4bfa4a2",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "갂"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4a4a1a4bf-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4a4a1a4bf",
+      "encoding": "euc_kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "review-decode-euc_kr-a4d4a4a1a4bf-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4d4a4a1a4bf",
+      "encoding": "euc_kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "review-decode-cp949-c7d1b1b9-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c7d1b1b9",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "한국"
+    }
+  },
+  {
+    "name": "review-decode-cp949-c7d1b1b9-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "c7d1b1b9",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "한국"
+    }
+  },
+  {
+    "name": "review-decode-cp949-814197cdc652-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "814197cdc652",
+      "encoding": "cp949",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "갂쀍힣"
+    }
+  },
+  {
+    "name": "review-decode-cp949-814197cdc652-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "814197cdc652",
+      "encoding": "cp949",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "갂쀍힣"
+    }
+  },
+  {
+    "name": "review-decode-iso8859_15-a4a6a8b4b8bcbdbe-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4a6a8b4b8bcbdbe",
+      "encoding": "iso8859_15",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "€ŠšŽžŒœŸ"
+    }
+  },
+  {
+    "name": "review-decode-iso8859_15-a4a6a8b4b8bcbdbe-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "a4a6a8b4b8bcbdbe",
+      "encoding": "iso8859_15",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "€ŠšŽžŒœŸ"
+    }
+  },
+  {
+    "name": "review-decode-mac-roman-808e-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "808e",
+      "encoding": "mac-roman",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "Äé"
+    }
+  },
+  {
+    "name": "review-decode-mac-roman-808e-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "808e",
+      "encoding": "mac-roman",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "Äé"
+    }
+  },
+  {
+    "name": "review-decode-cp437-80e0fe-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80e0fe",
+      "encoding": "cp437",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "Çα■"
+    }
+  },
+  {
+    "name": "review-decode-cp437-80e0fe-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "80e0fe",
+      "encoding": "cp437",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "Çα■"
+    }
+  },
+  {
+    "name": "review-decode-utf-32-fffe000000f60100-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "fffe000000f60100",
+      "encoding": "utf-32",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "😀"
+    }
+  },
+  {
+    "name": "review-decode-utf-32-fffe000000f60100-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "fffe000000f60100",
+      "encoding": "utf-32",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "😀"
+    }
+  },
+  {
+    "name": "review-decode-utf-32-be-0001f600-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "0001f600",
+      "encoding": "utf-32-be",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "😀"
+    }
+  },
+  {
+    "name": "review-decode-utf-32-be-0001f600-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "0001f600",
+      "encoding": "utf-32-be",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "😀"
+    }
+  },
+  {
+    "name": "review-decode-hz-gb-2312-78-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "78",
+      "encoding": "hz-gb-2312",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "x"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-decode-hz-gb-2312-78-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "78",
+      "encoding": "hz-gb-2312",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "x"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-decode-iso-2022-kr-78-strict",
+    "input": {
+      "operation": "decode",
+      "body_hex": "78",
+      "encoding": "iso-2022-kr",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "x"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
+    "name": "review-decode-iso-2022-kr-78-replace",
+    "input": {
+      "operation": "decode",
+      "body_hex": "78",
+      "encoding": "iso-2022-kr",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "x"
+    },
+    "rust_expected": {
+      "error": "LookupError"
+    },
+    "difference": "compat-spec.md: WHATWG replacement codecを拒否"
+  },
+  {
     "name": "unit-decide-0",
     "input": {
       "operation": "decide_encoding",

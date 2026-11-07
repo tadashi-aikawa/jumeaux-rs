@@ -20,7 +20,7 @@
 - URL候補判定は、`keep_blank_values=False` の`urllib.parse.parse_qs`に対応する。
   - 規則: 空値のpairはdecode前に除外する。生のUnicodeを候補codecで再エンコードしない。
 - `decode_input`はPythonのテキストファイル読み込みに対応する。
-  - 規則: CRLF・CRをLFへ変換する。`utf-16`ストリームでBOMがなければUnicodeError。
+  - 規則: CRLF・CRをLFへ変換する。`utf-16`・`utf-32`ストリームでBOMがなければUnicodeError。
 - `dump_html` fixtureはHTML整形の前後にある文字コード境界を検証する。
   - 入力: Pythonの実関数から採取した`decoded_text`と`formatted_text`。
   - 残件: Rust側のHTML整形・保存アドオンとの接続は、markupとchallengeの統合時に検証する。
@@ -49,17 +49,26 @@
 | ASCII | ascii、us-ascii、646 | 0x80以上をstrictエラーまたはU+FFFD | 非ASCIIをstrictエラーまたは`?` |
 | Latin-1 | latin1、latin-1、iso-8859-1、iso8859-1、l1 | 0x00〜FFを同値のUnicodeへ | U+00FFまで。Windows-1252へは寄せない |
 | Shift_JIS | shift_jis、shiftjis、sjis、s_jis | JISの対応。0x8160はU+301C。CP932拡張を受理しない | JISの対応。CP932だけの文字をstrictエラーまたは`?` |
-| CP932 | cp932、ms932、mskanji、ms_kanji | encoding_rsのShift_JIS。0x8160はU+FF5E | 同左 |
-| EUC-JP | euc-jp、euc_jp、eucjp、ujis | encoding_rsのEUC-JP | 同左 |
+| CP932 | cp932、ms932、mskanji、ms_kanji | 0x8160はU+FF5E。A0・FD〜FFはU+F8F0〜F8F3 | Python追加写像を補正。ⅰ・髙はEEEF・EEE0。¥・‾はstrictエラーか`?` |
+| EUC-JP | euc-jp、euc_jp、eucjp、ujis | A1C1はU+301CなどJIS写像へ補正。NEC拡張を拒否 | JIS写像とJIS X 0212の3バイト列を生成 |
+| EUC-KR | euc_kr、euckr、ks_c_5601_1987、ksx1001 | KS X 1001とfiller付きjamoから音節を復元 | KS X 1001にないHangul音節はfillerと3つのjamoで表現 |
+| CP949 | cp949、ms949、uhc | encoding_rsのEUC_KR拡張込み | 同左 |
+| Latin-9 | iso8859_15、iso-8859-15、latin9、l9 | Latin-1との8文字の差を補正 | 同じ対応表を逆引き |
+| Mac Roman | mac-roman、macroman、macintosh | encoding_rsのMacintosh | 同左 |
+| CP437 | cp437、437、ibm437 | 専用256文字表 | 同じ対応表を逆引き |
+| UTF-32 | utf-32、utf32、utf_32 | BOMでendianを選択。bytes単体のBOMなしはnative endian | native endianのBOMを付ける |
+| UTF-32 LE/BE | utf-32-le、utf-32-be、utf32le、utf32be | 指定endian。BOMも文字として保持 | BOMなし |
+| Windows-1252/1254 | windows-1252、windows-1254、cp1252、cp1254 | Pythonの未定義バイトはstrictエラーかU+FFFD | 未定義C1制御文字はstrictエラーか`?` |
 | ISO-2022-JP | iso2022_jp、iso-2022-jp、iso2022jp | 状態付きdecode | 状態を保ってencode。非対応文字はstrictエラーまたは`?` |
 | その他 | encoding_rsが受理するlabel | Encoding Standardの対応表 | 同左 |
 | 非対応 | encoding_rsにも専用アダプターにもないcodec | LookupError | LookupError |
+| 明示拒否 | hz-gb-2312、iso-2022-kr、replacement | LookupError | LookupError |
 
 - 主な別名は大小を区別しない。
 - decodeの指定codecは別種のBOMで上書きしない。
 - strictのエラー分類はUnicodeDecodeError・UnicodeEncodeError。
 - 表の外にあるPython固有codecの互換性は保証しない。
-  - 例: UTF-32、EUC-JIS-2004は専用アダプター未実装。
+  - 例: EUC-JIS-2004は専用アダプター未実装。
 - CP932などの全Unicode対応表をPythonと網羅比較したものではない。
   - 検証: 日本語・波ダッシュ・NEC拡張・不正bytesをfixtureで固定する。
 
@@ -72,8 +81,8 @@
 | detect-euc | euc_jis_2004 | EUC-JP |
 
 - テストはPythonの期待値を保持し、Rustの結果も明示的にassertする。
-- この差異の許容は未決。
-  - 詳細: [互換仕様の未決](compat-spec.md#未決)
+- 進行役の決定案Aにより、推定codec名のPython一致は保証しない。
+  - 条件: EUC-JPでdecodeした本文の写像はPythonに合わせる。
 - ASCII・UTF-8・CP932・ISO-2022-JP・UTF-8 BOMの採取例は一致する。
   - 制限: 推定器が異なるため、任意の入力で一致するという保証ではない。
 
@@ -84,6 +93,7 @@
 | encoding_rs | 0.8.44 | 文字コードの変換 |
 | chardetng | 1.0.0 | HTTP本文の推定 |
 | regex | 1.13.1 | bytes上のmeta・XML宣言の抽出 |
+| indexmap | 2.14.2 | query・headersの挿入順の保持 |
 
 - encoding_rsの標準encodeは、表現できない文字を数値文字参照にする。
   - 補正: Pythonの`?`へ事前置換し、その文字列をまとめてencodeする。

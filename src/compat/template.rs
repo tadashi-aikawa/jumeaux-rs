@@ -1,8 +1,11 @@
 //! Jinja2描画とast.literal_evalの二段階を維持する。
-use std::fmt::Write;
+use std::{fmt::Write, sync::LazyLock};
 
 use chrono::{DateTime, Duration, FixedOffset, Local};
-use minijinja::{Environment, Value, value::ValueKind};
+use minijinja::{
+    Environment, State, Value,
+    value::{Kwargs, Rest, ValueKind, ValueOrKwargs, from_args},
+};
 use rustpython_parser::{Parse, ast};
 use serde::Serialize;
 use serde_json::Value as Json;
@@ -39,17 +42,36 @@ impl TemplateEngine {
         });
         env.add_function("calc_distance_km", calc_distance_km);
         env.add_function("equals_without_host", equals_without_host);
+        env.add_filter("int", python_int);
+        env.add_filter("float", python_float);
+        env.add_filter("tojson", python_tojson);
+        use minijinja_contrib::{filters, globals};
+        env.add_filter("truncate", filters::truncate);
+        env.add_filter("filesizeformat", filters::filesizeformat);
+        env.add_filter("striptags", filters::striptags);
+        env.add_filter("wordcount", filters::wordcount);
+        env.add_filter("wordwrap", filters::wordwrap);
+        env.add_filter("random", filters::random);
+        env.add_function("cycler", |items: Rest<Value>| globals::cycler(items.0));
+        env.add_function("joiner", globals::joiner);
+        env.add_function("lipsum", globals::lipsum);
         Self { env }
     }
 
     pub fn validate(&self, template: &str) -> Result<()> {
         self.env
             .template_from_str(template)
-            .map(|_| ())
-            .map_err(template_error)
+            .map_err(template_error)?;
+        // 文字列検索ではコメントや未実行分岐を正しく扱えないため、ASTを走査する。
+        let ast = minijinja::machinery::parse(template, "<template>", Default::default())
+            .map_err(template_error)?;
+        let ast = serde_json::to_value(ast)
+            .map_err(|e| Error::new("TemplateSyntaxError", e.to_string()))?;
+        validate_names(&ast, &self.env.empty_state())
     }
 
     pub fn render(&self, template: &str, data: impl Serialize) -> Result<String> {
+        self.validate(template)?;
         self.env
             .render_str(template, super::values::serialized(data))
             .map_err(template_error)
@@ -60,6 +82,208 @@ impl TemplateEngine {
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }
+}
+
+fn validate_names(node: &Json, state: &State) -> Result<()> {
+    match node {
+        Json::Object(fields) => {
+            if let Some(kind @ ("Filter" | "Test")) = node["expr"].as_str() {
+                let name = node["inner"][0]["name"].as_str().ok_or_else(|| {
+                    Error::new("TemplateSyntaxError", "unsupported MiniJinja AST schema")
+                })?;
+                let exists = if kind == "Filter" {
+                    minijinja::tests::is_filter(state, name)
+                } else {
+                    minijinja::tests::is_test(state, name)
+                };
+                if !exists {
+                    return Err(Error::new(
+                        "TemplateAssertionError",
+                        format!("unknown {kind}: {name}"),
+                    ));
+                }
+            }
+            for child in fields.values() {
+                validate_names(child, state)?;
+            }
+        }
+        Json::Array(items) => {
+            for child in items {
+                validate_names(child, state)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn numeric_string(value: &Value, base: Option<u32>) -> Value {
+    let Some(s) = value.as_str() else {
+        return value.clone();
+    };
+    let s = s.trim();
+    let digits = s.trim_start_matches(['+', '-']);
+    let prefix = digits.get(..2).unwrap_or("").to_ascii_lowercase();
+    let detected = match prefix.as_str() {
+        "0x" => 16,
+        "0o" => 8,
+        "0b" => 2,
+        _ => 10,
+    };
+    let radix = match base {
+        Some(0) => detected,
+        Some(2..=36) => base.unwrap(),
+        _ => 10,
+    };
+    let prefix_end =
+        if base.is_some() && detected == radix && prefix.starts_with('0') && detected != 10 {
+            Some(s.len() - digits.len() + 2)
+        } else {
+            None
+        };
+    // 数字間と、intの基数prefix直後だけunderscoreを許す。
+    let chars: Vec<_> = s.chars().collect();
+    if chars.iter().enumerate().any(|(i, c)| {
+        *c == '_'
+            && (i == 0
+                || i + 1 == chars.len()
+                || (!chars[i - 1].is_digit(radix) && prefix_end != Some(i))
+                || !chars[i + 1].is_digit(radix))
+    }) {
+        return Value::from(s);
+    }
+    Value::from(s.replace('_', ""))
+}
+
+fn python_int(
+    state: &State,
+    value: &Value,
+    args: Rest<ValueOrKwargs>,
+) -> std::result::Result<Value, minijinja::Error> {
+    if value.is_undefined() {
+        return Err(minijinja::Error::from(minijinja::ErrorKind::UndefinedError));
+    }
+    let args = args.into_values();
+    let (args, kwargs): (&[Value], Kwargs) = from_args(&args)?;
+    if args.len() > 2 {
+        return Err(minijinja::Error::from(
+            minijinja::ErrorKind::TooManyArguments,
+        ));
+    }
+    if (!args.is_empty() && kwargs.has("default")) || (args.len() > 1 && kwargs.has("base")) {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "duplicate filter argument",
+        ));
+    }
+    let default = args
+        .first()
+        .cloned()
+        .or(if kwargs.has("default") {
+            Some(kwargs.get::<Value>("default")?)
+        } else {
+            None
+        })
+        .unwrap_or(Value::from(0));
+    let base_value = if let Some(base) = args.get(1) {
+        base.clone()
+    } else if kwargs.has("base") {
+        kwargs.get::<Value>("base")?
+    } else {
+        Value::from(10)
+    };
+    // 不正なbaseもJinja2はfloat変換へfallbackする。未対応の基数1で同じ経路へ渡す。
+    let mut base = u32::try_from(base_value).unwrap_or(1);
+    kwargs.assert_all_used()?;
+    let value = numeric_string(value, Some(base));
+    if value
+        .as_str()
+        .filter(|s| !(2..=36).contains(&base) || i128::from_str_radix(s, base).is_err())
+        .and_then(|s| s.parse::<f64>().ok())
+        .is_some_and(|f| !f.is_finite())
+        || (value.kind() == ValueKind::Number
+            && !value.is_integer()
+            && f64::try_from(value.clone()).is_ok_and(|f| !f.is_finite()))
+    {
+        return Ok(default);
+    }
+    if let Some(s) = value.as_str() {
+        let digits = s.trim_start_matches(['+', '-']);
+        if base == 0 {
+            let prefix = digits.get(..2).unwrap_or("").to_ascii_lowercase();
+            base = match prefix.as_str() {
+                "0x" => 16,
+                "0o" => 8,
+                "0b" => 2,
+                _ => 10,
+            };
+        }
+    }
+    minijinja::filters::int(
+        state,
+        &value,
+        Some(default),
+        Some(base),
+        Kwargs::from_iter(std::iter::empty::<(&str, Value)>()),
+    )
+}
+
+fn python_float(
+    state: &State,
+    value: &Value,
+    args: Rest<ValueOrKwargs>,
+) -> std::result::Result<Value, minijinja::Error> {
+    if value.is_undefined() {
+        return Err(minijinja::Error::from(minijinja::ErrorKind::UndefinedError));
+    }
+    let args = args.into_values();
+    let (args, kwargs): (&[Value], Kwargs) = from_args(&args)?;
+    if args.len() > 1 {
+        return Err(minijinja::Error::from(
+            minijinja::ErrorKind::TooManyArguments,
+        ));
+    }
+    if !args.is_empty() && kwargs.has("default") {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "duplicate filter argument",
+        ));
+    }
+    let default = args
+        .first()
+        .cloned()
+        .or(if kwargs.has("default") {
+            Some(kwargs.get::<Value>("default")?)
+        } else {
+            None
+        })
+        .unwrap_or(Value::from(0.0));
+    kwargs.assert_all_used()?;
+    minijinja::filters::float(
+        state,
+        &numeric_string(value, None),
+        Some(default),
+        Kwargs::from_iter(std::iter::empty::<(&str, Value)>()),
+    )
+}
+
+fn python_tojson(
+    value: &Value,
+    indent: Option<Value>,
+    kwargs: Kwargs,
+) -> std::result::Result<Value, minijinja::Error> {
+    let rendered = minijinja::filters::tojson(value, indent, kwargs)?;
+    let mut output = String::new();
+    for c in rendered.as_str().unwrap().chars() {
+        if c.is_ascii() {
+            output.push(c);
+        } else {
+            for unit in c.encode_utf16(&mut [0; 2]) {
+                write!(output, "\\u{unit:04x}").unwrap();
+            }
+        }
+    }
+    Ok(Value::from_safe_string(output))
 }
 
 fn template_error(error: minijinja::Error) -> Error {
@@ -85,6 +309,9 @@ fn python_display(value: &Value, nested: bool) -> String {
         ValueKind::Undefined => String::new(),
         ValueKind::None => "None".into(),
         ValueKind::Bool => if value.is_true() { "True" } else { "False" }.into(),
+        ValueKind::Number if !value.is_integer() => {
+            python_float_repr(f64::try_from(value.clone()).unwrap())
+        }
         ValueKind::String if nested => python_repr(value.as_str().unwrap_or("")),
         ValueKind::Bytes => {
             let mut output = String::from("b'");
@@ -127,6 +354,24 @@ fn python_display(value: &Value, nested: bool) -> String {
                 .join(", ")
         ),
         _ => value.to_string(),
+    }
+}
+
+fn python_float_repr(value: f64) -> String {
+    if !value.is_finite() {
+        return value.to_string();
+    }
+    let scientific = format!("{value:e}");
+    let (mantissa, exponent) = scientific.split_once('e').unwrap();
+    let exponent: i32 = exponent.parse().unwrap();
+    if !(-4..16).contains(&exponent) {
+        format!("{mantissa}e{exponent:+03}")
+    } else {
+        let mut result = value.to_string();
+        if !result.contains('.') {
+            result.push_str(".0");
+        }
+        result
     }
 }
 
@@ -427,8 +672,9 @@ pub fn calc_distance_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
 }
 
 pub fn equals_without_host(one: &str, other: &str) -> bool {
-    let pattern = regex::Regex::new("https?://[^$/]+").expect("constant regex");
-    pattern.sub("", one).unwrap() == pattern.sub("", other).unwrap()
+    static PATTERN: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new("https?://[^$/]+").expect("constant regex"));
+    PATTERN.sub("", one).unwrap() == PATTERN.sub("", other).unwrap()
 }
 
 pub fn parse_datetime(value: &str) -> Result<String> {
@@ -446,8 +692,10 @@ pub fn parse_datetime_at(value: &str, now: DateTime<FixedOffset>) -> Result<Stri
 }
 
 fn parse_datetime_with_zone(value: &str, now: DateTime<FixedOffset>, zone: &str) -> Result<String> {
-    let re = ::regex::Regex::new(r"^\$DATETIME\((.+)\)\((.+)\)(?:\n)?$").expect("constant regex");
-    let Some(captures) = re.captures(value) else {
+    static PATTERN: LazyLock<::regex::Regex> = LazyLock::new(|| {
+        ::regex::Regex::new(r"^\$DATETIME\((.+)\)\((.+)\)(?:\n)?$").expect("constant regex")
+    });
+    let Some(captures) = PATTERN.captures(value) else {
         return Ok(value.into());
     };
     let seconds: i64 = captures[2]

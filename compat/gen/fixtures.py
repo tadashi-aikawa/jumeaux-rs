@@ -68,12 +68,16 @@ def main():
     args = parser.parse_args()
     fixtures = {}
 
-    def add(group, name, data, function, expected=None, reason=None):
+    def add(group, name, data, function, expected=None, reason=None, rust_expected=None, difference=None):
         observed = outcome(function)
         row = {"name": name, "input": data, "expected": observed if reason is None else expected}
         if reason:
             assert observed != expected, name + ": Python不一致が再現していない"
             row.update(python_mismatch=True, reason=reason, python_observed=observed)
+        if rust_expected is not None:
+            assert observed != rust_expected, name + ": Rust差異の指定がPythonと同じ"
+            assert difference, name + ": 差異の説明が必要"
+            row.update(rust_expected=rust_expected, difference=difference)
         fixtures.setdefault(group, []).append(row)
 
     def diff(one, other):
@@ -163,6 +167,54 @@ def main():
     for expression in ("request.path == '/search'", "request.qs.q[0] == '東京'", "request.name.get() == '検索'", "request.raw.is_none()", "request.url_encoding == 'utf-8'"):
         add("template", "request-" + expression, {"operation": "request_when", "expression": expression, "request": request_data}, lambda: utils.when_filter(expression, {"request": Request.from_dict(request_data)}))
     fixed = datetime(2000, 1, 2, 3, 4, 5, tzinfo=timezone(timedelta(hours=9)))
+    for expression in (
+        "'bad'|int", "'bad'|float", "' 42 '|int", "' 42.5 '|float",
+        "'1_000'|int", "'1_000.5'|float", "missing|int", "missing|float",
+        "'bad'|int(7)", "'bad'|int(default=8)", "'bad'|float(default=2.5)",
+        "'ff'|int(base=16)", "'11'|int(0, 2)", "'0x10'|int(base=0)",
+        "'0x_FF'|int(base=16)", "'4.9'|int", "none|int", "none|float",
+        "'1__0'|int", "'1__0'|float", "'x'|int(default=none)",
+        "'bad'|float(none)", "'bad'|int(none)", "'1_e2'|float", "'z_z'|int(base=36)",
+        "'10'|int(base=-1)", "'ff'|int(base=none)", "'inf'|int", "'nan'|int",
+        "'inf'|int(base=36)",
+        "'bad'|int(3, default=4)", "'bad'|float(3, default=4)",
+    ):
+        add("template", "review-" + expression, {"operation": "when", "expression": expression, "data": {}}, lambda: utils.when_filter(expression, {}))
+    for fmt in (
+        "{{ 'bad'|float }}", "{{ 1e20 }}", "{{ 1e-5 }}", "{{ 1e-4 }}", "{{ 1e16 }}", "{{ -0.0 }}",
+        "{{ {'日本': '😀'}|tojson }}", "{{ 'a b/日'|urlencode }}",
+        "{{ 'abcdef'|truncate(length=4, killwords=True, leeway=0) }}",
+        "{{ 1024|filesizeformat }}", "{{ '<b>Hello</b> world'|striptags }}",
+        "{{ 'one two'|wordcount }}", "{{ 'one two three'|wordwrap(width=7) }}",
+        "{{ [42]|random }}", "{% set c=cycler('a', 'b') %}{{ c.next() }}{{ c.next() }}",
+        "{% set j=joiner('/') %}{{ j() }}a{{ j() }}b", "{{ lipsum(n=0, html=False) }}",
+        "{% if false %}{{ x|unknown_filter }}{% endif %}",
+        "{% if false %}{{ x is unknown_test }}{% endif %}",
+    ):
+        load_error = "unknown_filter" in fmt or "unknown_test" in fmt
+        add("template", "review-" + fmt, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}), rust_expected={"error": "TemplateAssertionError"} if load_error else None, difference="compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否" if load_error else None)
+    for expression, rust in (
+        ("missing > 1", {"value": False}), ("missing|length", {"error": "TypeError"}),
+        ("s > 1", {"value": True}), ("nil < 1", {"value": True}),
+        ("1 / 0", {"error": "TypeError"}),
+    ):
+        data = {"s": "hello", "nil": None}
+        add("template", "difference-" + expression, {"operation": "when", "expression": expression, "data": data}, lambda: utils.when_filter(expression, data), rust_expected=rust, difference="compat-spec.md: 未定義値・異種比較・例外種別")
+    for fmt, rust in (
+        ("{{ (1, 2) }}", {"value": "[1, 2]"}),
+        ("{{ range(3) }}", {"value": "[0, 1, 2]"}),
+        ("x +", {"value": "x +"}),
+        ("{{ x }}", {"value": "['\u200b']"}),
+    ):
+        data = {"x": ["\u200b"]}
+        # x + はwhenの空白制御として下で採取する。
+        if fmt == "x +":
+            add("template", "difference-whitespace-plus", {"operation": "when", "expression": fmt, "data": {"x": True}}, lambda: utils.when_filter(fmt, {"x": True}), rust_expected={"value": True}, difference="compat-spec.md: x + の空白制御")
+        else:
+            add("template", "difference-repr-" + fmt, {"operation": "render", "template": fmt, "data": data}, lambda: utils.jinja2_format(fmt, data), rust_expected=rust, difference="compat-spec.md: tuple/range・非表示文字のrepr")
+    for dsl in ("$DATETIME(%S)(1_000)", "$DATETIME(%S)(１２)", "$DATETIME(%Q)(0)", "$DATETIME(%3f)(0)"):
+        with patch.object(utils, "now", return_value=fixed):
+            add("template", "difference-" + dsl, {"operation": "datetime", "value": dsl, "now": fixed.isoformat()}, lambda: utils.parse_datetime_dsl(dsl), rust_expected={"value": "000"} if "%3f" in dsl else {"error": "ValueError"}, difference="compat-spec.md: DATETIMEのint/strftime差異")
     for dsl in ("$DATETIME(%Y-%m-%d)(-86400)", "$DATETIME(%Y-%m-%d %H:%M:%S)(86400)", "$DATETIME(%Y)(bad)", "literal", "$DATETIME(%Y)(0)", "$DATETIME(%Y)(+1)", "x$DATETIME(%Y)(0)", "$DATETIME(%Y)(0)\n", "$DATETIME()(0)", "$DATETIME(%Y-%m-%dT%H:%M:%S.%f%z %Z)(0)", "$DATETIME(%%f)(0)"):
         with patch.object(utils, "now", return_value=fixed):
             add("template", dsl, {"operation": "datetime", "value": dsl, "now": fixed.isoformat()}, lambda: utils.parse_datetime_dsl(dsl))
@@ -198,6 +250,58 @@ def main():
         add("regex", name, {"operation": "search", "pattern": pattern, "target": target}, lambda: bool(re.search(pattern, target)))
 
     unit_models = imported("tests/test_models.py")
+    for name, pattern, target, rejected in [
+        ("posix", r"[[:alpha:]]", "a", True),
+        ("intersection", r"[a-z&&[^b]]", "a", True),
+        ("unicode-property", r"\p{L}", "a", False),
+        ("horizontal-space", r"\h", " ", False),
+        ("escape-e", r"\e", "a", False),
+        ("hex-braces", r"\x{41}", "A", False),
+        ("rust-name", r"(?<n>a)", "a", False),
+        ("rust-reference", r"(?P<n>a)\k<n>", "aa", False),
+        ("numeric-name", r"(?P<1>a)", "a", False),
+        ("duplicate-name", r"(?P<n>a)(?P<n>b)", "ab", False),
+        ("conditional", r"(a)?(?(1)b|c)", "ab", True),
+        ("named-character", r"\N{LATIN CAPITAL LETTER A}", "A", True),
+        ("literal-bracket", r"[[]", "[", False),
+        ("octal-zero", r"\0", "\0", False),
+        ("octal-three", r"\101", "A", False),
+        ("ascii-word", r"(?a)\w+", "日本語", False),
+        ("ascii-digit", r"(?a)\d+", "123", False),
+        ("ascii-scoped", r"(?a:\w+)\w", "a日", False),
+    ]:
+        add("regex", "review-" + name, {"operation": "search", "pattern": pattern, "target": target}, lambda: bool(re.search(pattern, target)), rust_expected={"error": "PatternError"} if rejected else None, difference="compat-spec.md: 読み込み時に拒否する正規表現構文" if rejected else None)
+    for code in range(0x1c, 0x20):
+        add("regex", f"difference-space-{code:02x}", {"operation": "search", "pattern": r"\s", "target": chr(code)}, lambda: bool(re.search(r"\s", chr(code))), rust_expected={"value": False}, difference="compat-spec.md: Pythonの追加空白文字")
+
+    for encoding, texts in [
+        ("cp932", ["〜‖¢£¬−", "¥", "‾", "ⅰ髙", "\uf8f0\uf8f1\uf8f2\uf8f3"]),
+        ("euc_jp", ["〜‖¢£¬−", "～∥￠￡￢－", "①髙", "丂", "˘", "¥‾"]),
+        ("iso8859_15", ["€ŠšŽžŒœŸ"]), ("mac-roman", ["Äé"]),
+        ("cp437", ["Çα■"]), ("utf-32", ["日本😀"]), ("utf-32-be", ["日本😀"]),
+        ("euc_kr", ["한국", "갂쀍힣", "ㅤ"]), ("cp949", ["한국", "갂쀍힣"]),
+        ("windows-1252", ["\x81"]), ("windows-1254", ["\x8e"]),
+        ("hz-gb-2312", ["x"]), ("iso-2022-kr", ["x"]),
+    ]:
+        for index, text in enumerate(texts):
+            for errors in ("strict", "replace"):
+                rejected = encoding in ("hz-gb-2312", "iso-2022-kr")
+                add("encoding", f"review-encode-{encoding}-{index}-{errors}", {"operation": "encode", "text": text, "encoding": encoding, "errors": errors}, lambda: text.encode(encoding, errors=errors).hex(), rust_expected={"error": "LookupError"} if rejected else None, difference="compat-spec.md: WHATWG replacement codecを拒否" if rejected else None)
+    for encoding, bodies in [
+        ("cp932", ["a0fdfeff", "eeefeee0", "816081618191819281ca"]),
+        ("euc_jp", ["a1c1a1c2a1dda1f1a1f2a2cc", "ada1", "f9a1", "fcfe", "8fb0a1"]),
+        ("windows-1252", ["818d8f909d"]), ("windows-1254", ["818d8e8f909d9e"]),
+        ("euc_kr", ["c7d1b1b9", "a4d4a4a1a4bfa4a2", "a4d4", "a4d4a4a1a4bf"]), ("cp949", ["c7d1b1b9", "814197cdc652"]),
+        ("iso8859_15", ["a4a6a8b4b8bcbdbe"]),
+        ("mac-roman", ["808e"]), ("cp437", ["80e0fe"]),
+        ("utf-32", ["fffe000000f60100"]), ("utf-32-be", ["0001f600"]),
+        ("hz-gb-2312", ["78"]), ("iso-2022-kr", ["78"]),
+    ]:
+        for body_hex in bodies:
+            body = bytes.fromhex(body_hex)
+            for errors in ("strict", "replace"):
+                rejected = encoding in ("hz-gb-2312", "iso-2022-kr")
+                add("encoding", f"review-decode-{encoding}-{body_hex}-{errors}", {"operation": "decode", "body_hex": body_hex, "encoding": encoding, "errors": errors}, lambda: body.decode(encoding, errors=errors), rust_expected={"error": "LookupError"} if rejected else None, difference="compat-spec.md: WHATWG replacement codecを拒否" if rejected else None)
     for index, (_, headers, text, content, encoding, apparent, default, _) in enumerate(params(unit_models.TestModels.test_from_requests_decide_encoding)):
         res = SimpleNamespace(headers=headers, content=content, encoding=encoding, apparent_encoding=apparent)
         add("encoding", f"unit-decide-{index}", {"operation": "decide_encoding", "headers": headers, "body_hex": content.hex(), "encoding": encoding, "apparent_encoding": apparent, "default": default}, lambda: Response._decide_encoding(res, TOption(default)))

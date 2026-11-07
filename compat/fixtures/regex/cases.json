@@ -403,5 +403,279 @@
     "expected": {
       "value": true
     }
+  },
+  {
+    "name": "review-posix",
+    "input": {
+      "operation": "search",
+      "pattern": "[[:alpha:]]",
+      "target": "a"
+    },
+    "expected": {
+      "value": false
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-intersection",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z&&[^b]]",
+      "target": "a"
+    },
+    "expected": {
+      "value": false
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-unicode-property",
+    "input": {
+      "operation": "search",
+      "pattern": "\\p{L}",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-horizontal-space",
+    "input": {
+      "operation": "search",
+      "pattern": "\\h",
+      "target": " "
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-escape-e",
+    "input": {
+      "operation": "search",
+      "pattern": "\\e",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-hex-braces",
+    "input": {
+      "operation": "search",
+      "pattern": "\\x{41}",
+      "target": "A"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-rust-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?<n>a)",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-rust-reference",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)\\k<n>",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-numeric-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<1>a)",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-duplicate-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)(?P<n>b)",
+      "target": "ab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-conditional",
+    "input": {
+      "operation": "search",
+      "pattern": "(a)?(?(1)b|c)",
+      "target": "ab"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-named-character",
+    "input": {
+      "operation": "search",
+      "pattern": "\\N{LATIN CAPITAL LETTER A}",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-literal-bracket",
+    "input": {
+      "operation": "search",
+      "pattern": "[[]",
+      "target": "["
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-octal-zero",
+    "input": {
+      "operation": "search",
+      "pattern": "\\0",
+      "target": "\u0000"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-octal-three",
+    "input": {
+      "operation": "search",
+      "pattern": "\\101",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-ascii-word",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a)\\w+",
+      "target": "日本語"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "review-ascii-digit",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a)\\d+",
+      "target": "123"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-ascii-scoped",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a:\\w+)\\w",
+      "target": "a日"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "difference-space-1c",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001c"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1d",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001d"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1e",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001e"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1f",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001f"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
   }
 ]

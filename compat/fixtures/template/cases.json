@@ -1812,6 +1812,799 @@
     }
   },
   {
+    "name": "review-'bad'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'bad'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-' 42 '|int",
+    "input": {
+      "operation": "when",
+      "expression": "' 42 '|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "review-' 42.5 '|float",
+    "input": {
+      "operation": "when",
+      "expression": "' 42.5 '|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 42.5
+    }
+  },
+  {
+    "name": "review-'1_000'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'1_000'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000
+    }
+  },
+  {
+    "name": "review-'1_000.5'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1_000.5'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000.5
+    }
+  },
+  {
+    "name": "review-missing|int",
+    "input": {
+      "operation": "when",
+      "expression": "missing|int",
+      "data": {}
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "review-missing|float",
+    "input": {
+      "operation": "when",
+      "expression": "missing|float",
+      "data": {}
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "review-'bad'|int(7)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(7)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "review-'bad'|int(default=8)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(default=8)",
+      "data": {}
+    },
+    "expected": {
+      "value": 8
+    }
+  },
+  {
+    "name": "review-'bad'|float(default=2.5)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(default=2.5)",
+      "data": {}
+    },
+    "expected": {
+      "value": 2.5
+    }
+  },
+  {
+    "name": "review-'ff'|int(base=16)",
+    "input": {
+      "operation": "when",
+      "expression": "'ff'|int(base=16)",
+      "data": {}
+    },
+    "expected": {
+      "value": 255
+    }
+  },
+  {
+    "name": "review-'11'|int(0, 2)",
+    "input": {
+      "operation": "when",
+      "expression": "'11'|int(0, 2)",
+      "data": {}
+    },
+    "expected": {
+      "value": 3
+    }
+  },
+  {
+    "name": "review-'0x10'|int(base=0)",
+    "input": {
+      "operation": "when",
+      "expression": "'0x10'|int(base=0)",
+      "data": {}
+    },
+    "expected": {
+      "value": 16
+    }
+  },
+  {
+    "name": "review-'0x_FF'|int(base=16)",
+    "input": {
+      "operation": "when",
+      "expression": "'0x_FF'|int(base=16)",
+      "data": {}
+    },
+    "expected": {
+      "value": 255
+    }
+  },
+  {
+    "name": "review-'4.9'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'4.9'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 4
+    }
+  },
+  {
+    "name": "review-none|int",
+    "input": {
+      "operation": "when",
+      "expression": "none|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-none|float",
+    "input": {
+      "operation": "when",
+      "expression": "none|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'1__0'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'1__0'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'1__0'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1__0'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'x'|int(default=none)",
+    "input": {
+      "operation": "when",
+      "expression": "'x'|int(default=none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'bad'|float(none)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'bad'|int(none)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'1_e2'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1_e2'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'z_z'|int(base=36)",
+    "input": {
+      "operation": "when",
+      "expression": "'z_z'|int(base=36)",
+      "data": {}
+    },
+    "expected": {
+      "value": 1295
+    }
+  },
+  {
+    "name": "review-'10'|int(base=-1)",
+    "input": {
+      "operation": "when",
+      "expression": "'10'|int(base=-1)",
+      "data": {}
+    },
+    "expected": {
+      "value": 10
+    }
+  },
+  {
+    "name": "review-'ff'|int(base=none)",
+    "input": {
+      "operation": "when",
+      "expression": "'ff'|int(base=none)",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'inf'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'inf'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'nan'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'nan'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'inf'|int(base=36)",
+    "input": {
+      "operation": "when",
+      "expression": "'inf'|int(base=36)",
+      "data": {}
+    },
+    "expected": {
+      "value": 24171
+    }
+  },
+  {
+    "name": "review-'bad'|int(3, default=4)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(3, default=4)",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "review-'bad'|float(3, default=4)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(3, default=4)",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "review-{{ 'bad'|float }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'bad'|float }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0.0"
+    }
+  },
+  {
+    "name": "review-{{ 1e20 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e20 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20"
+    }
+  },
+  {
+    "name": "review-{{ 1e-5 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e-5 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e-05"
+    }
+  },
+  {
+    "name": "review-{{ 1e-4 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e-4 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0.0001"
+    }
+  },
+  {
+    "name": "review-{{ 1e16 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e16 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+16"
+    }
+  },
+  {
+    "name": "review-{{ -0.0 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ -0.0 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "-0.0"
+    }
+  },
+  {
+    "name": "review-{{ {'日本': '😀'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'日本': '😀'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"\\u65e5\\u672c\": \"\\ud83d\\ude00\"}"
+    }
+  },
+  {
+    "name": "review-{{ 'a b/日'|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'a b/日'|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "a%20b/%E6%97%A5"
+    }
+  },
+  {
+    "name": "review-{{ 'abcdef'|truncate(length=4, killwords=True, leeway=0) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'abcdef'|truncate(length=4, killwords=True, leeway=0) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "a..."
+    }
+  },
+  {
+    "name": "review-{{ 1024|filesizeformat }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1024|filesizeformat }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0 kB"
+    }
+  },
+  {
+    "name": "review-{{ '<b>Hello</b> world'|striptags }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ '<b>Hello</b> world'|striptags }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "Hello world"
+    }
+  },
+  {
+    "name": "review-{{ 'one two'|wordcount }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two'|wordcount }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "2"
+    }
+  },
+  {
+    "name": "review-{{ 'one two three'|wordwrap(width=7) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two three'|wordwrap(width=7) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "one two\nthree"
+    }
+  },
+  {
+    "name": "review-{{ [42]|random }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [42]|random }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "42"
+    }
+  },
+  {
+    "name": "review-{% set c=cycler('a', 'b') %}{{ c.next() }}{{ c.next() }}",
+    "input": {
+      "operation": "render",
+      "template": "{% set c=cycler('a', 'b') %}{{ c.next() }}{{ c.next() }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "ab"
+    }
+  },
+  {
+    "name": "review-{% set j=joiner('/') %}{{ j() }}a{{ j() }}b",
+    "input": {
+      "operation": "render",
+      "template": "{% set j=joiner('/') %}{{ j() }}a{{ j() }}b",
+      "data": {}
+    },
+    "expected": {
+      "value": "a/b"
+    }
+  },
+  {
+    "name": "review-{{ lipsum(n=0, html=False) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ lipsum(n=0, html=False) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "review-{% if false %}{{ x|unknown_filter }}{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if false %}{{ x|unknown_filter }}{% endif %}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TemplateAssertionError"
+    },
+    "difference": "compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否"
+  },
+  {
+    "name": "review-{% if false %}{{ x is unknown_test }}{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if false %}{{ x is unknown_test }}{% endif %}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TemplateAssertionError"
+    },
+    "difference": "compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否"
+  },
+  {
+    "name": "difference-missing > 1",
+    "input": {
+      "operation": "when",
+      "expression": "missing > 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-missing|length",
+    "input": {
+      "operation": "when",
+      "expression": "missing|length",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "value": 0
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-s > 1",
+    "input": {
+      "operation": "when",
+      "expression": "s > 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-nil < 1",
+    "input": {
+      "operation": "when",
+      "expression": "nil < 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-1 / 0",
+    "input": {
+      "operation": "when",
+      "expression": "1 / 0",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "ZeroDivisionError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-repr-{{ (1, 2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ (1, 2) }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "(1, 2)"
+    },
+    "rust_expected": {
+      "value": "[1, 2]"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-repr-{{ range(3) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ range(3) }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "range(0, 3)"
+    },
+    "rust_expected": {
+      "value": "[0, 1, 2]"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-whitespace-plus",
+    "input": {
+      "operation": "when",
+      "expression": "x +",
+      "data": {
+        "x": true
+      }
+    },
+    "expected": {
+      "error": "TemplateSyntaxError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: x + の空白制御"
+  },
+  {
+    "name": "difference-repr-{{ x }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ x }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "['\\u200b']"
+    },
+    "rust_expected": {
+      "value": "['​']"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-$DATETIME(%S)(1_000)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%S)(1_000)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "45"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%S)(１２)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%S)(１２)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "17"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%Q)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Q)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "Q"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%3f)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%3f)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "3f"
+    },
+    "rust_expected": {
+      "value": "000"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
     "name": "$DATETIME(%Y-%m-%d)(-86400)",
     "input": {
       "operation": "datetime",

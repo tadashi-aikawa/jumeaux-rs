@@ -1,15 +1,20 @@
 //! Python reの設定パターン・置換をこの境界に集約する。
 use super::{Error, Result};
+use std::{collections::HashSet, sync::OnceLock};
 
 #[derive(Debug, Clone)]
 pub struct Regex {
     pattern: String,
     inner: fancy_regex::Regex,
+    translated: String,
+    exact: OnceLock<Result<fancy_regex::Regex>>,
+    full: OnceLock<Result<fancy_regex::Regex>>,
+    nonempty: OnceLock<Result<Option<fancy_regex::Regex>>>,
 }
 
 impl Regex {
     pub fn new(pattern: &str) -> Result<Self> {
-        let translated = translate_pattern(pattern);
+        let translated = translate_pattern(pattern)?;
         let tree = fancy_regex::Expr::parse_tree(&translated)
             .map_err(|e| Error::new("PatternError", format!("{pattern:?}: {e}")))?;
         validate_lookbehind(&tree.expr)
@@ -19,6 +24,10 @@ impl Regex {
         Ok(Self {
             pattern: pattern.into(),
             inner,
+            translated,
+            exact: OnceLock::new(),
+            full: OnceLock::new(),
+            nonempty: OnceLock::new(),
         })
     }
 
@@ -29,11 +38,27 @@ impl Regex {
     /// Jumeauxのexact_matchはre.fullmatchではなくre.search("^(pattern)$")。
     /// 終端の改行を許容し、ラッパーのキャプチャもPython版と同じにする。
     pub fn exact_match(&self, target: &str) -> Result<bool> {
-        Self::new(&format!("^({})$", self.pattern))?.search(target)
+        self.exact
+            .get_or_init(|| {
+                fancy_regex::Regex::new(&format!(r"^({})(?:$|(?=\n\z))", self.translated))
+                    .map_err(|e| self.error(e))
+            })
+            .as_ref()
+            .map_err(Clone::clone)?
+            .is_match(target)
+            .map_err(|e| self.error(e))
     }
 
     pub fn full_match(&self, target: &str) -> Result<bool> {
-        Self::new(&format!(r"\A(?:{})\z", self.pattern))?.search(target)
+        self.full
+            .get_or_init(|| {
+                fancy_regex::Regex::new(&format!(r"\A(?:{})\z", self.translated))
+                    .map_err(|e| self.error(e))
+            })
+            .as_ref()
+            .map_err(Clone::clone)?
+            .is_match(target)
+            .map_err(|e| self.error(e))
     }
 
     /// 設定ロード時に呼び、マッチしない入力でも不正な参照を検出する。
@@ -47,18 +72,24 @@ impl Regex {
         let mut end = 0;
         let mut position = 0;
         let mut previous_empty = false;
-        let nonempty = match fancy_regex::RegexBuilder::new(&translate_pattern(&self.pattern))
-            .find_not_empty(true)
-            .build()
-        {
-            Ok(regex) => Some(regex),
-            Err(fancy_regex::Error::CompileError(error))
-                if matches!(*error, fancy_regex::CompileError::PatternCanNeverMatch) =>
-            {
-                None
-            }
-            Err(error) => return Err(self.error(error)),
-        };
+        let nonempty = self
+            .nonempty
+            .get_or_init(|| {
+                match fancy_regex::RegexBuilder::new(&self.translated)
+                    .find_not_empty(true)
+                    .build()
+                {
+                    Ok(regex) => Ok(Some(regex)),
+                    Err(fancy_regex::Error::CompileError(error))
+                        if matches!(*error, fancy_regex::CompileError::PatternCanNeverMatch) =>
+                    {
+                        Ok(None)
+                    }
+                    Err(error) => Err(self.error(error)),
+                }
+            })
+            .as_ref()
+            .map_err(Clone::clone)?;
         loop {
             // Python 3.7以降は空一致の直後に同じ位置から非空一致を試す。
             // fancy-regexのcaptures_iterはこの一致と非空一致直後の空一致を落とす。
@@ -250,32 +281,146 @@ fn fixed_width(expr: &fancy_regex::Expr) -> Option<usize> {
     }
 }
 
-fn translate_pattern(pattern: &str) -> String {
+fn translate_pattern(pattern: &str) -> Result<String> {
     let mut result = String::new();
-    let mut chars = pattern.chars();
+    let chars: Vec<_> = pattern.chars().collect();
+    let mut i = 0;
     let mut in_class = false;
-    while let Some(c) = chars.next() {
+    let mut class_start = false;
+    let mut ascii = false;
+    let mut scopes = Vec::new();
+    let mut names = HashSet::new();
+    let error = |message| Error::new("PatternError", format!("{pattern:?}: {message}"));
+    while i < chars.len() {
+        let c = chars[i];
+        i += 1;
         match c {
             '\\' => {
-                result.push('\\');
-                if let Some(c) = chars.next() {
-                    result.push(if c == 'Z' && !in_class { 'z' } else { c });
+                let Some(&escaped) = chars.get(i) else {
+                    return Err(error("bad escape at end of pattern"));
+                };
+                i += 1;
+                if matches!(escaped, 'p' | 'P' | 'h' | 'H' | 'e' | 'k' | 'N')
+                    || (escaped == 'x' && chars.get(i) == Some(&'{'))
+                {
+                    return Err(error("unsupported Python pattern escape"));
                 }
+                if ('0'..='7').contains(&escaped)
+                    && (escaped == '0'
+                        || in_class
+                        || chars
+                            .get(i..i + 2)
+                            .is_some_and(|s| s.iter().all(|c| ('0'..='7').contains(c))))
+                {
+                    let mut digits = escaped.to_string();
+                    while digits.len() < 3 && chars.get(i).is_some_and(|c| ('0'..='7').contains(c))
+                    {
+                        digits.push(chars[i]);
+                        i += 1;
+                    }
+                    let value = u32::from_str_radix(&digits, 8).unwrap();
+                    if value > 255 {
+                        return Err(error("octal escape outside 0..377"));
+                    }
+                    result.push_str(&format!(r"\x{{{value:x}}}"));
+                } else if ascii && matches!(escaped, 'w' | 'W' | 'd' | 'D' | 's' | 'S') {
+                    let body = match escaped {
+                        'w' | 'W' => "a-zA-Z0-9_",
+                        'd' | 'D' => "0-9",
+                        _ => r"\t\n\r\x0b\x0c ",
+                    };
+                    if !in_class || escaped.is_uppercase() {
+                        result.push('[');
+                    }
+                    if escaped.is_uppercase() {
+                        result.push('^');
+                    }
+                    result.push_str(body);
+                    if !in_class || escaped.is_uppercase() {
+                        result.push(']');
+                    }
+                } else if ascii && !in_class && matches!(escaped, 'b' | 'B') {
+                    result.push_str(&format!(r"(?-u:\{escaped})"));
+                } else if in_class && escaped == 'b' {
+                    result.push_str(r"\x08");
+                } else {
+                    result.push('\\');
+                    result.push(if escaped == 'Z' && !in_class {
+                        'z'
+                    } else {
+                        escaped
+                    });
+                }
+                class_start = false;
             }
             '[' => {
-                in_class = true;
+                if in_class {
+                    if chars.get(i) == Some(&':') {
+                        return Err(error("POSIX classes are unsupported"));
+                    }
+                    result.push_str(r"\[");
+                    class_start = false;
+                } else {
+                    in_class = true;
+                    class_start = true;
+                    result.push(c);
+                }
+            }
+            ']' if in_class && !class_start => {
+                in_class = false;
                 result.push(c);
             }
-            ']' => {
-                in_class = false;
+            '&' if in_class && chars.get(i) == Some(&'&') => {
+                return Err(error("set intersection is unsupported"));
+            }
+            '(' if !in_class => {
+                let rest: String = chars[i..].iter().collect();
+                if rest.starts_with("?(")
+                    || (rest.starts_with("?<")
+                        && !rest.starts_with("?<=")
+                        && !rest.starts_with("?<!"))
+                {
+                    return Err(error("unsupported group syntax"));
+                }
+                if let Some(tail) = rest.strip_prefix("?P<") {
+                    let name = tail.split('>').next().unwrap();
+                    if name.is_empty()
+                        || !name.starts_with(|c: char| c == '_' || c.is_alphabetic())
+                        || !name.chars().all(|c| c == '_' || c.is_alphanumeric())
+                        || !names.insert(name.to_string())
+                    {
+                        return Err(error("invalid or duplicate group name"));
+                    }
+                }
+                if rest.starts_with("?a)") {
+                    ascii = true;
+                    i += 3;
+                    continue;
+                }
+                scopes.push(ascii);
+                if rest.starts_with("?a:") {
+                    ascii = true;
+                    result.push_str("(?:");
+                    i += 3;
+                } else {
+                    result.push(c);
+                }
+            }
+            ')' if !in_class => {
+                ascii = scopes.pop().unwrap_or(ascii);
                 result.push(c);
             }
             // Rustの$は通常、末尾改行の直前を受理しない。
             '$' if !in_class => result.push_str(r"(?:$|(?=\n\z))"),
-            c => result.push(c),
+            c => {
+                result.push(c);
+                if c != '^' || !class_start {
+                    class_start = false;
+                }
+            }
         }
     }
-    result
+    Ok(result)
 }
 
 pub fn exact_match(target: &str, pattern: &str) -> Result<bool> {

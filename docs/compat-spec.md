@@ -125,9 +125,32 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 規則: 機能は廃止しない。Pythonモジュール名を暗黙に直接実行しない。
 - 並列実装方式は変えてよい。concurrencyの出力は前述の規則を保つ。
 
+## 式へ渡すRequestの形
+
+| addon | Pythonの入力 | Rustの入口 | Noneの扱い |
+| --- | --- | --- | --- |
+| res2res/json | `{"req": req, "res": res}` | `req.to_template_value()`を`req`キーへ渡す | `req.raw.is_none()`・`req.name.get()`等のOptionメソッドを公開 |
+| reqs2reqs/filter | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+| reqs2reqs/rename | `request.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+| res2res/json_sort | `payload.req.to_dict()` | `request.to_dict_value()`をルートへ渡す | Noneのキーは欠落 |
+
+`qs`と`headers`は挿入順を保つ。Responseの本文は`Arc<[u8]>`で共有し、未知プロパティは未定義値を返す。
+
+## テンプレートのサポート外
+
+| 分類 | サポート外 |
+| --- | --- |
+| filter | `center`、`forceescape`、`urlize`、`xmlattr` |
+| test | `callable` |
+| Python文字列メソッド | `rsplit`、`index`、`partition`、`zfill`、`encode` |
+| 演算 | `"%d" % n` |
+
+MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合する。コメント内は対象外とし、未実行分岐・macro・filterブロックも検査する。
+
 ## 未決
 
-- 文字コード推定器の差をどこまで許容するか。
+- 文字コード推定名の差異。
+  - 決定案A: 推定したencoding名はPythonのcodec名との一致を保証しない。EUC-JPの本文写像は合わせる。
   - 実測: `encoding/detect-euc`はPython charset-normalizerが`euc_jis_2004`、Rust chardetngが`EUC-JP`を返す。元の期待値は変えず、Rustの差異をテスト内で明示する。
   - 制限: chardetngはJIS X 0213のcodecを推定しない。同名への機械的な置換で一致扱いにはしない。
   - 詳細: [文字コードの互換境界](encoding.md)
@@ -135,8 +158,40 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 差異: 表現できない文字はPythonの`?`と異なり数値文字参照になる。UTF-16のencodeも提供しない。
   - 現実装: 互換アダプターで`?`置換とUTF-16のendian・BOMを補い、fixtureでは一致する。ライブラリの差をそのまま許容する決定はしていない。
 - Python固有codecと、Encoding Standardの対応表の外側の扱い。
-  - 現実装: UTF-32・EUC-JIS-2004等はLookupError。主要codecの対応範囲・別名は[文字コード表](encoding.md#codecと別名)に固定する。
+  - 現実装: EUC-JIS-2004等はLookupError。UTF-32には専用アダプターを置く。主要codecの対応範囲・別名は[文字コード表](encoding.md#codecと別名)に固定する。
   - 制限: 主要codecでも全Unicode対応表・全不正bytes列の網羅互換は未検証。
+- WHATWGの`replacement`へ写るcodecを拒否する差異。
+  - 実測: Pythonの`hz-gb-2312`と`iso-2022-kr`はASCIIを変換できる。Rustは読み込み時にLookupErrorとする。strict・replaceのencode/decodeをfixtureで固定する。
+- 未定義値・異種比較の差異。
+  - 制限: MiniJinjaにPython相当の独自Undefinedを差し込めない。
+  - 実測: 下表の結果をfixtureの`rust_expected`で明示検証する。
+
+| fixtureの式 | Python | Rust |
+| --- | --- | --- |
+| `missing > 1` | UndefinedError | False |
+| `missing\|length` | 0 | TypeError |
+| `s > 1` | TypeError | True |
+| `nil < 1` | TypeError | True |
+| `1 / 0` | ZeroDivisionError | TypeError |
+
+- ロード時の未知filter/test検査の差異。
+  - 実測: Pythonは未実行分岐内の未知名を許容する。RustはTemplateAssertionErrorを返す。
+  - 根拠: レビュー再依頼のロード時検出要件。Python期待値を変更せずfixtureに残す。
+- `$DATETIME`の`int()`と`strftime`の差異。
+  - 実測: 秒の`1_000`と全角数字はPythonが受理し、RustはValueError。`|int`・`|float`のunderscore対応とは別経路。
+  - 実測: `%Q`はPythonが文字列`Q`を返し、RustはValueError。`%3f`はPythonが`3f`、Rustが`000`を返す。Pythonの結果は採取環境macOSのstrftimeに依存する。
+  - 残件: 実時刻経路の`%Z`はchronoのoffset名を使うため、Pythonの`JST`等の略称とは一致しない。
+- 空白制御・repr・例外種別の差異。
+  - 実測: `when`の`x +`はPythonでTemplateSyntaxError、Rustで`x`の値になる。
+  - 実測: `(1, 2)`と`range(3)`の描画はRustでリスト表記になる。非表示文字U+200BはPythonの`\\u200b`に対しRustは文字をそのまま描画する。
+  - 制限: ZeroDivisionError等のPython例外種別を網羅的には対応付けない。
+- 正規表現のサポート範囲の差異。
+  - 明示拒否: POSIXクラス、文字集合の積、条件付きgroup、`\N{…}`。Pythonで構文として通る例もPatternErrorとする。
+  - 実測: Pythonの`\s`はU+001C〜U+001Fにも一致する。Rustは一致しない。
+  - 検証: Pythonでも不正なRust固有escape・group名構文の拒否、Pythonで有効な`[[]`・8進escape・`(?a)`の受理もfixtureに含める。
+- `rustpython-parser`への依存と暫定モデルの配置。
+  - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
+  - 後続: `plain_requests`は「設定・モデル」タスクでlog2reqsへ移す。入力ファイル・query fixtureは移動後も維持する。
 - clapが追加する `help` サブコマンドを残すか。
 - clapの `-V` を残すか。
 - `--version` の出力形式。

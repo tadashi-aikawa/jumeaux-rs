@@ -6,6 +6,7 @@ fn python_regex_fixtures() {
     let cases: Vec<Value> =
         serde_json::from_str(include_str!("../compat/fixtures/regex/cases.json")).unwrap();
     let mut failures = Vec::new();
+    let mut differences = 0;
     for case in &cases {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
@@ -21,15 +22,28 @@ fn python_regex_fixtures() {
             Ok(value) => json!({"value": value}),
             Err(error) => json!({"error": error.kind}),
         };
-        if actual != case["expected"] {
+        let expected = if let Some(expected) = case.get("rust_expected") {
+            assert_ne!(expected, &case["expected"], "{}", case["name"]);
+            assert!(case["difference"].as_str().is_some_and(|s| !s.is_empty()));
+            differences += 1;
+            expected
+        } else {
+            &case["expected"]
+        };
+        if &actual != expected {
             failures.push(format!(
                 "{}: actual={actual}, expected={}",
-                case["name"], case["expected"]
+                case["name"], expected
             ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
-    println!("regex: {}/{} Python一致", cases.len(), cases.len());
+    println!(
+        "regex: {}/{} Python一致、{}件の差異を明示検証",
+        cases.len() - differences,
+        cases.len(),
+        differences
+    );
 }
 
 #[test]

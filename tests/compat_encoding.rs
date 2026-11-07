@@ -24,6 +24,11 @@ fn python_encoding_fixtures() {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
         let body = input["body_hex"].as_str().map(unhex).unwrap_or_default();
+        let errors = if input["errors"] == "strict" {
+            Errors::Strict
+        } else {
+            Errors::Replace
+        };
         let actual = match string("operation") {
             "decide_encoding" => encoding::decide_encoding(
                 input["headers"]["content-type"].as_str(),
@@ -46,9 +51,8 @@ fn python_encoding_fixtures() {
             "dump_encoding" => {
                 encoding::transcode(&body, string("source"), string("destination")).map(hex)
             }
-            "encode" => {
-                encoding::encode(string("text"), string("encoding"), Errors::Replace).map(hex)
-            }
+            "encode" => encoding::encode(string("text"), string("encoding"), errors).map(hex),
+            "decode" => encoding::decode(&body, string("encoding"), errors).map(Value::from),
             "detect" => Ok(Value::from(encoding::detect(&body))),
             "quote_plus" => {
                 encoding::quote_plus(string("text"), string("encoding")).map(Value::from)
@@ -81,22 +85,30 @@ fn python_encoding_fixtures() {
             Err(error) => json!({"error": error.kind}),
         };
         if case["name"] == "detect-euc" {
-            // 未決: docs/compat-spec.md。chardetngはJIS X 0213を判別しない。
+            // 決定案A: 推定名の一致は保証しない。本文のEUC-JP写像は別に検証する。
             assert_eq!(case["expected"], json!({"value": "euc_jis_2004"}));
             assert_eq!(actual, json!({"value": "EUC-JP"}));
             differences += 1;
             continue;
         }
-        if actual != case["expected"] {
+        let expected = if let Some(expected) = case.get("rust_expected") {
+            assert_ne!(expected, &case["expected"], "{}", case["name"]);
+            assert!(case["difference"].as_str().is_some_and(|s| !s.is_empty()));
+            differences += 1;
+            expected
+        } else {
+            &case["expected"]
+        };
+        if &actual != expected {
             failures.push(format!(
                 "{}: actual={actual}, expected={}",
-                case["name"], case["expected"]
+                case["name"], expected
             ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
     println!(
-        "encoding: {}/{} Python一致、{}件の未決差異を明示検証",
+        "encoding: {}/{} Python一致、{}件の差異を明示検証",
         cases.len() - differences,
         cases.len(),
         differences

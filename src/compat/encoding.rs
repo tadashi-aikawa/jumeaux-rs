@@ -1,5 +1,7 @@
 //! 経路ごとのstrict/replaceと、Python codec名をencoding_rsへ写すアダプター。
-use std::collections::BTreeMap;
+use std::{collections::HashMap, sync::LazyLock};
+
+use indexmap::IndexMap;
 
 use super::{Error, Result, values::Request};
 
@@ -15,6 +17,12 @@ enum Codec {
     Utf8Sig,
     Utf16 { big_endian: Option<bool> },
     ShiftJis,
+    Cp932,
+    EucJp,
+    EucKr,
+    Latin15,
+    Cp437,
+    Utf32 { big_endian: Option<bool> },
     Other(&'static encoding_rs::Encoding),
 }
 
@@ -32,12 +40,26 @@ fn codec(label: &str) -> Result<Codec> {
             big_endian: Some(true),
         },
         "shift_jis" | "shiftjis" | "sjis" | "s_jis" => Codec::ShiftJis,
-        "cp932" | "ms932" | "mskanji" | "ms_kanji" => Codec::Other(encoding_rs::SHIFT_JIS),
+        "cp932" | "ms932" | "mskanji" | "ms_kanji" => Codec::Cp932,
         "utf8" | "utf_8" | "u8" => Codec::Other(encoding_rs::UTF_8),
-        "euc_jp" | "eucjp" | "ujis" => Codec::Other(encoding_rs::EUC_JP),
+        "euc_jp" | "eucjp" | "ujis" => Codec::EucJp,
+        "euc_kr" | "euckr" | "ks_c_5601_1987" | "ksx1001" => Codec::EucKr,
+        "cp949" | "ms949" | "uhc" => Codec::Other(encoding_rs::EUC_KR),
+        "iso8859_15" | "iso_8859_15" | "latin9" | "latin_9" | "l9" => Codec::Latin15,
+        "mac_roman" | "macroman" | "macintosh" => Codec::Other(encoding_rs::MACINTOSH),
+        "cp437" | "437" | "ibm437" => Codec::Cp437,
+        "utf32" | "utf_32" => Codec::Utf32 { big_endian: None },
+        "utf32le" | "utf_32_le" | "utf_32le" => Codec::Utf32 {
+            big_endian: Some(false),
+        },
+        "utf32be" | "utf_32_be" | "utf_32be" => Codec::Utf32 {
+            big_endian: Some(true),
+        },
         "iso2022_jp" | "iso_2022_jp" | "iso2022jp" => Codec::Other(encoding_rs::ISO_2022_JP),
         _ => Codec::Other(
             encoding_rs::Encoding::for_label(label.as_bytes())
+                .or_else(|| encoding_rs::Encoding::for_label(name.replace('_', "-").as_bytes()))
+                .filter(|encoding| *encoding != encoding_rs::REPLACEMENT)
                 .ok_or_else(|| Error::new("LookupError", format!("unknown encoding: {label}")))?,
         ),
     })
@@ -68,6 +90,32 @@ pub fn decode(body: &[u8], label: &str, errors: Errors) -> Result<String> {
             errors,
         ),
         Codec::ShiftJis => decode_shift_jis(body, errors),
+        Codec::Cp932 => decode_cp932(body, errors),
+        Codec::EucJp => decode_euc_jp(body, errors),
+        Codec::EucKr => decode_euc_kr(body, errors),
+        Codec::Latin15 => Ok(body.iter().map(|&b| latin15(b)).collect()),
+        Codec::Cp437 => Ok(body.iter().map(|&b| cp437(b)).collect()),
+        Codec::Utf32 { big_endian } => {
+            let (big, bytes) = match (big_endian, body) {
+                (None, [0xff, 0xfe, 0, 0, rest @ ..]) => (false, rest),
+                (None, [0, 0, 0xfe, 0xff, rest @ ..]) => (true, rest),
+                (endian, bytes) => (endian.unwrap_or(cfg!(target_endian = "big")), bytes),
+            };
+            bytes
+                .chunks(4)
+                .map(|chunk| {
+                    let c = <[u8; 4]>::try_from(chunk).ok().and_then(|unit| {
+                        char::from_u32(if big {
+                            u32::from_be_bytes(unit)
+                        } else {
+                            u32::from_le_bytes(unit)
+                        })
+                    });
+                    c.or((errors == Errors::Replace).then_some('\u{fffd}'))
+                        .ok_or_else(failure)
+                })
+                .collect()
+        }
         Codec::Utf16 { big_endian } => {
             let (big, bytes) = match (big_endian, body) {
                 (None, [0xff, 0xfe, rest @ ..]) => (false, rest),
@@ -128,8 +176,312 @@ pub fn decode(body: &[u8], label: &str, errors: Errors) -> Result<String> {
             if failed && errors == Errors::Strict {
                 return Err(failure());
             }
-            Ok(text.into_owned())
+            // WHATWGは未定義バイトをC1制御文字へ写すが、Pythonは変換失敗にする。
+            text.chars()
+                .map(|c| {
+                    if undefined_windows(encoding, c) {
+                        if errors == Errors::Strict {
+                            Err(failure())
+                        } else {
+                            Ok('\u{fffd}')
+                        }
+                    } else {
+                        Ok(c)
+                    }
+                })
+                .collect()
         }
+    }
+}
+
+fn undefined_windows(encoding: &encoding_rs::Encoding, c: char) -> bool {
+    (encoding == encoding_rs::WINDOWS_1252
+        && matches!(c, '\u{81}' | '\u{8d}' | '\u{8f}' | '\u{90}' | '\u{9d}'))
+        || (encoding == encoding_rs::WINDOWS_1254
+            && matches!(
+                c,
+                '\u{81}' | '\u{8d}' | '\u{8e}' | '\u{8f}' | '\u{90}' | '\u{9d}' | '\u{9e}'
+            ))
+}
+
+fn latin15(b: u8) -> char {
+    match b {
+        0xa4 => '€',
+        0xa6 => 'Š',
+        0xa8 => 'š',
+        0xb4 => 'Ž',
+        0xb8 => 'ž',
+        0xbc => 'Œ',
+        0xbd => 'œ',
+        0xbe => 'Ÿ',
+        b => char::from(b),
+    }
+}
+
+fn cp437(b: u8) -> char {
+    const HIGH: &str = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+    if b < 128 {
+        char::from(b)
+    } else {
+        HIGH.chars().nth(usize::from(b - 128)).unwrap()
+    }
+}
+
+fn decode_cp932(body: &[u8], errors: Errors) -> Result<String> {
+    let mut output = String::new();
+    let mut i = 0;
+    while i < body.len() {
+        let first = body[i];
+        if matches!(first, 0xa0 | 0xfd..=0xff) {
+            output.push(
+                char::from_u32(if first == 0xa0 {
+                    0xf8f0
+                } else {
+                    0xf8f1 + u32::from(first - 0xfd)
+                })
+                .unwrap(),
+            );
+            i += 1;
+            continue;
+        }
+        let width = if ((0x81..=0x9f).contains(&first) || (0xe0..=0xfc).contains(&first))
+            && i + 1 < body.len()
+        {
+            2
+        } else {
+            1
+        };
+        let (text, failed) =
+            encoding_rs::SHIFT_JIS.decode_without_bom_handling(&body[i..i + width]);
+        if failed {
+            if errors == Errors::Strict {
+                return Err(Error::new("UnicodeDecodeError", "invalid cp932 bytes"));
+            }
+            output.push('\u{fffd}');
+            i += 1;
+        } else {
+            output.push_str(&text);
+            i += width;
+        }
+    }
+    Ok(output)
+}
+
+fn decode_euc_jp(body: &[u8], errors: Errors) -> Result<String> {
+    let mut output = String::new();
+    let mut i = 0;
+    while i < body.len() {
+        let first = body[i];
+        let width = match first {
+            0..=0x7f => 1,
+            0x8f => 3,
+            _ => 2,
+        };
+        let invalid = first == 0xad || first >= 0xf5 || i + width > body.len();
+        let (text, failed) =
+            encoding_rs::EUC_JP.decode_without_bom_handling(&body[i..(i + width).min(body.len())]);
+        if invalid || failed {
+            if errors == Errors::Strict {
+                return Err(Error::new("UnicodeDecodeError", "invalid euc_jp bytes"));
+            }
+            output.push('\u{fffd}');
+            i += 1;
+        } else {
+            output.extend(text.chars().map(sjis_from_windows));
+            i += width;
+        }
+    }
+    Ok(output)
+}
+
+// encoding_rsのencoderが選ばないPythonのNEC選択IBM拡張/JIS X 0212を逆引きする。
+static CP932_EXTENSION: LazyLock<HashMap<char, Vec<u8>>> = LazyLock::new(|| {
+    let mut map = HashMap::new();
+    for first in 0xed..=0xee {
+        for second in 0x40..=0xfc {
+            let bytes = vec![first, second];
+            if let Ok(text) = decode_cp932(&bytes, Errors::Strict) {
+                let mut chars = text.chars();
+                if let (Some(c), None) = (chars.next(), chars.next()) {
+                    map.entry(c).or_insert(bytes);
+                }
+            }
+        }
+    }
+    map
+});
+
+static JIS0212: LazyLock<HashMap<char, Vec<u8>>> = LazyLock::new(|| {
+    let mut map = HashMap::new();
+    for first in 0xa1..=0xfe {
+        for second in 0xa1..=0xfe {
+            let bytes = vec![0x8f, first, second];
+            if let Ok(text) = decode_euc_jp(&bytes, Errors::Strict) {
+                let mut chars = text.chars();
+                if let (Some(c), None) = (chars.next(), chars.next()) {
+                    map.entry(c).or_insert(bytes);
+                }
+            }
+        }
+    }
+    map
+});
+
+fn encode_japanese(text: &str, errors: Errors, euc: bool) -> Result<Vec<u8>> {
+    let mut output = Vec::new();
+    for c in text.chars() {
+        if !euc {
+            if let Some(bytes) = CP932_EXTENSION.get(&c) {
+                output.extend(bytes);
+                continue;
+            }
+            if ('\u{f8f0}'..='\u{f8f3}').contains(&c) {
+                output.push(if c == '\u{f8f0}' {
+                    0xa0
+                } else {
+                    0xfd + (u32::from(c) - 0xf8f1) as u8
+                });
+                continue;
+            }
+        }
+        let mapped = sjis_to_windows(c);
+        let encoding = if euc {
+            encoding_rs::EUC_JP
+        } else {
+            encoding_rs::SHIFT_JIS
+        };
+        let mut buf = [0; 4];
+        let (bytes, _, failed) = encoding.encode(mapped.encode_utf8(&mut buf));
+        let invalid = failed
+            || (!euc && matches!(c, '¥' | '‾'))
+            || (euc
+                && ((mapped == c && sjis_from_windows(c) != c)
+                    || decode_euc_jp(&bytes, Errors::Strict).is_err()));
+        if invalid {
+            if euc && let Some(bytes) = JIS0212.get(&c) {
+                output.extend(bytes);
+                continue;
+            }
+            if errors == Errors::Strict {
+                return Err(Error::new(
+                    "UnicodeEncodeError",
+                    if euc {
+                        "text cannot be encoded as euc_jp"
+                    } else {
+                        "text cannot be encoded as cp932"
+                    },
+                ));
+            }
+            output.push(b'?');
+        } else {
+            output.extend_from_slice(&bytes);
+        }
+    }
+    Ok(output)
+}
+
+const HANGUL_INITIAL: &str = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const HANGUL_FINAL: &str = "ㅤㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ";
+
+fn decode_euc_kr(body: &[u8], errors: Errors) -> Result<String> {
+    let mut output = String::new();
+    let mut i = 0;
+    while i < body.len() {
+        // Pythonのeuc_krはKS X 1001にない音節をfiller+3 jamoで表す。
+        if body[i..].starts_with(b"\xa4\xd4") {
+            let end = (i + 8).min(body.len());
+            let (jamo, failed) = encoding_rs::EUC_KR.decode_without_bom_handling(&body[i + 2..end]);
+            let jamo: Vec<_> = jamo.chars().collect();
+            let syllable = if !failed && jamo.len() == 3 {
+                HANGUL_INITIAL
+                    .chars()
+                    .position(|c| c == jamo[0])
+                    .zip(HANGUL_FINAL.chars().position(|c| c == jamo[2]))
+                    .filter(|_| ('ㅏ'..='ㅣ').contains(&jamo[1]))
+                    .and_then(|(initial, final_)| {
+                        char::from_u32(
+                            0xac00
+                                + initial as u32 * 588
+                                + (u32::from(jamo[1]) - 0x314f) * 28
+                                + final_ as u32,
+                        )
+                    })
+            } else {
+                None
+            };
+            if let Some(c) = syllable {
+                output.push(c);
+            } else if errors == Errors::Strict {
+                return Err(Error::new("UnicodeDecodeError", "invalid euc_kr syllable"));
+            } else {
+                output.push('\u{fffd}');
+            }
+            i = end;
+            continue;
+        }
+        let width = if body[i] < 128 { 1 } else { 2 };
+        let bytes = &body[i..(i + width).min(body.len())];
+        let invalid =
+            width == 2 && (bytes.len() != 2 || bytes.iter().any(|b| !(0xa1..=0xfe).contains(b)));
+        let (text, failed) = encoding_rs::EUC_KR.decode_without_bom_handling(bytes);
+        if invalid || failed {
+            if errors == Errors::Strict {
+                return Err(Error::new("UnicodeDecodeError", "invalid euc_kr bytes"));
+            }
+            output.push('\u{fffd}');
+            i += 1;
+        } else {
+            output.push_str(&text);
+            i += width;
+        }
+    }
+    Ok(output)
+}
+
+fn encode_euc_kr(text: &str, errors: Errors) -> Result<Vec<u8>> {
+    let mut output = Vec::new();
+    for c in text.chars() {
+        let mut buf = [0; 4];
+        let (bytes, _, failed) = encoding_rs::EUC_KR.encode(c.encode_utf8(&mut buf));
+        if !failed
+            && bytes.len() == 2
+            && bytes.iter().any(|b| !(0xa1..=0xfe).contains(b))
+            && ('가'..='힣').contains(&c)
+        {
+            let index = u32::from(c) - 0xac00;
+            let jamo = [
+                HANGUL_INITIAL.chars().nth((index / 588) as usize).unwrap(),
+                char::from_u32(0x314f + index % 588 / 28).unwrap(),
+                HANGUL_FINAL.chars().nth((index % 28) as usize).unwrap(),
+            ];
+            output.extend_from_slice(b"\xa4\xd4");
+            for c in jamo {
+                output.extend_from_slice(&encoding_rs::EUC_KR.encode(c.encode_utf8(&mut buf)).0);
+            }
+        } else if failed || (bytes.len() == 2 && bytes.iter().any(|b| !(0xa1..=0xfe).contains(b))) {
+            if errors == Errors::Strict {
+                return Err(Error::new(
+                    "UnicodeEncodeError",
+                    "text cannot be encoded as euc_kr",
+                ));
+            }
+            output.push(b'?');
+        } else {
+            output.extend_from_slice(&bytes);
+        }
+    }
+    Ok(output)
+}
+
+fn sjis_to_windows(c: char) -> char {
+    match c {
+        '〜' => '～',
+        '‖' => '∥',
+        '−' => '－',
+        '¢' => '￠',
+        '£' => '￡',
+        '¬' => '￢',
+        c => c,
     }
 }
 
@@ -236,6 +588,43 @@ pub fn encode(text: &str, label: &str, errors: Errors) -> Result<Vec<u8>> {
         }
         Codec::Utf8Sig => Ok([b"\xef\xbb\xbf".as_slice(), text.as_bytes()].concat()),
         Codec::ShiftJis => encode_shift_jis(text, errors),
+        Codec::Cp932 => encode_japanese(text, errors, false),
+        Codec::EucJp => encode_japanese(text, errors, true),
+        Codec::EucKr => encode_euc_kr(text, errors),
+        selected @ (Codec::Latin15 | Codec::Cp437) => text
+            .chars()
+            .map(|c| {
+                (0..=255u8)
+                    .find(|&b| {
+                        if matches!(selected, Codec::Latin15) {
+                            latin15(b) == c
+                        } else {
+                            cp437(b) == c
+                        }
+                    })
+                    .or((errors == Errors::Replace).then_some(b'?'))
+                    .ok_or_else(failure)
+            })
+            .collect(),
+        Codec::Utf32 { big_endian } => {
+            let big = big_endian.unwrap_or(cfg!(target_endian = "big"));
+            let mut output = Vec::new();
+            if big_endian.is_none() {
+                output.extend_from_slice(if big {
+                    b"\0\0\xfe\xff"
+                } else {
+                    b"\xff\xfe\0\0"
+                });
+            }
+            for c in text.chars() {
+                output.extend_from_slice(&if big {
+                    u32::from(c).to_be_bytes()
+                } else {
+                    u32::from(c).to_le_bytes()
+                });
+            }
+            Ok(output)
+        }
         Codec::Utf16 { big_endian } => {
             let big = big_endian.unwrap_or(cfg!(target_endian = "big"));
             let mut output = Vec::new();
@@ -257,7 +646,7 @@ pub fn encode(text: &str, label: &str, errors: Errors) -> Result<Vec<u8>> {
                 _ => unreachable!(),
             };
             let (bytes, _, failed) = encoding.encode(text);
-            if !failed {
+            if !failed && !text.chars().any(|c| undefined_windows(encoding, c)) {
                 return Ok(bytes.into_owned());
             }
             if errors == Errors::Strict {
@@ -269,7 +658,8 @@ pub fn encode(text: &str, label: &str, errors: Errors) -> Result<Vec<u8>> {
                 .chars()
                 .map(|c| {
                     let mut buf = [0; 4];
-                    if encoding.encode(c.encode_utf8(&mut buf)).2 {
+                    if encoding.encode(c.encode_utf8(&mut buf)).2 || undefined_windows(encoding, c)
+                    {
                         '?'
                     } else {
                         c
@@ -305,6 +695,16 @@ pub fn decode_input(body: &[u8], encoding: &str) -> Result<String> {
             "UTF-16 stream does not start with BOM",
         ));
     }
+    if matches!(codec(encoding)?, Codec::Utf32 { big_endian: None })
+        && !body.is_empty()
+        && !body.starts_with(b"\xff\xfe\0\0")
+        && !body.starts_with(b"\0\0\xfe\xff")
+    {
+        return Err(Error::new(
+            "UnicodeError",
+            "UTF-32 stream does not start with BOM",
+        ));
+    }
     Ok(decode(body, encoding, Errors::Strict)?
         .replace("\r\n", "\n")
         .replace('\r', "\n"))
@@ -312,12 +712,15 @@ pub fn decode_input(body: &[u8], encoding: &str) -> Result<String> {
 
 pub fn content_encodings(body: &[u8]) -> Result<Vec<String>> {
     let mut result = Vec::new();
-    for pattern in [
-        r#"(?i-u)<meta.*?charset=["']*(.+?)["'>]"#,
-        r#"(?i-u)<meta.*?content=["']*;?charset=(.+?)["'>]"#,
-        r#"(?-u)^<\?xml.*?encoding=["']*(.+?)["'>]"#,
-    ] {
-        let re = ::regex::bytes::Regex::new(pattern).expect("constant regex");
+    static PATTERNS: LazyLock<[::regex::bytes::Regex; 3]> = LazyLock::new(|| {
+        [
+            r#"(?i-u)<meta.*?charset=["']*(.+?)["'>]"#,
+            r#"(?i-u)<meta.*?content=["']*;?charset=(.+?)["'>]"#,
+            r#"(?-u)^<\?xml.*?encoding=["']*(.+?)["'>]"#,
+        ]
+        .map(|pattern| ::regex::bytes::Regex::new(pattern).expect("constant regex"))
+    });
+    for re in PATTERNS.iter() {
         for captures in re.captures_iter(body) {
             result.push(decode(&captures[1], "utf-8", Errors::Strict)?);
         }
@@ -443,8 +846,8 @@ pub fn parse_query(
     encoding: &str,
     keep_blank: bool,
     errors: Errors,
-) -> Result<BTreeMap<String, Vec<String>>> {
-    let mut output: BTreeMap<String, Vec<String>> = BTreeMap::new();
+) -> Result<IndexMap<String, Vec<String>>> {
+    let mut output: IndexMap<String, Vec<String>> = IndexMap::new();
     for item in query.split('&').filter(|s| !s.is_empty()) {
         let (key, value) = item.split_once('=').unwrap_or((item, ""));
         if !keep_blank && value.is_empty() {

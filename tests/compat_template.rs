@@ -10,6 +10,7 @@ fn python_template_fixtures() {
         serde_json::from_str(include_str!("../compat/fixtures/template/cases.json")).unwrap();
     let engine = TemplateEngine::new();
     let mut failures = Vec::new();
+    let mut differences = 0;
     for case in &cases {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
@@ -25,7 +26,7 @@ fn python_template_fixtures() {
                 .map(Value::from),
             "response_when" => {
                 let response = Response {
-                    body: string("text").as_bytes().to_vec(),
+                    body: string("text").as_bytes().into(),
                     encoding: Some("utf-8".into()),
                     headers: [("content-type".into(), "text/plain".into())].into(),
                     url: "http://localhost/test".into(),
@@ -61,15 +62,28 @@ fn python_template_fixtures() {
             Ok(value) => json!({"value": value}),
             Err(error) => json!({"error": error.kind}),
         };
-        if actual != case["expected"] {
+        let expected = if let Some(expected) = case.get("rust_expected") {
+            assert_ne!(expected, &case["expected"], "{}", case["name"]);
+            assert!(case["difference"].as_str().is_some_and(|s| !s.is_empty()));
+            differences += 1;
+            expected
+        } else {
+            &case["expected"]
+        };
+        if &actual != expected {
             failures.push(format!(
                 "{}: actual={actual}, expected={}",
-                case["name"], case["expected"]
+                case["name"], expected
             ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
-    println!("template: {}/{} Python一致", cases.len(), cases.len());
+    println!(
+        "template: {}/{} Python一致、{}件の差異を明示検証",
+        cases.len() - differences,
+        cases.len(),
+        differences
+    );
 }
 
 #[test]
@@ -107,6 +121,48 @@ fn invalid_template_is_rejected_before_render() {
             .kind,
         "TemplateSyntaxError"
     );
+    let engine = TemplateEngine::new();
+    for source in [
+        "{% if false %}{{ x|absent }}{% endif %}",
+        "{% macro m() %}{{ x is absent }}{% endmacro %}",
+        "{% filter absent %}text{% endfilter %}",
+    ] {
+        assert_eq!(
+            engine.validate(source).unwrap_err().kind,
+            "TemplateAssertionError"
+        );
+    }
+    engine
+        .validate("{# {{ x|absent }} #}{{ 'x'|upper }}{{ 2 is even }}")
+        .unwrap();
+}
+
+#[test]
+fn request_contexts_preserve_order_and_option_contracts() {
+    let request: Request = serde_json::from_value(json!({
+        "path": "/search", "qs": {"z": ["1"], "a": ["2"]},
+        "headers": {"Z-Header": "first", "A-Header": "second"}
+    }))
+    .unwrap();
+    let engine = TemplateEngine::new();
+    assert_eq!(
+        engine
+            .render(
+                "{{ qs|list }} {{ headers|list }} {{ raw is defined }}",
+                request.to_dict_value()
+            )
+            .unwrap(),
+        "['z', 'a'] ['Z-Header', 'A-Header'] False"
+    );
+    assert!(
+        engine
+            .when(
+                "request.raw.is_none()",
+                minijinja::context!(request => request.to_template_value())
+            )
+            .unwrap()
+            .truthy()
+    );
 }
 
 #[test]
@@ -138,7 +194,7 @@ fn literal_collections_keep_python_key_equality() {
 #[test]
 fn response_property_errors_are_lazy_and_propagated() {
     let response = Response {
-        body: vec![255],
+        body: vec![255].into(),
         encoding: Some("unknown-codec".into()),
         headers: Default::default(),
         url: String::new(),
@@ -148,6 +204,11 @@ fn response_property_errors_are_lazy_and_propagated() {
         response_type: "plain".into(),
     };
     let engine = TemplateEngine::new();
+    assert!(std::sync::Arc::ptr_eq(
+        &response.body,
+        &response.clone().body
+    ));
+    assert_eq!(engine.render("{{ response.unknown }} {{ response.status_code }} {{ response.url }} {{ response.elapsed_sec }} {{ response.type }}", minijinja::context!(response => response.to_template_value())).unwrap(), " 200  0.0 plain");
     assert!(
         engine
             .when(

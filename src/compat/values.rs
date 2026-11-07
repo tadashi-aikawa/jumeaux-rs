@@ -1,5 +1,6 @@
 //! 式入力用の暫定モデル。設定・モデル実装時に置換する。
-use std::{collections::BTreeMap, sync::Arc};
+use indexmap::IndexMap;
+use std::sync::Arc;
 
 use minijinja::{
     ErrorKind, State, Value,
@@ -21,14 +22,14 @@ pub struct Request {
     pub name: Option<String>,
     pub method: String,
     pub path: String,
-    pub qs: BTreeMap<String, Vec<String>>,
+    pub qs: IndexMap<String, Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub form: Option<Json>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub json: Option<Json>,
-    pub headers: BTreeMap<String, String>,
+    pub headers: IndexMap<String, String>,
     pub url_encoding: String,
 }
 
@@ -38,20 +39,26 @@ impl Default for Request {
             name: None,
             method: "GET".into(),
             path: String::new(),
-            qs: BTreeMap::new(),
+            qs: IndexMap::new(),
             raw: None,
             form: None,
             json: None,
-            headers: BTreeMap::new(),
+            headers: IndexMap::new(),
             url_encoding: "utf-8".into(),
         }
     }
 }
 
 impl Request {
+    /// filter/rename/json_sortのto_dict()経路。Noneのキーを省略する。
+    pub fn to_dict_value(&self) -> Value {
+        serialized(self)
+    }
+
+    /// res2res/jsonのreq経路。Optionの.get()などを公開する。
     pub fn to_template_value(&self) -> Value {
         let base = serialized(self);
-        let mut fields: BTreeMap<String, Value> = base
+        let mut fields: IndexMap<String, Value> = base
             .try_iter()
             .unwrap()
             .map(|k| (k.to_string(), base.get_item(&k).unwrap()))
@@ -64,15 +71,15 @@ impl Request {
         ] {
             fields.insert(name.into(), Value::from_object(PythonOption(Ok(value))));
         }
-        Value::from(fields)
+        serialized(fields)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
-    pub body: Vec<u8>,
+    pub body: Arc<[u8]>,
     pub encoding: Option<String>,
-    pub headers: BTreeMap<String, String>,
+    pub headers: IndexMap<String, String>,
     pub url: String,
     pub status_code: u16,
     /// timedeltaの秒。elapsed_secとは別に保持する。
@@ -107,7 +114,11 @@ impl Object for Response {
                 Ok(text) => Value::from(text),
                 Err(error) => error_value(error),
             },
-            "body" => Value::from_bytes(self.body.clone()),
+            "body" => Value::from_bytes(self.body.to_vec()),
+            "status_code" => Value::from(self.status_code),
+            "url" => Value::from(self.url.clone()),
+            "elapsed_sec" => Value::from(self.elapsed_sec),
+            "type" => Value::from(self.response_type.clone()),
             "elapsed" => Value::from_object(Timedelta(self.elapsed)),
             "ok" => Value::from(self.ok()),
             "byte" => Value::from(self.body.len()),
@@ -130,12 +141,7 @@ impl Object for Response {
                     Value::from_object(PythonOption(Ok(Value::from(()))))
                 }
             }
-            key => {
-                return serialized(self.as_ref())
-                    .get_attr(key)
-                    .ok()
-                    .filter(|v| !v.is_undefined());
-            }
+            _ => return None,
         })
     }
 
@@ -160,7 +166,7 @@ impl Object for Response {
 }
 
 #[derive(Debug)]
-struct Headers(BTreeMap<String, String>);
+struct Headers(IndexMap<String, String>);
 
 fn error_value(error: super::Error) -> Value {
     Value::from(
