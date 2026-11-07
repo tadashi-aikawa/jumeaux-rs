@@ -21,6 +21,8 @@ enum Codec {
     EucJp,
     EucKr,
     Latin15,
+    Latin5,
+    Iso2022Jp,
     Cp437,
     Utf32 { big_endian: Option<bool> },
     Other(&'static encoding_rs::Encoding),
@@ -29,8 +31,10 @@ enum Codec {
 fn codec(label: &str) -> Result<Codec> {
     let name = label.to_ascii_lowercase().replace(['-', ' ', '.'], "_");
     Ok(match name.as_str() {
-        "ascii" | "us_ascii" | "646" => Codec::Ascii,
-        "latin1" | "latin_1" | "iso8859_1" | "iso_8859_1" | "l1" => Codec::Latin1,
+        "ascii" | "us_ascii" | "646" | "ansi_x3_4_1968" => Codec::Ascii,
+        "latin1" | "latin_1" | "iso8859_1" | "iso_8859_1" | "l1" | "cp819" | "iso_ir_100"
+        | "csisolatin1" | "ibm819" => Codec::Latin1,
+        "latin5" | "latin_5" | "l5" | "iso8859_9" | "iso_8859_9" => Codec::Latin5,
         "utf_8_sig" => Codec::Utf8Sig,
         "utf16" | "utf_16" => Codec::Utf16 { big_endian: None },
         "utf_16_le" | "utf16le" | "utf_16le" => Codec::Utf16 {
@@ -40,7 +44,7 @@ fn codec(label: &str) -> Result<Codec> {
             big_endian: Some(true),
         },
         "shift_jis" | "shiftjis" | "sjis" | "s_jis" => Codec::ShiftJis,
-        "cp932" | "ms932" | "mskanji" | "ms_kanji" => Codec::Cp932,
+        "cp932" | "ms932" | "mskanji" | "ms_kanji" | "windows_31j" | "cswindows31j" => Codec::Cp932,
         "utf8" | "utf_8" | "u8" => Codec::Other(encoding_rs::UTF_8),
         "euc_jp" | "eucjp" | "ujis" => Codec::EucJp,
         "euc_kr" | "euckr" | "ks_c_5601_1987" | "ksx1001" => Codec::EucKr,
@@ -55,13 +59,15 @@ fn codec(label: &str) -> Result<Codec> {
         "utf32be" | "utf_32_be" | "utf_32be" => Codec::Utf32 {
             big_endian: Some(true),
         },
-        "iso2022_jp" | "iso_2022_jp" | "iso2022jp" => Codec::Other(encoding_rs::ISO_2022_JP),
-        _ => Codec::Other(
-            encoding_rs::Encoding::for_label(label.as_bytes())
-                .or_else(|| encoding_rs::Encoding::for_label(name.replace('_', "-").as_bytes()))
-                .filter(|encoding| *encoding != encoding_rs::REPLACEMENT)
-                .ok_or_else(|| Error::new("LookupError", format!("unknown encoding: {label}")))?,
-        ),
+        "iso2022_jp" | "iso_2022_jp" | "iso2022jp" => Codec::Iso2022Jp,
+        "cp1252" | "windows_1252" => Codec::Other(encoding_rs::WINDOWS_1252),
+        "cp1254" | "windows_1254" => Codec::Other(encoding_rs::WINDOWS_1254),
+        _ => {
+            return Err(Error::new(
+                "LookupError",
+                format!("unsupported encoding: {label}"),
+            ));
+        }
     })
 }
 
@@ -92,8 +98,10 @@ pub fn decode(body: &[u8], label: &str, errors: Errors) -> Result<String> {
         Codec::ShiftJis => decode_shift_jis(body, errors),
         Codec::Cp932 => decode_cp932(body, errors),
         Codec::EucJp => decode_euc_jp(body, errors),
+        Codec::Iso2022Jp => decode_iso2022_jp(body, errors),
         Codec::EucKr => decode_euc_kr(body, errors),
         Codec::Latin15 => Ok(body.iter().map(|&b| latin15(b)).collect()),
+        Codec::Latin5 => Ok(body.iter().map(|&b| latin5(b)).collect()),
         Codec::Cp437 => Ok(body.iter().map(|&b| cp437(b)).collect()),
         Codec::Utf32 { big_endian } => {
             let (big, bytes) = match (big_endian, body) {
@@ -202,6 +210,18 @@ fn undefined_windows(encoding: &encoding_rs::Encoding, c: char) -> bool {
                 c,
                 '\u{81}' | '\u{8d}' | '\u{8e}' | '\u{8f}' | '\u{90}' | '\u{9d}' | '\u{9e}'
             ))
+}
+
+fn latin5(b: u8) -> char {
+    match b {
+        0xd0 => 'Ğ',
+        0xdd => 'İ',
+        0xde => 'Ş',
+        0xf0 => 'ğ',
+        0xfd => 'ı',
+        0xfe => 'ş',
+        b => char::from(b),
+    }
 }
 
 fn latin15(b: u8) -> char {
@@ -331,8 +351,17 @@ fn encode_japanese(text: &str, errors: Errors, euc: bool) -> Result<Vec<u8>> {
     let mut output = Vec::new();
     for c in text.chars() {
         if !euc {
-            if let Some(bytes) = CP932_EXTENSION.get(&c) {
-                output.extend(bytes);
+            if ('\u{e000}'..='\u{e757}').contains(&c) {
+                let index = u32::from(c) - 0xe000;
+                let trail = (index % 188) as u8;
+                output.extend_from_slice(&[
+                    0xf0 + (index / 188) as u8,
+                    if trail < 63 {
+                        0x40 + trail
+                    } else {
+                        0x41 + trail
+                    },
+                ]);
                 continue;
             }
             if ('\u{f8f0}'..='\u{f8f3}').contains(&c) {
@@ -352,6 +381,13 @@ fn encode_japanese(text: &str, errors: Errors, euc: bool) -> Result<Vec<u8>> {
         };
         let mut buf = [0; 4];
         let (bytes, _, failed) = encoding.encode(mapped.encode_utf8(&mut buf));
+        if !euc
+            && (failed || bytes.first().is_some_and(|b| (0xfa..=0xfc).contains(b)))
+            && let Some(bytes) = CP932_EXTENSION.get(&c)
+        {
+            output.extend(bytes);
+            continue;
+        }
         let invalid = failed
             || (!euc && matches!(c, '¥' | '‾'))
             || (euc
@@ -378,6 +414,70 @@ fn encode_japanese(text: &str, errors: Errors, euc: bool) -> Result<Vec<u8>> {
         }
     }
     Ok(output)
+}
+
+fn decode_iso2022_jp(body: &[u8], errors: Errors) -> Result<String> {
+    let failure = || Error::new("UnicodeDecodeError", "invalid iso2022_jp bytes");
+    let mut bytes = body.to_vec();
+    let mut jis = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == 0x1b && i + 2 < bytes.len() {
+            match &bytes[i + 1..i + 3] {
+                b"$B" | b"$@" => jis = true,
+                b"(B" | b"(J" => jis = false,
+                b"(I" => {
+                    if errors == Errors::Strict {
+                        return Err(failure());
+                    }
+                    bytes[i..i + 3].fill(0xff);
+                    jis = false;
+                }
+                _ => {}
+            }
+            i += 3;
+        } else if jis && i + 1 < bytes.len() {
+            if bytes[i] == 0x2d || (0x75..=0x7e).contains(&bytes[i]) {
+                if errors == Errors::Strict {
+                    return Err(failure());
+                }
+                bytes[i] = 0xff;
+            }
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+    let (text, failed) = encoding_rs::ISO_2022_JP.decode_without_bom_handling(&bytes);
+    if failed && errors == Errors::Strict {
+        return Err(failure());
+    }
+    Ok(text.chars().map(sjis_from_windows).collect())
+}
+
+fn encode_iso2022_jp(text: &str, errors: Errors) -> Result<Vec<u8>> {
+    let mut safe = String::new();
+    for c in text.chars() {
+        let mapped = sjis_to_windows(c);
+        let mut buf = [0; 4];
+        let (bytes, _, failed) = encoding_rs::ISO_2022_JP.encode(mapped.encode_utf8(&mut buf));
+        if failed
+            || ('\u{ff61}'..='\u{ff9f}').contains(&c)
+            || (mapped == c && sjis_from_windows(c) != c)
+            || decode_iso2022_jp(&bytes, Errors::Strict).is_err()
+        {
+            if errors == Errors::Strict {
+                return Err(Error::new(
+                    "UnicodeEncodeError",
+                    "text cannot be encoded as iso2022_jp",
+                ));
+            }
+            safe.push('?');
+        } else {
+            safe.push(mapped);
+        }
+    }
+    Ok(encoding_rs::ISO_2022_JP.encode(&safe).0.into_owned())
 }
 
 const HANGUL_INITIAL: &str = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
@@ -591,13 +691,16 @@ pub fn encode(text: &str, label: &str, errors: Errors) -> Result<Vec<u8>> {
         Codec::Cp932 => encode_japanese(text, errors, false),
         Codec::EucJp => encode_japanese(text, errors, true),
         Codec::EucKr => encode_euc_kr(text, errors),
-        selected @ (Codec::Latin15 | Codec::Cp437) => text
+        Codec::Iso2022Jp => encode_iso2022_jp(text, errors),
+        selected @ (Codec::Latin15 | Codec::Latin5 | Codec::Cp437) => text
             .chars()
             .map(|c| {
                 (0..=255u8)
                     .find(|&b| {
                         if matches!(selected, Codec::Latin15) {
                             latin15(b) == c
+                        } else if matches!(selected, Codec::Latin5) {
+                            latin5(b) == c
                         } else {
                             cp437(b) == c
                         }
