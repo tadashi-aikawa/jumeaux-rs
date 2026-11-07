@@ -70,7 +70,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 順序: 各レイヤーは設定配列の先頭からreduceし、戻り値を次へ渡す。エラーで停止する。
   - 設定: 各Config型は `addons/<layer>/<name>.rs` に置く。名前・設定型・生成は1つの登録表から選ぶ。`serde_path_to_error` で必須キー・型・未知キーを検証する。
   - 生成: FactoryへAddon全体を渡す。スケルトンは登録表から生成した型付きConfigを保持する。保存用のAddonではNoneと空configを区別する。
-  - 残件: 本体は副作用のないスケルトン。条件式のコンパイルなど、実行上の検証は本体実装時に接続する。
+  - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
+  - 残件: `Executor::skeleton`は全レイヤーを従来の無処理executorで組み立てる。HTTPのchallenge統合では実装済みレイヤーのFactoryを明示して`Chain::build`する。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
@@ -118,7 +119,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 内容: 属性 `@attr`、本文 `#text`、空要素null、同名要素のリスト、名前空間、CDATA、エンティティ。
 - APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
   - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
-  - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
+  - 境界: res2dictがencoding、force、適用判断を担当する。CLI接続は後続タスク。
 - table内テキストの移動と不正なインラインタグの複製は修正済み。
   - 検証: 以前の4差異fixtureもPython期待値と一致する。
 - コメント前後の空白とSVG・MathML名の大小は修正済み。
@@ -147,6 +148,50 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - `candidate_for_url_encodings`、`dump/encoding`、`output.encoding` を保つ。
 - Response.textと保存時の変換は `errors="replace"`。
 - 入力ファイル読み込みと `dump/encoding` は変換失敗をエラーにする。
+
+### 応答変換とjudgement
+
+- 実行入口は`addons::res2res::Factory`、`addons::res2dict::Factory`、`addons::judgement::Factory`。
+  - 接続: `Chain::<Res2Res>::build(&config.addons, &res2res::Factory)`の形でレイヤーごとに構築する。
+  - 設定検証: 条件式と正規表現はFactory生成時にコンパイルする。未実行分岐の不正な設定もエラーとする。
+- res2res/typeは最初にwhenが真になる条件だけを適用する。
+  - 省略: whenなし・空文字は無条件にする。
+  - 式入力: `req`と`res`はPythonの`to_dict()`相当。`res.text`・`res.ok`などのプロパティは公開しない。`res.headers`の参照は大小を無視する。
+- json_sortはtypeが`json`のときだけ適用する。
+  - 条件: itemsを設定順に処理し、whenにはRequestの`to_dict()`をルートとして渡す。
+  - 対象: 子の配列から先に処理する。targetsで最初にpathが完全一致した設定だけを使う。
+  - ソート: sort_keysは複数キーの辞書順。未指定のdict・list要素は挿入順を保ったJSON文字列をキーとする。同じキーの順序は保つ。
+  - 数値: 多倍長整数の比較では丸めない。boolと数値、整数と小数の等値はPythonに合わせる。
+  - 本文: `json.dumps(ensure_ascii=False)`の区切り空白と小数表記に合わせ、元のencodingでreplaceエンコードする。項目なし・whenがすべて偽でも再シリアライズする。
+  - タグ: JSON値の内容・配列順が変わったときだけfootprints_tagを末尾へ追加する。既存タグとの重複は除かない。
+  - パス: json_sortはPython同様にキーをそのまま`root<'key'>`へ埋め込む。DeepDiffのエスケープ済みパスとは区別する。
+- res2dictのjson・xml・htmlはResponse.typeの完全一致で適用する。
+  - Content-Type: HTTP側でtypeへ変換した結果を使う。アドオン内ではContent-Typeを再解釈しない。`problem+json`や`JSON`を`json`とは扱わない。
+  - force: trueならtypeを無視して変換し、既存resultも上書きする。
+  - スキップ: resultが既にあればforce=falseでスキップする。空dict・空listも既存resultとみなす。
+  - 空値: JSONのルートnull・空文字はresultなしとなる。入れ子のnullと、ルートのfalse・0は保持する。
+- blockはtypeを問わず変換する。
+  - 分割: Pythonのsplitlinesと同じ改行を使い、空行と末尾でレコードを確定する。空白だけの行は区切りにしない。
+  - 正規表現: header・recordのfindallがちょうど1件の行だけ採る。headerを先に判定する。
+  - グループ: recordが複数グループなら先頭2つをキーと値にする。1グループまたはグループなしならマッチ文字列の先頭2文字を使う。値がなければnull。
+  - 上書き: 同じレコードキー・ブロック名は後勝ち。ヘッダがないブロックのJSONキーは`"null"`。
+- judgementの初期値は`judgement::initial_payload`で組み立てる。
+  - 変換なし: 片側でもdictなしならdiffs_by_cognitionは未設定。本文bytesで比較する。
+  - 変換あり: 本文bytesが同じなら差分計算を省略する。それ以外は`diff::diff`でunknownを組み立てる。
+  - 空差分: unknownが空なら空dictを保持し、regard_as_same_bodyをtrueにする。
+  - ヘッダ: 判定有効時は名前と除外キーのASCII大小を無視する。値は完全一致。無効時はregard_as_same_headerをtrueにする。
+- ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
+  - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
+  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト、dict_one・dict_otherはget・get_or・is_none・is_someを持つOption。
+- ignoreはunknownの差分をtitleへ移す。
+  - 条件: conditions[].whenが偽なら、その条件から分類を作らない。addedだけの条件はchanged・removedに影響しない。
+  - 値参照: caseのpathが完全一致したあと、差分パスから引いた値をone・otherとしてcase.whenへ渡す。片側に値がなければNone。
+  - 順序: 同じignore内の全条件は分類前のunknownを参照する。条件間で重複一致したパスはtitle内にも重複して残る。次のignoreは分類後のunknownを参照する。
+  - 統合: 同じtitleは連結する。最後に空の分類を除き、unknownが空ならregard_as_same_bodyをtrueにする。
+  - 未設定と空: diffs_by_cognition未設定はスキップ。空dictかつbody=falseを直接渡すとPython同様KeyError。初期化関数が作る空dictはbody=trueなのでスキップする。
+  - 特殊キー: 既に決定した差分パス修正を適用する。Pythonで値取得できなかった5ケースはPython観測値とRust期待値を別々に保持する。
+- sameはwhen_anyの最初の真でregard_as_same_bodyをtrueにする。
+  - 短絡: 以降の式は評価しない。diffs_by_cognitionはそのまま保持する。
 
 ## 比較除外と許容差
 
@@ -960,6 +1005,10 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## 未決
 
+- 非標準JSONのNaN・Infinityの扱い。
+  - 実測: Pythonのres2dict/jsonは`NaN`を非有限floatとして受理する。Rustはserde_jsonのJSONDecodeErrorを返す。
+  - 案: JSON標準外の値は明示エラーとする。互換にするならJSON値モデル・diff・保存まで非有限値の契約を設計する。
+  - 状態: 差異を承認済みとは扱わない。`response-judgement.json`の`pending_rust_expected`で現挙動を固定し、Python一致件数から除外する。
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 - `-vv` のconfig YAMLダンプ。

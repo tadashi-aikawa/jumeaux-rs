@@ -703,7 +703,7 @@ fn python_display(value: &Value, nested: bool) -> String {
     }
 }
 
-fn python_float_repr(value: f64) -> String {
+pub(crate) fn python_float_repr(value: f64) -> String {
     if value.is_nan() {
         return "nan".into();
     }

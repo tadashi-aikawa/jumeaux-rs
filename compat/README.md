@@ -16,6 +16,7 @@ compat/
 │   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
 │   ├── review-fixes.json null・YAMLマージ・report読込・34アドオン設定の回帰fixture
 │   ├── review-round2.json 重複キー・マージ優先順位・null logger・report走査の回帰fixture
+│   ├── response-judgement.json 応答変換・判定の8アドオンのPython期待値
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
 ├── gen/                 Python版からのfixture・環境情報生成
 └── harness/             バイナリ差し替え、記録用受信先、比較規則
@@ -122,6 +123,23 @@ cargo test --test markup -- --nocapture
   - 対象: plaintextの循環オブジェクトによるValueErrorを記録する。
 
 ## ハーネスの自己検証
+
+### 応答変換・judgementの先行検証
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/response_judgement.py > compat/fixtures/response-judgement.json
+cargo test --test response_judgement -- --nocapture
+```
+
+- 関数fixtureは215件。
+  - Python一致: 209件。
+  - 承認済み差異: 特殊キーパスの値取得修正5件。Python観測値と`rust_expected`を両方保持する。
+  - 未決: NaNの受理1件。`pending_rust_expected`は現実装の回帰検証用であり、互換一致・承認済み差異に数えない。
+- 同梱テンプレート8種とヘッダの追加3ケースは、既存reportの19 trialと比較する。
+  - 対象: ignore、ignore_order、judge_response_headers、force_json、xml、html、all_same、root_array。
+  - 比較: API応答ファイルに各テンプレートのres2res・res2dict・judgementを順に適用し、diffs_by_cognitionとstatusを検証する。
+  - 差異: header_ignore_caseのstatusは承認済みの大小無視により対照ケースのsameを使う。
+  - 範囲: HTTP通信・保存・CLI全体のE2Eは含まない。
 
 ### 設定・モデル・出力の先行検証
 

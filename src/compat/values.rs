@@ -98,6 +98,23 @@ impl Request {
 }
 
 impl Response {
+    /// res2res/type はプロパティを持たない to_dict() を条件式に渡す。
+    pub fn to_dict_value(&self) -> Value {
+        let mut fields = vec![
+            ("body", Value::from_bytes(self.body.to_vec())),
+            ("headers", Value::from_object(Headers(self.headers.clone()))),
+            ("url", Value::from(self.url.clone())),
+            ("status_code", Value::from(self.status_code)),
+            ("elapsed", Value::from_object(Timedelta(self.elapsed))),
+            ("elapsed_sec", Value::from(self.elapsed_sec)),
+            ("type", Value::from(self.response_type.clone())),
+        ];
+        if let Some(encoding) = &self.encoding {
+            fields.push(("encoding", Value::from(encoding.clone())));
+        }
+        Value::from_pairs(fields)
+    }
+
     pub fn to_template_value(&self) -> Value {
         Value::from_object(self.clone())
     }
@@ -210,6 +227,13 @@ impl Object for Headers {
 
 #[derive(Debug)]
 struct PythonOption(super::Result<Value>);
+
+/// judgement の dict_one/dict_other は TOption をそのまま公開する。
+pub fn optional(value: Option<&Json>) -> Value {
+    Value::from_object(PythonOption(Ok(value
+        .map(from_json)
+        .unwrap_or_else(|| Value::from(())))))
+}
 
 impl Object for PythonOption {
     fn call_method(
