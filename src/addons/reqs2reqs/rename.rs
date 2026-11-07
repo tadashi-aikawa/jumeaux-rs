@@ -15,3 +15,24 @@ pub struct Condition {
     )]
     pub when: Option<String>,
 }
+impl Config {
+    pub fn apply(
+        &self,
+        requests: Vec<crate::models::Request>,
+    ) -> crate::compat::Result<Vec<crate::models::Request>> {
+        requests
+            .into_iter()
+            .map(|mut request| {
+                for condition in &self.conditions {
+                    if super::matches(condition.when.as_deref(), &request)? {
+                        let name =
+                            super::engine().render(&condition.name, request.to_dict_value())?;
+                        request.name = (!name.is_empty()).then_some(name);
+                        break;
+                    }
+                }
+                Ok(request)
+            })
+            .collect()
+    }
+}

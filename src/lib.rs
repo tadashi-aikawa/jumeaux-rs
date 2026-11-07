@@ -6,4 +6,5 @@ pub mod diff;
 pub mod http;
 pub mod markup;
 pub mod models;
+pub mod notification;
 pub mod output;
