@@ -659,12 +659,32 @@ def main():
                     elif encoding == "cp949" and body_hex in ("8180", "a180", "c680"):
                         rust = {"value": "�"}
                 add("encoding", f"round2-decode-{encoding}-{body_hex}-{errors}", {"operation": "decode", "body_hex": body_hex, "encoding": encoding, "errors": errors}, lambda: body.decode(encoding, errors=errors), rust_expected=rust, difference="compat-spec.md: JIS X 0212の波線・不完全列の置換数・不正bytesの読み直し位置" if rust else None)
-    # WHATWG名はPythonが登録していないため、cp932を参照codecとして比較する。
+    # Pythonでもcp932へ解決される別名を、その名前のまま実測する。
     for alias in ("Windows-31J", "cswindows31j"):
         text = "￢ⅰ髙\ue000\ue757"
         body = bytes.fromhex("a0fd81caeeefeee0f040f9fc")
-        add("encoding", "round2-alias-encode-" + alias, {"operation": "encode", "text": text, "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: text.encode("cp932").hex())
-        add("encoding", "round2-alias-decode-" + alias, {"operation": "decode", "body_hex": body.hex(), "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: body.decode("cp932"))
+        add("encoding", "round2-alias-encode-" + alias, {"operation": "encode", "text": text, "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: text.encode(alias).hex())
+        add("encoding", "round2-alias-decode-" + alias, {"operation": "decode", "body_hex": body.hex(), "encoding": alias, "errors": "strict", "python_codec": "cp932"}, lambda: body.decode(alias))
+
+    for alias in ("ks_c_5601-1987", "ksx1001"):
+        add("encoding", "round3-alias-decode-" + alias, {"operation": "decode", "body_hex": "82a0", "encoding": alias, "errors": "strict"}, lambda: bytes.fromhex("82a0").decode(alias))
+        add("encoding", "round3-alias-encode-" + alias, {"operation": "encode", "text": "궇", "encoding": alias, "errors": "strict"}, lambda: "궇".encode(alias).hex())
+    for code in (0x0e, 0x0f, 0x1b):
+        text, body = chr(code), bytes([code])
+        add("encoding", f"round3-iso2022-encode-control-{code:02x}", {"operation": "encode", "text": text, "encoding": "iso2022_jp", "errors": "strict"}, lambda: text.encode("iso2022_jp").hex(), rust_expected={"error": "UnicodeEncodeError"}, difference="compat-spec.md: ISO-2022-JPの生のSO・SI・ESC")
+        add("encoding", f"round3-iso2022-decode-control-{code:02x}", {"operation": "decode", "body_hex": body.hex(), "encoding": "iso2022_jp", "errors": "strict"}, lambda: body.decode("iso2022_jp"), rust_expected={"error": "UnicodeDecodeError"} if code != 0x1b else None, difference="compat-spec.md: ISO-2022-JPの生のSO・SI・ESC" if code != 0x1b else None)
+    for pattern, target, rust in [
+        (r"^*", "a", {"value": True}),
+        (r"(?P<n>a(?P=n))", "aa", {"value": False}),
+        (r"(?au)a", "a", {"value": True}),
+        (r"(?:)*", "a", {"error": "PatternError"}),
+        (r"(?#c)(?i)a", "A", {"error": "PatternError"}),
+    ]:
+        add("regex", "round3-difference-" + pattern, {"operation": "search", "pattern": pattern, "target": target}, lambda: bool(re.search(pattern, target)), rust_expected=rust, difference="compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異")
+    for number in (2**127 - 1, 2**127, 2**127 + 1):
+        fmt, data = "{{ number }}", {"number": number}
+        rust = {"value": repr(float(number))} if number >= 2**127 else None
+        add("template", "round3-bigint-" + str(number), {"operation": "render", "template": fmt, "data": data}, lambda: utils.jinja2_format(fmt, data), rust_expected=rust, difference="compat-spec.md: i128を超える整数のf64変換" if rust else None)
 
     # retryの実処理を、送信直前の__runだけ差し替えて観測する。
     report = json.loads((ROOT / "compat/python-baseline/post/report.json").read_text())

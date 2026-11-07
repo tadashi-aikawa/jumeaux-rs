@@ -47,8 +47,10 @@ fn codec(label: &str) -> Result<Codec> {
         "cp932" | "ms932" | "mskanji" | "ms_kanji" | "windows_31j" | "cswindows31j" => Codec::Cp932,
         "utf8" | "utf_8" | "u8" => Codec::Other(encoding_rs::UTF_8),
         "euc_jp" | "eucjp" | "ujis" => Codec::EucJp,
-        "euc_kr" | "euckr" | "ks_c_5601_1987" | "ksx1001" => Codec::EucKr,
-        "cp949" | "ms949" | "uhc" => Codec::Other(encoding_rs::EUC_KR),
+        "euc_kr" | "euckr" => Codec::EucKr,
+        "cp949" | "ms949" | "uhc" | "ks_c_5601_1987" | "ksx1001" => {
+            Codec::Other(encoding_rs::EUC_KR)
+        }
         "iso8859_15" | "iso_8859_15" | "latin9" | "latin_9" | "l9" => Codec::Latin15,
         "mac_roman" | "macroman" | "macintosh" => Codec::Other(encoding_rs::MACINTOSH),
         "cp437" | "437" | "ibm437" => Codec::Cp437,

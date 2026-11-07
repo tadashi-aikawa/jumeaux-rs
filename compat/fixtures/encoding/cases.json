@@ -3236,5 +3236,145 @@
     "expected": {
       "value": "￢ⅰ髙"
     }
+  },
+  {
+    "name": "round3-alias-decode-ks_c_5601-1987",
+    "input": {
+      "operation": "decode",
+      "body_hex": "82a0",
+      "encoding": "ks_c_5601-1987",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "궇"
+    }
+  },
+  {
+    "name": "round3-alias-encode-ks_c_5601-1987",
+    "input": {
+      "operation": "encode",
+      "text": "궇",
+      "encoding": "ks_c_5601-1987",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "82a0"
+    }
+  },
+  {
+    "name": "round3-alias-decode-ksx1001",
+    "input": {
+      "operation": "decode",
+      "body_hex": "82a0",
+      "encoding": "ksx1001",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "궇"
+    }
+  },
+  {
+    "name": "round3-alias-encode-ksx1001",
+    "input": {
+      "operation": "encode",
+      "text": "궇",
+      "encoding": "ksx1001",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "82a0"
+    }
+  },
+  {
+    "name": "round3-iso2022-encode-control-0e",
+    "input": {
+      "operation": "encode",
+      "text": "\u000e",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "0e"
+    },
+    "rust_expected": {
+      "error": "UnicodeEncodeError"
+    },
+    "difference": "compat-spec.md: ISO-2022-JPの生のSO・SI・ESC"
+  },
+  {
+    "name": "round3-iso2022-decode-control-0e",
+    "input": {
+      "operation": "decode",
+      "body_hex": "0e",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "\u000e"
+    },
+    "rust_expected": {
+      "error": "UnicodeDecodeError"
+    },
+    "difference": "compat-spec.md: ISO-2022-JPの生のSO・SI・ESC"
+  },
+  {
+    "name": "round3-iso2022-encode-control-0f",
+    "input": {
+      "operation": "encode",
+      "text": "\u000f",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "0f"
+    },
+    "rust_expected": {
+      "error": "UnicodeEncodeError"
+    },
+    "difference": "compat-spec.md: ISO-2022-JPの生のSO・SI・ESC"
+  },
+  {
+    "name": "round3-iso2022-decode-control-0f",
+    "input": {
+      "operation": "decode",
+      "body_hex": "0f",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "\u000f"
+    },
+    "rust_expected": {
+      "error": "UnicodeDecodeError"
+    },
+    "difference": "compat-spec.md: ISO-2022-JPの生のSO・SI・ESC"
+  },
+  {
+    "name": "round3-iso2022-encode-control-1b",
+    "input": {
+      "operation": "encode",
+      "text": "\u001b",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "value": "1b"
+    },
+    "rust_expected": {
+      "error": "UnicodeEncodeError"
+    },
+    "difference": "compat-spec.md: ISO-2022-JPの生のSO・SI・ESC"
+  },
+  {
+    "name": "round3-iso2022-decode-control-1b",
+    "input": {
+      "operation": "decode",
+      "body_hex": "1b",
+      "encoding": "iso2022_jp",
+      "errors": "strict"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
   }
 ]

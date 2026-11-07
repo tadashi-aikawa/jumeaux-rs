@@ -7,18 +7,35 @@ pub struct Regex {
     pattern: String,
     inner: fancy_regex::Regex,
     translated: String,
-    exact: OnceLock<Result<fancy_regex::Regex>>,
     full: OnceLock<Result<fancy_regex::Regex>>,
     nonempty: OnceLock<Result<Option<fancy_regex::Regex>>>,
 }
 
+/// `Regex::new_exact`でのみ生成するJumeauxのexact用パターン。
+/// 通常のRegexにはexact_matchを公開しない。
+///
+/// ```compile_fail
+/// use jumeaux::compat::regex::Regex;
+/// Regex::new(r"(a)\2").unwrap().exact_match("aa");
+/// ```
+#[derive(Debug, Clone)]
+pub struct ExactRegex {
+    inner: Regex,
+}
+
+impl ExactRegex {
+    /// re.fullmatchではなくre.search("^(pattern)$")。末尾改行を許容する。
+    pub fn exact_match(&self, target: &str) -> Result<bool> {
+        self.inner.search(target)
+    }
+}
+
 impl Regex {
     /// exact_match用の設定は必ずこの入口で検査する。ラッパーもgroup番号に含む。
-    pub fn new_exact(pattern: &str) -> Result<Self> {
+    pub fn new_exact(pattern: &str) -> Result<ExactRegex> {
         let mut regex = Self::new(&format!("^({pattern})$"))?;
         regex.pattern = pattern.into();
-        regex.exact = OnceLock::from(Ok(regex.inner.clone()));
-        Ok(regex)
+        Ok(ExactRegex { inner: regex })
     }
     pub fn new(pattern: &str) -> Result<Self> {
         let translated = translate_pattern(pattern)?;
@@ -32,7 +49,6 @@ impl Regex {
             pattern: pattern.into(),
             inner,
             translated,
-            exact: OnceLock::new(),
             full: OnceLock::new(),
             nonempty: OnceLock::new(),
         })
@@ -40,17 +56,6 @@ impl Regex {
 
     pub fn search(&self, target: &str) -> Result<bool> {
         self.inner.is_match(target).map_err(|e| self.error(e))
-    }
-
-    /// Jumeauxのexact_matchはre.fullmatchではなくre.search("^(pattern)$")。
-    /// 終端の改行を許容し、ラッパーのキャプチャもPython版と同じにする。
-    pub fn exact_match(&self, target: &str) -> Result<bool> {
-        self.exact
-            .get_or_init(|| Self::new(&format!("^({})$", self.pattern)).map(|regex| regex.inner))
-            .as_ref()
-            .map_err(Clone::clone)?
-            .is_match(target)
-            .map_err(|e| self.error(e))
     }
 
     pub fn full_match(&self, target: &str) -> Result<bool> {

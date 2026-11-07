@@ -163,7 +163,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 再利用: 同じソースのAST検査・コンパイルは一度だけ行い、`render`で保持済みテンプレートを使う。
 - 正規表現の設定は用途ごとに読み込む。
   - `search`・置換: `Regex::new`。
-  - Jumeauxの`exact_match`・`reg`: `Regex::new_exact`。Python同様、`^(pattern)$`で包んだ後のフラグ位置とgroup番号を検査する。
+  - Jumeauxの`exact_match`・`reg`: `Regex::new_exact`で専用型`ExactRegex`を生成する。Python同様、`^(pattern)$`で包んだ後のフラグ位置とgroup番号を検査する。
+  - 型の制約: 通常の`Regex`には`exact_match`を公開しない。`(a)\2`を包む前に検査して拒否する経路をなくす。
 
 ## テンプレートのサポート外
 
@@ -200,7 +201,11 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - EUC-JP: JIS X 0212の`8FA2B7`はPythonで`~`、Rustで`〜`。末尾の不完全な`8FA2`をreplaceで読むとPythonはU+FFFD 1文字、Rustは2文字。
   - CP949: `8180`・`A180`・`C680`をreplaceで読むとPythonはU+FFFD 2文字、Rustは1文字。読み直し位置が異なる。
   - ISO-2022-JP: NEC拡張のreplaceはPythonのU+FFFD 1文字に対しRustは2文字。`ESC ( I 31 ESC ( B`はPythonのU+FFFD＋`1`に対しRustはU+FFFD 3文字＋`1`。
-  - 検証: strictの不正列拒否は一致する。上記の差異は各fixtureの`rust_expected`で固定する。
+  - 検証: 上記の差異は各fixtureの`rust_expected`で固定する。strictの受理・拒否がすべて一致するとは保証しない。
+- ISO-2022-JPの生のSO・SI・ESCの差異。
+  - strict encode: PythonはU+000E・U+000F・U+001Bをそのままbytesへ変換する。RustはUnicodeEncodeError。
+  - strict decode: Pythonは単独の0E・0Fをそのまま文字へ変換する。RustはUnicodeDecodeError。
+  - 境界: 単独の1Bのdecodeは両者ともUnicodeDecodeError。encodeの受理とは異なる。
 - WHATWGの`replacement`へ写るcodecを拒否する差異。
   - 実測: Pythonの`hz-gb-2312`と`iso-2022-kr`はASCIIを変換できる。Rustは読み込み時にLookupErrorとする。strict・replaceのencode/decodeをfixtureで固定する。
 - 未定義値・異種比較の差異。
@@ -237,6 +242,14 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 明示拒否: POSIXクラス、文字集合の積・差・対称差に見える`&&`・`--`・`~~`、条件付きgroup、`\N{…}`。Pythonで構文として通る例もPatternErrorとする。
   - 実測: Pythonの`\s`はU+001C〜U+001Fにも一致する。Rustは一致しない。
   - 検証: Pythonでも不正なRust固有escape・group名構文の拒否、Pythonで有効な`[[]`・8進escape・`(?a)`の受理もfixtureに含める。
+- 正規表現の繰り返し・未閉鎖group参照・フラグの構文差異。
+  - Pythonが拒否、Rustが受理: `^*`、`(?P<n>a(?P=n))`、`(?au)a`。未閉鎖groupの自己参照はRustでも採取した`aa`には一致しない。
+  - Pythonが受理、Rustが拒否: `(?:)*`、`(?#c)(?i)a`。RustはPatternError。
+  - 検証: 5ケースのPython期待値を保持し、`rust_expected`でRustの現出力を固定する。
+- i128を超える整数のf64変換による差異。
+  - 経路: JSON入力をテンプレート値へ変換するとき、2^127以上の整数はf64になる。Pythonの整数精度を保持しない。
+  - 実測: 2^127と2^127+1の描画はRustでどちらも`1.7014118346046923e+38`。Pythonは異なる整数の10進表記を保持する。
+  - 境界: 2^127−1はi128のまま描画し、Pythonと一致する。
 - `rustpython-parser`への依存と暫定モデルの配置。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
   - 後続: `plain_requests`は「設定・モデル」タスクでlog2reqsへ移す。入力ファイル・query fixtureは移動後も維持する。

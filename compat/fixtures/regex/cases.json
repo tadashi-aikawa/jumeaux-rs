@@ -905,5 +905,80 @@
     "expected": {
       "value": true
     }
+  },
+  {
+    "name": "round3-difference-^*",
+    "input": {
+      "operation": "search",
+      "pattern": "^*",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?P<n>a(?P=n))",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a(?P=n))",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?au)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?au)a",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?:)*",
+    "input": {
+      "operation": "search",
+      "pattern": "(?:)*",
+      "target": "a"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?#c)(?i)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?#c)(?i)a",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
   }
 ]

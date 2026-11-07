@@ -52,8 +52,8 @@
 | Shift_JIS | shift_jis、shiftjis、sjis、s_jis | JISの対応。0x8160はU+301C。CP932拡張を受理しない | JISの対応。CP932だけの文字をstrictエラーまたは`?` |
 | CP932 | cp932、ms932、mskanji、ms_kanji、Windows-31J、cswindows31j | 0x8160はU+FF5E。A0・FD〜FFはU+F8F0〜F8F3 | ￢は81CA、ⅰ・髙はEEEF・EEE0。U+E000〜E757はF040〜F9FC。¥・‾はstrictエラーか`?` |
 | EUC-JP | euc-jp、euc_jp、eucjp、ujis | A1C1はU+301CなどJIS写像へ補正。NEC拡張を拒否 | JIS写像とJIS X 0212の3バイト列を生成 |
-| EUC-KR | euc_kr、euckr、ks_c_5601_1987、ksx1001 | KS X 1001とfiller付きjamoから音節を復元 | KS X 1001にないHangul音節はfillerと3つのjamoで表現 |
-| CP949 | cp949、ms949、uhc | encoding_rsのEUC_KR拡張込み | 同左 |
+| EUC-KR | euc_kr、euckr | KS X 1001とfiller付きjamoから音節を復元 | KS X 1001にないHangul音節はfillerと3つのjamoで表現 |
+| CP949 | cp949、ms949、uhc、ks_c_5601-1987、ksx1001 | encoding_rsのEUC_KR拡張込み。82A0は`궇` | 同左 |
 | Latin-9 | iso8859_15、iso-8859-15、latin9、l9 | Latin-1との8文字の差を補正 | 同じ対応表を逆引き |
 | Mac Roman | mac-roman、macroman、macintosh | encoding_rsのMacintosh | 同左 |
 | CP437 | cp437、437、ibm437 | 専用256文字表 | 同じ対応表を逆引き |
@@ -65,8 +65,8 @@
 | 明示拒否 | hz-gb-2312、iso-2022-kr、replacement | LookupError | LookupError |
 
 - 主な別名は大小を区別しない。
-- Windows-31J・cswindows31jは互換アダプター独自の別名としてCP932へ接続する。
-  - 検証: Pythonにはこの別名がないため、fixtureの`python_codec: cp932`を参照codecとして採取する。
+- Windows-31J・cswindows31jはPythonでもCP932の別名として解決される。
+  - 検証: 別名をそのままPythonのencode/decodeへ渡してfixtureを採取する。`python_codec: cp932`は解決先を示す。
 - decodeの指定codecは別種のBOMで上書きしない。
 - strictのエラー分類はUnicodeDecodeError・UnicodeEncodeError。
 - 表の外にあるPython固有codecの互換性は保証しない。
@@ -85,6 +85,10 @@
 | ISO-2022-JP `ESC ( I 31 ESC ( B` | replace | U+FFFD＋`1` | U+FFFD 3文字＋`1` |
 
 これらはJIS X 0212の写像と、不正列を消費した後の読み直し位置の差異。Python期待値を保持し、`rust_expected`でRustの現出力を固定する。
+
+- ISO-2022-JPの生の制御文字にはstrictでも差異がある。
+  - encode: PythonはSO・SI・ESCをそのままbytesへ変換する。RustはUnicodeEncodeError。
+  - decode: Pythonは単独のSO・SIをそのまま文字へ変換する。RustはUnicodeDecodeError。単独のESCのdecodeは両者ともUnicodeDecodeError。
 
 ## 推定の差異
 

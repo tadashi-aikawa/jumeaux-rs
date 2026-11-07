@@ -10,18 +10,18 @@ fn python_regex_fixtures() {
     for case in &cases {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
-        let compiled = match string("operation") {
-            "exact_match" | "reg" => Regex::new_exact(string("pattern")),
-            _ => Regex::new(string("pattern")),
-        };
-        let actual = compiled.and_then(|regex| match string("operation") {
-            "exact_match" | "reg" => regex.exact_match(string("target")).map(Value::from),
-            "search" => regex.search(string("target")).map(Value::from),
-            "sub" => regex
-                .sub(string("replacement"), string("target"))
+        let actual = match string("operation") {
+            "exact_match" | "reg" => Regex::new_exact(string("pattern"))
+                .and_then(|regex| regex.exact_match(string("target")))
+                .map(Value::from),
+            "search" => Regex::new(string("pattern"))
+                .and_then(|regex| regex.search(string("target")))
+                .map(Value::from),
+            "sub" => Regex::new(string("pattern"))
+                .and_then(|regex| regex.sub(string("replacement"), string("target")))
                 .map(Value::from),
             op => panic!("unhandled operation {op}"),
-        });
+        };
         let actual = match actual {
             Ok(value) => json!({"value": value}),
             Err(error) => json!({"error": error.kind}),
@@ -79,8 +79,29 @@ fn config_errors_include_original_pattern() {
 
 #[test]
 fn exact_match_and_full_match_have_distinct_newline_contracts() {
-    let pattern = Regex::new(r"\d+").unwrap();
+    let pattern = Regex::new_exact(r"\d+").unwrap();
     assert!(pattern.exact_match("123\n").unwrap());
-    assert!(!pattern.full_match("123\n").unwrap());
+    assert!(!Regex::new(r"\d+").unwrap().full_match("123\n").unwrap());
     assert!(!pattern.exact_match("123\n\n").unwrap());
+}
+
+#[test]
+fn exact_entry_points_validate_wrapped_group_numbers() {
+    use jumeaux::compat::{regex::exact_match, template::TemplateEngine};
+    let expression = r"'aa'|reg('(a)\\2')";
+    assert!(
+        Regex::new_exact(r"(a)\2")
+            .unwrap()
+            .exact_match("aa")
+            .unwrap()
+    );
+    assert!(exact_match("aa", r"(a)\2").unwrap());
+    assert!(
+        TemplateEngine::new()
+            .when(expression, json!({}))
+            .unwrap()
+            .truthy()
+    );
+    assert!(Regex::new_exact(r"(a)\1").is_err());
+    assert!(exact_match("aa", r"(a)\1").is_err());
 }

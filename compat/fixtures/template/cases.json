@@ -3297,5 +3297,52 @@
       "value": "[['a', [{'key': 'A'}, {'key': 'a'}]], ['b', [{'key': 'b'}]]]"
     },
     "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105727",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105727
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105727"
+    }
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105728",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105728
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105728"
+    },
+    "rust_expected": {
+      "value": "1.7014118346046923e+38"
+    },
+    "difference": "compat-spec.md: i128を超える整数のf64変換"
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105729",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105729
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105729"
+    },
+    "rust_expected": {
+      "value": "1.7014118346046923e+38"
+    },
+    "difference": "compat-spec.md: i128を超える整数のf64変換"
   }
 ]
