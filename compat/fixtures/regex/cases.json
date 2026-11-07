@@ -179,5 +179,806 @@
     "expected": {
       "error": "PatternError"
     }
+  },
+  {
+    "name": "numeric-group",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)(b)",
+      "replacement": "\\g<2>\\g<1>",
+      "target": "ab"
+    },
+    "expected": {
+      "value": "ba"
+    }
+  },
+  {
+    "name": "lookbehind",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?<=a)b",
+      "replacement": "x",
+      "target": "ab cb"
+    },
+    "expected": {
+      "value": "ax cb"
+    }
+  },
+  {
+    "name": "negative-lookahead",
+    "input": {
+      "operation": "sub",
+      "pattern": "a(?!b)",
+      "replacement": "x",
+      "target": "ab ac"
+    },
+    "expected": {
+      "value": "ab xc"
+    }
+  },
+  {
+    "name": "end-newline",
+    "input": {
+      "operation": "sub",
+      "pattern": "x$",
+      "replacement": "y",
+      "target": "x\n"
+    },
+    "expected": {
+      "value": "y\n"
+    }
+  },
+  {
+    "name": "multiline",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?m)^x$",
+      "replacement": "y",
+      "target": "x\nx\n"
+    },
+    "expected": {
+      "value": "y\ny\n"
+    }
+  },
+  {
+    "name": "escaped-dollar",
+    "input": {
+      "operation": "sub",
+      "pattern": "\\$",
+      "replacement": "$1",
+      "target": "$"
+    },
+    "expected": {
+      "value": "$1"
+    }
+  },
+  {
+    "name": "replacement-escapes",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)",
+      "replacement": "\\1\\n\\\\$1",
+      "target": "a"
+    },
+    "expected": {
+      "value": "a\n\\$1"
+    }
+  },
+  {
+    "name": "unmatched-group",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)?b",
+      "replacement": "\\1X",
+      "target": "b"
+    },
+    "expected": {
+      "value": "X"
+    }
+  },
+  {
+    "name": "bad-group-no-match",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)",
+      "replacement": "\\2",
+      "target": "z"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "bad-escape",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\q",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "octal-replacement",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\101\\0",
+      "target": "a"
+    },
+    "expected": {
+      "value": "A\u0000"
+    }
+  },
+  {
+    "name": "zero-before-nonoctal",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\08\\09",
+      "target": "a"
+    },
+    "expected": {
+      "value": "\u00008\u00009"
+    }
+  },
+  {
+    "name": "empty-match",
+    "input": {
+      "operation": "sub",
+      "pattern": "x*",
+      "replacement": "-",
+      "target": "abxd"
+    },
+    "expected": {
+      "value": "-a-b--d-"
+    }
+  },
+  {
+    "name": "empty-then-nonempty",
+    "input": {
+      "operation": "sub",
+      "pattern": ".*?",
+      "replacement": "-",
+      "target": "ab"
+    },
+    "expected": {
+      "value": "-----"
+    }
+  },
+  {
+    "name": "unsupported-variable-lookbehind",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?<=a+)b",
+      "replacement": "x",
+      "target": "aab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "search-middle",
+    "input": {
+      "operation": "search",
+      "pattern": "b",
+      "target": "abc"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "strict-end",
+    "input": {
+      "operation": "search",
+      "pattern": "x\\Z",
+      "target": "x\n"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "class-dollar",
+    "input": {
+      "operation": "search",
+      "pattern": "[$]",
+      "target": "$"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unicode-digit",
+    "input": {
+      "operation": "search",
+      "pattern": "\\d+",
+      "target": "１２３"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-posix",
+    "input": {
+      "operation": "search",
+      "pattern": "[[:alpha:]]",
+      "target": "a"
+    },
+    "expected": {
+      "value": false
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-intersection",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z&&[^b]]",
+      "target": "a"
+    },
+    "expected": {
+      "value": false
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-unicode-property",
+    "input": {
+      "operation": "search",
+      "pattern": "\\p{L}",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-horizontal-space",
+    "input": {
+      "operation": "search",
+      "pattern": "\\h",
+      "target": " "
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-escape-e",
+    "input": {
+      "operation": "search",
+      "pattern": "\\e",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-hex-braces",
+    "input": {
+      "operation": "search",
+      "pattern": "\\x{41}",
+      "target": "A"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-rust-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?<n>a)",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-rust-reference",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)\\k<n>",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-numeric-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<1>a)",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-duplicate-name",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)(?P<n>b)",
+      "target": "ab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "review-conditional",
+    "input": {
+      "operation": "search",
+      "pattern": "(a)?(?(1)b|c)",
+      "target": "ab"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-named-character",
+    "input": {
+      "operation": "search",
+      "pattern": "\\N{LATIN CAPITAL LETTER A}",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 読み込み時に拒否する正規表現構文"
+  },
+  {
+    "name": "review-literal-bracket",
+    "input": {
+      "operation": "search",
+      "pattern": "[[]",
+      "target": "["
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-octal-zero",
+    "input": {
+      "operation": "search",
+      "pattern": "\\0",
+      "target": "\u0000"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-octal-three",
+    "input": {
+      "operation": "search",
+      "pattern": "\\101",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-ascii-word",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a)\\w+",
+      "target": "日本語"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "review-ascii-digit",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a)\\d+",
+      "target": "123"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-ascii-scoped",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a:\\w+)\\w",
+      "target": "a日"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "difference-space-1c",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001c"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1d",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001d"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1e",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001e"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "difference-space-1f",
+    "input": {
+      "operation": "search",
+      "pattern": "\\s",
+      "target": "\u001f"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: Pythonの追加空白文字"
+  },
+  {
+    "name": "round2-a{2,1}",
+    "input": {
+      "operation": "search",
+      "pattern": "a{2,1}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-{1}",
+    "input": {
+      "operation": "search",
+      "pattern": "{1}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-a{1}{2}",
+    "input": {
+      "operation": "search",
+      "pattern": "a{1}{2}",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-\\G",
+    "input": {
+      "operation": "search",
+      "pattern": "\\G",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?U)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?U)a",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?R)",
+    "input": {
+      "operation": "search",
+      "pattern": "(?R)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(*FAIL)",
+    "input": {
+      "operation": "search",
+      "pattern": "(*FAIL)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?'n'a)",
+    "input": {
+      "operation": "search",
+      "pattern": "(?'n'a)",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-\\K",
+    "input": {
+      "operation": "search",
+      "pattern": "\\K",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-(?P<n>a)\\g<n>",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a)\\g<n>",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-[a-z--b]",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z--b]",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 集合演算に見える文字クラスを拒否"
+  },
+  {
+    "name": "round2-[a-z~~b]",
+    "input": {
+      "operation": "search",
+      "pattern": "[a-z~~b]",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 集合演算に見える文字クラスを拒否"
+  },
+  {
+    "name": "round2-exact-(?i)a",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(?i)a",
+      "target": "A"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-exact-(a)\\1",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(a)\\1",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-exact-(a)\\2",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(a)\\2",
+      "target": "aa"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-exact-(?i:a)",
+    "input": {
+      "operation": "exact_match",
+      "pattern": "(?i:a)",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-(?i)(?m)^a$",
+    "input": {
+      "operation": "search",
+      "pattern": "(?i)(?m)^a$",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-a(?i)b",
+    "input": {
+      "operation": "search",
+      "pattern": "a(?i)b",
+      "target": "ab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "round2-search-(?a:\\w+)\\w",
+    "input": {
+      "operation": "search",
+      "pattern": "(?a:\\w+)\\w",
+      "target": "a日"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-search-a{2,3}?",
+    "input": {
+      "operation": "search",
+      "pattern": "a{2,3}?",
+      "target": "aaa"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round3-difference-^*",
+    "input": {
+      "operation": "search",
+      "pattern": "^*",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?P<n>a(?P=n))",
+    "input": {
+      "operation": "search",
+      "pattern": "(?P<n>a(?P=n))",
+      "target": "aa"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?au)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?au)a",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?:)*",
+    "input": {
+      "operation": "search",
+      "pattern": "(?:)*",
+      "target": "a"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
+  },
+  {
+    "name": "round3-difference-(?#c)(?i)a",
+    "input": {
+      "operation": "search",
+      "pattern": "(?#c)(?i)a",
+      "target": "A"
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "PatternError"
+    },
+    "difference": "compat-spec.md: 繰り返し・未閉鎖group参照・フラグの構文差異"
   }
 ]

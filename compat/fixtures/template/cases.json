@@ -1174,6 +1174,1437 @@
     }
   },
   {
+    "name": "extra-none",
+    "input": {
+      "operation": "when",
+      "expression": "none",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "extra-[True, None, 'a']",
+    "input": {
+      "operation": "when",
+      "expression": "[True, None, 'a']",
+      "data": {}
+    },
+    "expected": {
+      "value": [
+        true,
+        null,
+        "a"
+      ]
+    }
+  },
+  {
+    "name": "extra-{'x': False}",
+    "input": {
+      "operation": "when",
+      "expression": "{'x': False}",
+      "data": {}
+    },
+    "expected": {
+      "value": {
+        "x": false
+      }
+    }
+  },
+  {
+    "name": "extra-'hello'",
+    "input": {
+      "operation": "when",
+      "expression": "'hello'",
+      "data": {}
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "extra-\"'hello'\"",
+    "input": {
+      "operation": "when",
+      "expression": "\"'hello'\"",
+      "data": {}
+    },
+    "expected": {
+      "value": "hello"
+    }
+  },
+  {
+    "name": "extra-'1 + 2'",
+    "input": {
+      "operation": "when",
+      "expression": "'1 + 2'",
+      "data": {}
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "extra-'0x10'",
+    "input": {
+      "operation": "when",
+      "expression": "'0x10'",
+      "data": {}
+    },
+    "expected": {
+      "value": 16
+    }
+  },
+  {
+    "name": "extra-'-2.5'",
+    "input": {
+      "operation": "when",
+      "expression": "'-2.5'",
+      "data": {}
+    },
+    "expected": {
+      "value": -2.5
+    }
+  },
+  {
+    "name": "extra-missing is defined",
+    "input": {
+      "operation": "when",
+      "expression": "missing is defined",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-missing|default('False')",
+    "input": {
+      "operation": "when",
+      "expression": "missing|default('False')",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-missing == 1",
+    "input": {
+      "operation": "when",
+      "expression": "missing == 1",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-not missing",
+    "input": {
+      "operation": "when",
+      "expression": "not missing",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'|reg('a.*')",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'|reg('a.*')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'ABC'.lower() == 'abc'",
+    "input": {
+      "operation": "when",
+      "expression": "'ABC'.lower() == 'abc'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-' x '.strip() == 'x'",
+    "input": {
+      "operation": "when",
+      "expression": "' x '.strip() == 'x'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'.startswith('a')",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'.startswith('a')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'.replace('b', 'B') == 'aBc'",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'.replace('b', 'B') == 'aBc'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-equals_without_host('http://a/x?q=1', 'https://b/x?q=1')",
+    "input": {
+      "operation": "when",
+      "expression": "equals_without_host('http://a/x?q=1', 'https://b/x?q=1')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-calc_distance_km(35.664131,139.759302,35.694253,139.784099)",
+    "input": {
+      "operation": "when",
+      "expression": "calc_distance_km(35.664131,139.759302,35.694253,139.784099)",
+      "data": {}
+    },
+    "expected": {
+      "value": 4.029270138023603
+    }
+  },
+  {
+    "name": "extra-{{ [True, None, 'a'] }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [True, None, 'a'] }}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "[True, None, 'a']"
+    }
+  },
+  {
+    "name": "extra-{{ {'x': False} }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'x': False} }}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "{'x': False}"
+    }
+  },
+  {
+    "name": "extra-{{ x }}\n",
+    "input": {
+      "operation": "render",
+      "template": "{{ x }}\n",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "extra-{% if missing %}yes{% else %}no{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if missing %}yes{% else %}no{% endif %}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "no"
+    }
+  },
+  {
+    "name": "literal-type-(1, 2)",
+    "input": {
+      "operation": "when_type",
+      "expression": "'(1, 2)'"
+    },
+    "expected": {
+      "value": {
+        "type": "tuple",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-{1, 2}",
+    "input": {
+      "operation": "when_type",
+      "expression": "'{1, 2}'"
+    },
+    "expected": {
+      "value": {
+        "type": "set",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-set()",
+    "input": {
+      "operation": "when_type",
+      "expression": "'set()'"
+    },
+    "expected": {
+      "value": {
+        "type": "set",
+        "truthy": false
+      }
+    }
+  },
+  {
+    "name": "literal-type-b'abc'",
+    "input": {
+      "operation": "when_type",
+      "expression": "\"b'abc'\""
+    },
+    "expected": {
+      "value": {
+        "type": "bytes",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-1+2j",
+    "input": {
+      "operation": "when_type",
+      "expression": "'1+2j'"
+    },
+    "expected": {
+      "value": {
+        "type": "complex",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-...",
+    "input": {
+      "operation": "when_type",
+      "expression": "'...'"
+    },
+    "expected": {
+      "value": {
+        "type": "ellipsis",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-{1: 'one'}",
+    "input": {
+      "operation": "when_type",
+      "expression": "\"{1: 'one'}\""
+    },
+    "expected": {
+      "value": {
+        "type": "dict",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-123456789012345678901234567890",
+    "input": {
+      "operation": "when_type",
+      "expression": "'123456789012345678901234567890'"
+    },
+    "expected": {
+      "value": {
+        "type": "int",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-1e999",
+    "input": {
+      "operation": "when_type",
+      "expression": "'1e999'"
+    },
+    "expected": {
+      "value": {
+        "type": "float",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "property-response.byte|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.byte|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 9
+    }
+  },
+  {
+    "name": "property-response.url|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.url|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "http://localhost/test"
+    }
+  },
+  {
+    "name": "property-response.type|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.type|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "plain"
+    }
+  },
+  {
+    "name": "property-response.elapsed_sec|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed_sec|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "property-response.elapsed.total_seconds()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed.total_seconds()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "property-response.elapsed.seconds|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed.seconds|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "property-response.headers['Content-Type']|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.headers['Content-Type']|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.content_type.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.content_type.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.mime_type.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.mime_type.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.charset.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.charset.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "property-response.charset|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.charset|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "property-response.encoding.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.encoding.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "request-request.path == '/search'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.path == '/search'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.qs.q[0] == '東京'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.qs.q[0] == '東京'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.name.get() == '検索'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.name.get() == '検索'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.raw.is_none()",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.raw.is_none()",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.url_encoding == 'utf-8'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.url_encoding == 'utf-8'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "review-'bad'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'bad'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-' 42 '|int",
+    "input": {
+      "operation": "when",
+      "expression": "' 42 '|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "review-' 42.5 '|float",
+    "input": {
+      "operation": "when",
+      "expression": "' 42.5 '|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 42.5
+    }
+  },
+  {
+    "name": "review-'1_000'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'1_000'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000
+    }
+  },
+  {
+    "name": "review-'1_000.5'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1_000.5'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000.5
+    }
+  },
+  {
+    "name": "review-missing|int",
+    "input": {
+      "operation": "when",
+      "expression": "missing|int",
+      "data": {}
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "review-missing|float",
+    "input": {
+      "operation": "when",
+      "expression": "missing|float",
+      "data": {}
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "review-'bad'|int(7)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(7)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "review-'bad'|int(default=8)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(default=8)",
+      "data": {}
+    },
+    "expected": {
+      "value": 8
+    }
+  },
+  {
+    "name": "review-'bad'|float(default=2.5)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(default=2.5)",
+      "data": {}
+    },
+    "expected": {
+      "value": 2.5
+    }
+  },
+  {
+    "name": "review-'ff'|int(base=16)",
+    "input": {
+      "operation": "when",
+      "expression": "'ff'|int(base=16)",
+      "data": {}
+    },
+    "expected": {
+      "value": 255
+    }
+  },
+  {
+    "name": "review-'11'|int(0, 2)",
+    "input": {
+      "operation": "when",
+      "expression": "'11'|int(0, 2)",
+      "data": {}
+    },
+    "expected": {
+      "value": 3
+    }
+  },
+  {
+    "name": "review-'0x10'|int(base=0)",
+    "input": {
+      "operation": "when",
+      "expression": "'0x10'|int(base=0)",
+      "data": {}
+    },
+    "expected": {
+      "value": 16
+    }
+  },
+  {
+    "name": "review-'0x_FF'|int(base=16)",
+    "input": {
+      "operation": "when",
+      "expression": "'0x_FF'|int(base=16)",
+      "data": {}
+    },
+    "expected": {
+      "value": 255
+    }
+  },
+  {
+    "name": "review-'4.9'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'4.9'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 4
+    }
+  },
+  {
+    "name": "review-none|int",
+    "input": {
+      "operation": "when",
+      "expression": "none|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-none|float",
+    "input": {
+      "operation": "when",
+      "expression": "none|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'1__0'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'1__0'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'1__0'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1__0'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'x'|int(default=none)",
+    "input": {
+      "operation": "when",
+      "expression": "'x'|int(default=none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'bad'|float(none)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'bad'|int(none)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(none)",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "review-'1_e2'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'1_e2'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "review-'z_z'|int(base=36)",
+    "input": {
+      "operation": "when",
+      "expression": "'z_z'|int(base=36)",
+      "data": {}
+    },
+    "expected": {
+      "value": 1295
+    }
+  },
+  {
+    "name": "review-'10'|int(base=-1)",
+    "input": {
+      "operation": "when",
+      "expression": "'10'|int(base=-1)",
+      "data": {}
+    },
+    "expected": {
+      "value": 10
+    }
+  },
+  {
+    "name": "review-'ff'|int(base=none)",
+    "input": {
+      "operation": "when",
+      "expression": "'ff'|int(base=none)",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'inf'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'inf'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'nan'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'nan'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "review-'inf'|int(base=36)",
+    "input": {
+      "operation": "when",
+      "expression": "'inf'|int(base=36)",
+      "data": {}
+    },
+    "expected": {
+      "value": 24171
+    }
+  },
+  {
+    "name": "review-'bad'|int(3, default=4)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|int(3, default=4)",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "review-'bad'|float(3, default=4)",
+    "input": {
+      "operation": "when",
+      "expression": "'bad'|float(3, default=4)",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "review-{{ 'bad'|float }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'bad'|float }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0.0"
+    }
+  },
+  {
+    "name": "review-{{ 1e20 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e20 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20"
+    }
+  },
+  {
+    "name": "review-{{ 1e-5 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e-5 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e-05"
+    }
+  },
+  {
+    "name": "review-{{ 1e-4 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e-4 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0.0001"
+    }
+  },
+  {
+    "name": "review-{{ 1e16 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e16 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+16"
+    }
+  },
+  {
+    "name": "review-{{ -0.0 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ -0.0 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "-0.0"
+    }
+  },
+  {
+    "name": "review-{{ {'日本': '😀'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'日本': '😀'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"\\u65e5\\u672c\": \"\\ud83d\\ude00\"}"
+    }
+  },
+  {
+    "name": "review-{{ 'a b/日'|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'a b/日'|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "a%20b/%E6%97%A5"
+    }
+  },
+  {
+    "name": "review-{{ 'abcdef'|truncate(length=4, killwords=True, leeway=0) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'abcdef'|truncate(length=4, killwords=True, leeway=0) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "a..."
+    }
+  },
+  {
+    "name": "review-{{ 1024|filesizeformat }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1024|filesizeformat }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0 kB"
+    }
+  },
+  {
+    "name": "review-{{ '<b>Hello</b> world'|striptags }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ '<b>Hello</b> world'|striptags }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "Hello world"
+    }
+  },
+  {
+    "name": "review-{{ 'one two'|wordcount }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two'|wordcount }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "2"
+    }
+  },
+  {
+    "name": "review-{{ 'one two three'|wordwrap(width=7) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two three'|wordwrap(width=7) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "one two\nthree"
+    }
+  },
+  {
+    "name": "review-{{ [42]|random }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [42]|random }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "42"
+    }
+  },
+  {
+    "name": "review-{% set c=cycler('a', 'b') %}{{ c.next() }}{{ c.next() }}",
+    "input": {
+      "operation": "render",
+      "template": "{% set c=cycler('a', 'b') %}{{ c.next() }}{{ c.next() }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "ab"
+    }
+  },
+  {
+    "name": "review-{% set j=joiner('/') %}{{ j() }}a{{ j() }}b",
+    "input": {
+      "operation": "render",
+      "template": "{% set j=joiner('/') %}{{ j() }}a{{ j() }}b",
+      "data": {}
+    },
+    "expected": {
+      "value": "a/b"
+    }
+  },
+  {
+    "name": "review-{{ lipsum(n=0, html=False) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ lipsum(n=0, html=False) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "review-{% if false %}{{ x|unknown_filter }}{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if false %}{{ x|unknown_filter }}{% endif %}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TemplateAssertionError"
+    },
+    "difference": "compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否"
+  },
+  {
+    "name": "review-{% if false %}{{ x is unknown_test }}{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if false %}{{ x is unknown_test }}{% endif %}",
+      "data": {}
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TemplateAssertionError"
+    },
+    "difference": "compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否"
+  },
+  {
+    "name": "difference-missing > 1",
+    "input": {
+      "operation": "when",
+      "expression": "missing > 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "value": false
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-missing|length",
+    "input": {
+      "operation": "when",
+      "expression": "missing|length",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "value": 0
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-s > 1",
+    "input": {
+      "operation": "when",
+      "expression": "s > 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-nil < 1",
+    "input": {
+      "operation": "when",
+      "expression": "nil < 1",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-1 / 0",
+    "input": {
+      "operation": "when",
+      "expression": "1 / 0",
+      "data": {
+        "s": "hello",
+        "nil": null
+      }
+    },
+    "expected": {
+      "error": "ZeroDivisionError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "difference-repr-{{ (1, 2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ (1, 2) }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "(1, 2)"
+    },
+    "rust_expected": {
+      "value": "[1, 2]"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-repr-{{ range(3) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ range(3) }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "range(0, 3)"
+    },
+    "rust_expected": {
+      "value": "[0, 1, 2]"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-whitespace-plus",
+    "input": {
+      "operation": "when",
+      "expression": "x +",
+      "data": {
+        "x": true
+      }
+    },
+    "expected": {
+      "error": "TemplateSyntaxError"
+    },
+    "rust_expected": {
+      "value": true
+    },
+    "difference": "compat-spec.md: x + の空白制御"
+  },
+  {
+    "name": "difference-repr-{{ x }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ x }}",
+      "data": {
+        "x": [
+          "​"
+        ]
+      }
+    },
+    "expected": {
+      "value": "['\\u200b']"
+    },
+    "rust_expected": {
+      "value": "['​']"
+    },
+    "difference": "compat-spec.md: tuple/range・非表示文字のrepr"
+  },
+  {
+    "name": "difference-$DATETIME(%S)(1_000)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%S)(1_000)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "45"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%S)(１２)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%S)(１２)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "17"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%Q)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Q)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "Q"
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
+    "name": "difference-$DATETIME(%3f)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%3f)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "3f"
+    },
+    "rust_expected": {
+      "value": "000"
+    },
+    "difference": "compat-spec.md: DATETIMEのint/strftime差異"
+  },
+  {
     "name": "$DATETIME(%Y-%m-%d)(-86400)",
     "input": {
       "operation": "datetime",
@@ -1216,5 +2647,702 @@
     "expected": {
       "value": "literal"
     }
+  },
+  {
+    "name": "$DATETIME(%Y)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(+1)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(+1)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "x$DATETIME(%Y)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "x$DATETIME(%Y)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "x$DATETIME(%Y)(0)"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(0)\n",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(0)\n",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "$DATETIME()(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME()(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "$DATETIME()(0)"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y-%m-%dT%H:%M:%S.%f%z %Z)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y-%m-%dT%H:%M:%S.%f%z %Z)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000-01-02T03:04:05.000000+0900 UTC+09:00"
+    }
+  },
+  {
+    "name": "$DATETIME(%%f)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%%f)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "%f"
+    }
+  },
+  {
+    "name": "round2-numbers",
+    "input": {
+      "operation": "render",
+      "template": "{{ i }} {{ u }} {{ big }} {{ f }}",
+      "data": {
+        "i": -9223372036854775808,
+        "u": 18446744073709551615,
+        "big": 1208925819614629174706176,
+        "f": 1.25
+      }
+    },
+    "expected": {
+      "value": "-9223372036854775808 18446744073709551615 1208925819614629174706176 1.25"
+    }
+  },
+  {
+    "name": "round2-nested-numbers",
+    "input": {
+      "operation": "render",
+      "template": "{{ obj['items'][0] + 1 }} {{ obj['items'][1] * 2 }}",
+      "data": {
+        "obj": {
+          "items": [
+            42,
+            1.25
+          ]
+        }
+      }
+    },
+    "expected": {
+      "value": "43 2.5"
+    }
+  },
+  {
+    "name": "round2-beyond-i128",
+    "input": {
+      "operation": "render",
+      "template": "{{ big }}",
+      "data": {
+        "big": 1e+50
+      }
+    },
+    "expected": {
+      "value": "1e+50"
+    }
+  },
+  {
+    "name": "round2-request.json.get().n == 1180591620717411303424",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.json.get().n == 1180591620717411303424",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-request.json.get().nested[0] == 1.5",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.json.get().nested[0] == 1.5",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-request.form.get().n == 42",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.form.get().n == 42",
+      "request": {
+        "path": "/",
+        "json": {
+          "n": 1180591620717411303424,
+          "nested": [
+            1.5
+          ]
+        },
+        "form": {
+          "n": 42
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "round2-'１２'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'１２'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 12
+    }
+  },
+  {
+    "name": "round2-'٣'|int",
+    "input": {
+      "operation": "when",
+      "expression": "'٣'|int",
+      "data": {}
+    },
+    "expected": {
+      "value": 3
+    }
+  },
+  {
+    "name": "round2-'１.５'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'１.５'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1.5
+    }
+  },
+  {
+    "name": "round2-'0_7'|int(base=2)",
+    "input": {
+      "operation": "when",
+      "expression": "'0_7'|int(base=2)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "round2-none|int(default=7)",
+    "input": {
+      "operation": "when",
+      "expression": "none|int(default=7)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7
+    }
+  },
+  {
+    "name": "round2-none|float(default=7.5)",
+    "input": {
+      "operation": "when",
+      "expression": "none|float(default=7.5)",
+      "data": {}
+    },
+    "expected": {
+      "value": 7.5
+    }
+  },
+  {
+    "name": "round2-'１_０００'|float",
+    "input": {
+      "operation": "when",
+      "expression": "'１_０００'|float",
+      "data": {}
+    },
+    "expected": {
+      "value": 1000.0
+    }
+  },
+  {
+    "name": "round2-{{ 1e20|string }} {{ 1e-5|string }} {{ 'NaN'|float|string }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1e20|string }} {{ 1e-5|string }} {{ 'NaN'|float|string }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20 1e-05 nan"
+    }
+  },
+  {
+    "name": "round2-{{ [1e20, 1e-5, 'NaN'|float]|join('/') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1e20, 1e-5, 'NaN'|float]|join('/') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20/1e-05/nan"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': [1e20, {'z': 1e-5, 'a': '日本'}], 'a': 1}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': [1e20, {'z': 1e-5, 'a': '日本'}], 'a': 1}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"a\": 1, \"z\": [1e+20, {\"a\": \"\\u65e5\\u672c\", \"z\": 1e-05}]}"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': 1, 'a': {'b': 2, 'a': 1}}|tojson(2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': 1, 'a': {'b': 2, 'a': 1}}|tojson(2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\n  \"a\": {\n    \"a\": 1,\n    \"b\": 2\n  },\n  \"z\": 1\n}"
+    }
+  },
+  {
+    "name": "round2-{{ {10: 'ten', 2: 'two', True: 'one', -1: 'negative'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {10: 'ten', 2: 'two', True: 'one', -1: 'negative'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"-1\": \"negative\", \"true\": \"one\", \"2\": \"two\", \"10\": \"ten\"}"
+    }
+  },
+  {
+    "name": "round2-{{ {None: 'none'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {None: 'none'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "{\"null\": \"none\"}"
+    }
+  },
+  {
+    "name": "round2-{{ {1: 'int', 'x': 'str'}|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {1: 'int', 'x': 'str'}|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "round2-{{ 'NaN'|float|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'NaN'|float|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "NaN"
+    }
+  },
+  {
+    "name": "round2-{{ 'abcdef'|truncate(4, True, '..', 0) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'abcdef'|truncate(4, True, '..', 0) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "ab.."
+    }
+  },
+  {
+    "name": "round2-{{ 'one two three'|wordwrap(7, True, '|', False) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'one two three'|wordwrap(7, True, '|', False) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "one two|three"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace('a', 'x', 2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace('a', 'x', 2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "xxaa"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace(old='a', new='x', count=2) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace(old='a', new='x', count=2) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "xxaa"
+    }
+  },
+  {
+    "name": "round2-{{ 'aaaa'|replace('a') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'aaaa'|replace('a') }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "round2-{{ [1e20, 1e-5]|join(None) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1e20, 1e-5]|join(None) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1e+20None1e-05"
+    }
+  },
+  {
+    "name": "round2-{{ 1024|filesizeformat(True) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1024|filesizeformat(True) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0 KiB"
+    }
+  },
+  {
+    "name": "round2-{{ ['b', 'A']|sort(True, True) }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ ['b', 'A']|sort(True, True) }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "['b', 'A']"
+    }
+  },
+  {
+    "name": "round2-{{ ['a', 'A', 'b']|unique(True)|list }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ ['a', 'A', 'b']|unique(True)|list }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "['a', 'A', 'b']"
+    }
+  },
+  {
+    "name": "round2-{{ {'z': 1, 'a': 2}|dictsort(False, 'value', True)|tojson }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'z': 1, 'a': 2}|dictsort(False, 'value', True)|tojson }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "[[\"a\", 2], [\"z\", 1]]"
+    }
+  },
+  {
+    "name": "round2-{{ {'q': 'a b', 'x y': '/日本'}|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'q': 'a b', 'x y': '/日本'}|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "q=a+b&x+y=%2F%E6%97%A5%E6%9C%AC"
+    }
+  },
+  {
+    "name": "round2-{{ [('q', 'a b'), ('q', '/日本')]|urlencode }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [('q', 'a b'), ('q', '/日本')]|urlencode }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "q=a+b&q=%2F%E6%97%A5%E6%9C%AC"
+    }
+  },
+  {
+    "name": "round2-filter-bool",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|bool }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-chain",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|chain }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-lines",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|lines }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-split",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|split }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-filter-zip",
+    "input": {
+      "operation": "render",
+      "template": "{{ x|zip }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-startingwith",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is startingwith }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-endingwith",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is endingwith }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-test-safe",
+    "input": {
+      "operation": "render",
+      "template": "{{ x is safe }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TemplateAssertionError"
+    }
+  },
+  {
+    "name": "round2-difference-{{ 'n=' ~ 1e20 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 'n=' ~ 1e20 }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "n=1e+20"
+    },
+    "rust_expected": {
+      "value": "n=100000000000000000000.0"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ 1|round(2, 'floor') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ 1|round(2, 'floor') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1.0"
+    },
+    "rust_expected": {
+      "value": "1"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ true|abs }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ true|abs }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ [1, 2] * 1.0 }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [1, 2] * 1.0 }}",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    },
+    "rust_expected": {
+      "value": "[1, 2]"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round2-difference-{{ [{'key': 'b'}, {'key': 'A'}, {'key': 'a'}]|groupby('key') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [{'key': 'b'}, {'key': 'A'}, {'key': 'a'}]|groupby('key') }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "[('A', [{'key': 'A'}, {'key': 'a'}]), ('b', [{'key': 'b'}])]"
+    },
+    "rust_expected": {
+      "value": "[['a', [{'key': 'A'}, {'key': 'a'}]], ['b', [{'key': 'b'}]]]"
+    },
+    "difference": "compat-spec.md: 連結・round・abs・リスト乗算・groupbyの差異"
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105727",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105727
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105727"
+    }
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105728",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105728
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105728"
+    },
+    "rust_expected": {
+      "value": "1.7014118346046923e+38"
+    },
+    "difference": "compat-spec.md: i128を超える整数のf64変換"
+  },
+  {
+    "name": "round3-bigint-170141183460469231731687303715884105729",
+    "input": {
+      "operation": "render",
+      "template": "{{ number }}",
+      "data": {
+        "number": 170141183460469231731687303715884105729
+      }
+    },
+    "expected": {
+      "value": "170141183460469231731687303715884105729"
+    },
+    "rust_expected": {
+      "value": "1.7014118346046923e+38"
+    },
+    "difference": "compat-spec.md: i128を超える整数のf64変換"
   }
 ]
