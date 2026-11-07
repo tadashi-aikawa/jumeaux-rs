@@ -13,3 +13,18 @@ pub enum Location {
     Head,
     Tail,
 }
+impl Config {
+    pub fn apply(&self, mut requests: Vec<crate::models::Request>) -> Vec<crate::models::Request> {
+        match self.location {
+            Location::Head => {
+                let mut result = self.reqs.clone();
+                result.append(&mut requests);
+                result
+            }
+            Location::Tail => {
+                requests.extend(self.reqs.iter().cloned());
+                requests
+            }
+        }
+    }
+}

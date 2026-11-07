@@ -73,6 +73,19 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+入力系アドオンと通知の基準は次で追加採取する。
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/inputs.py
+cargo test --test inputs -- --nocapture
+```
+
+- `compat/fixtures/inputs.json`にPython版の観測値を保存する。
+  - 通知: 127.0.0.1の空きポートを使う。実際のSlackには接続しない。
+  - 対象: 4形式の入力、8種のreqs2reqs、Slack v1・v2の本文bytesとContent-Type。
+  - shuffle: countからpathが`/0`～`/(count-1)`のRequestを生成し、並び替えたpath配列を比較する。1000件のケースでMT19937の状態更新も検証する。
+  - CLI: empty_guardで通知して終了コード1になる経路も別テストで検証する。
+
 ```sh
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/fixtures.py
 # 既存fixtureを変更せず再現性を確かめる
