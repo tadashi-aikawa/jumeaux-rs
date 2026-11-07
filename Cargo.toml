@@ -27,4 +27,5 @@ num-traits = "0.2.19"
 quick-xml = "0.38.4"
 html5ever = "0.35.0"
 scraper = { version = "0.24.0", default-features = false }
-reqwest = { version = "0.12.28", default-features = false, features = ["blocking", "rustls-tls"] }
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread"] }

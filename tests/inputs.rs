@@ -29,6 +29,50 @@ fn unhex(hex: &str) -> Vec<u8> {
         .collect()
 }
 
+fn block_on<F: std::future::Future>(future: F) -> F::Output {
+    static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    RUNTIME
+        .get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+                .unwrap()
+        })
+        .block_on(future)
+}
+
+fn run_cli(config: &Value, webhook: Option<&str>) -> std::process::Output {
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let directory = std::env::temp_dir().join(format!(
+        "jumeaux-inputs-review-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let file = directory.join("requests");
+    std::fs::write(&file, "/discarded\n").unwrap();
+    let path = directory.join("config.json");
+    std::fs::write(&path, serde_json::to_vec(config).unwrap()).unwrap();
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_jumeaux"));
+    command
+        .args([
+            "run",
+            file.to_str().unwrap(),
+            "--config",
+            path.to_str().unwrap(),
+        ])
+        .env_remove("SLACK_INCOMING_WEBHOOKS_URL")
+        .env_remove("SLACK_THREAD_TS")
+        .env("NO_PROXY", "127.0.0.1,localhost");
+    if let Some(url) = webhook {
+        command.env("SLACK_INCOMING_WEBHOOKS_URL", url);
+    }
+    let result = command.output().unwrap();
+    std::fs::remove_dir_all(directory).unwrap();
+    result
+}
+
 /// 外部Slackへの接続を避け、送信されたHTTP本文とContent-Typeを記録する。
 fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -40,6 +84,8 @@ fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<
         loop {
             match listener.accept() {
                 Ok((mut stream, _)) => {
+                    // macOSではaccept先へO_NONBLOCKが引き継がれる。受信待ちは専用スレッドで行う。
+                    stream.set_nonblocking(false).unwrap();
                     stream
                         .set_read_timeout(Some(Duration::from_secs(3)))
                         .unwrap();
@@ -73,7 +119,9 @@ fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<
                     let response = format!(
                         "HTTP/1.1 {status} Result\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"
                     );
-                    stream.write_all(response.as_bytes()).unwrap();
+                    if status != 0 {
+                        stream.write_all(response.as_bytes()).unwrap();
+                    }
                     tx.send(json!({"payload":serde_json::from_str::<Value>(raw).unwrap(),"raw":raw,"content_type":header("content-type")})).unwrap();
                     return;
                 }
@@ -98,16 +146,52 @@ fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<
 
 fn evaluate(input: &Value) -> Result<Value> {
     let layer = input["layer"].as_str().unwrap();
+    if layer == "guard_cli" {
+        let mut config = serde_json::to_value(config()).unwrap();
+        config["notifiers"]["local"]["version"] = input["version"].clone();
+        config["addons"]["reqs2reqs"] = json!([
+            {"name":"repeat","config":{"times":0}},
+            {"name":"empty_guard","config":input["config"]}
+        ]);
+        let result = run_cli(&config, None);
+        assert!(result.stdout.is_empty());
+        return Ok(
+            json!({"exit_code":result.status.code(),"stderr":String::from_utf8(result.stderr).unwrap()}),
+        );
+    }
     if layer == "log2reqs" {
         return addons::log2reqs::read(&addon(input), &unhex(input["body_hex"].as_str().unwrap()))
-            .map(|v| json!(v));
+            .map(|v| {
+                if let Some(container) = input["scalar"].as_str() {
+                    let value = serde_json::to_value(v).unwrap()[0][container]["value"].clone();
+                    let kind = match &value {
+                        Value::String(_) => "str",
+                        Value::Bool(_) => "bool",
+                        Value::Number(n) if n.is_i64() || n.is_u64() => "int",
+                        Value::Number(_) => "float",
+                        Value::Null => "NoneType",
+                        _ => unreachable!(),
+                    };
+                    json!({"type":kind,"value":value})
+                } else {
+                    json!(v)
+                }
+            });
     }
     if layer == "notification" {
         let notifier = serde_json::from_value(input["notifier"].clone()).unwrap();
+        notification::payload(
+            &notifier,
+            input["message"].as_str().unwrap(),
+            &Context::default(),
+        )?;
         let (mut context, rx, handle) = receiver(200);
         context.thread_ts = input["thread_ts"].as_str().map(str::to_owned);
-        let outcome =
-            notification::notify(&notifier, input["message"].as_str().unwrap(), &context)?;
+        let outcome = block_on(notification::notify(
+            &notifier,
+            input["message"].as_str().unwrap(),
+            &context,
+        ))?;
         let mut received = rx.recv_timeout(Duration::from_secs(10)).unwrap();
         handle.join().unwrap();
         received["error"] = json!(outcome.error);
@@ -147,7 +231,8 @@ fn evaluate(input: &Value) -> Result<Value> {
             .is_some_and(|n| !n.is_empty());
     let server = needs_receiver.then(|| receiver(200));
     let context = server.as_ref().map(|s| s.0.clone()).unwrap_or_default();
-    let result = pipeline.exec(requests, &self::config(), &context)?;
+    let result =
+        block_on(pipeline.exec(requests, &self::config(), &context)).map_err(|e| e.error)?;
     if let Some(exit_code) = result.exit_code {
         let notifications = if let Some((_, rx, handle)) = server {
             let record = rx.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -172,10 +257,11 @@ fn python_input_and_notification_fixtures() {
             Ok(v) => json!({"value":v}),
             Err(e) => json!({"error":e.kind}),
         };
-        if actual != case["expected"] {
+        let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        if actual != *expected {
             failures.push(format!(
                 "{}: expected {}, actual {}",
-                case["name"], case["expected"], actual
+                case["name"], expected, actual
             ));
         }
     }
@@ -186,7 +272,16 @@ fn python_input_and_notification_fixtures() {
         cases.len(),
         failures.join("\n")
     );
-    println!("{} / {} Python fixtures matched", cases.len(), cases.len());
+    let differences = cases
+        .iter()
+        .filter(|c| c.get("rust_expected").is_some())
+        .count();
+    println!(
+        "{} / {} fixtures matched; {} accepted differences",
+        cases.len(),
+        cases.len(),
+        differences
+    );
 }
 
 #[test]
@@ -196,13 +291,20 @@ fn empty_guard_stops_before_following_addon_and_returns_warnings() {
         {"name":"add","config":{"reqs":[{"path":"/never"}]}}
     ]))
     .unwrap();
-    let result = Pipeline::build(&addons)
-        .unwrap()
-        .exec(vec![], &config(), &Context::default())
-        .unwrap();
+    let result = block_on(Pipeline::build(&addons).unwrap().exec(
+        vec![],
+        &config(),
+        &Context::default(),
+    ))
+    .unwrap();
     assert_eq!(result.exit_code, Some(1));
     assert!(result.requests.is_empty());
-    assert_eq!(result.warnings.len(), 4);
+    assert_eq!(result.logs.len(), 5);
+    assert_eq!(result.logs[0].level, notification::Level::Warning);
+    assert_eq!(
+        result.logs[1],
+        notification::Log::new(notification::Level::Info, "Notify using slack@v1")
+    );
     assert!(result.notifications[0].skipped);
 }
 
@@ -210,7 +312,7 @@ fn empty_guard_stops_before_following_addon_and_returns_warnings() {
 fn notification_http_errors_are_returned() {
     let notifier = serde_json::from_value(json!({"type":"slack","version":2})).unwrap();
     let (context, rx, handle) = receiver(201);
-    let result = notification::notify(&notifier, "hello", &context).unwrap();
+    let result = block_on(notification::notify(&notifier, "hello", &context)).unwrap();
     assert_eq!(result.error.as_deref(), Some("ok"));
     rx.recv_timeout(Duration::from_secs(10)).unwrap();
     handle.join().unwrap();
@@ -223,9 +325,14 @@ fn missing_webhook_skips_both_versions_and_blocks_parsing() {
             json!({"type":"slack","version":version,"channel":"#local","use_blocks":true}),
         )
         .unwrap();
-        let result = notification::notify(&notifier, "invalid JSON", &Context::default()).unwrap();
+        let result = block_on(notification::notify(
+            &notifier,
+            "invalid JSON",
+            &Context::default(),
+        ))
+        .unwrap();
         assert!(result.skipped);
-        assert_eq!(result.warnings.len(), 3);
+        assert_eq!(result.logs.len(), 3);
         assert!(result.error.is_none());
     }
 }
@@ -291,7 +398,7 @@ fn cli_empty_guard_notifies_and_exits_with_one() {
     assert!(output.stdout.is_empty());
     assert_eq!(
         String::from_utf8(output.stderr).unwrap(),
-        "Requests are empty. Exit executor.\n"
+        "\x1b[33m[WARNING] Requests are empty. Exit executor.\x1b[0m\nNotify using slack@v1\n"
     );
     let record = rx.recv_timeout(Duration::from_secs(10)).unwrap();
     handle.join().unwrap();
@@ -323,9 +430,84 @@ fn input_files_are_concatenated_before_transformations() {
             addons::log2reqs::read(&config.addons.log2reqs, &std::fs::read(p).unwrap()).unwrap()
         })
         .collect::<Vec<_>>();
-    let result = addons::log2reqs::prepare(&config, &Context::default()).unwrap();
+    let result = block_on(addons::log2reqs::prepare(&config, &Context::default())).unwrap();
     assert_eq!(
         serde_json::to_value(result.requests).unwrap(),
         serde_json::to_value(expected).unwrap()
     );
+}
+
+#[test]
+fn notification_failure_preserves_logs_before_error() {
+    let mut config = config();
+    config.addons.reqs2reqs = serde_json::from_value(json!([{"name":"empty_guard","config":{"notifies":[{"notifier":"local","message":"hello"}]}}])).unwrap();
+    let (context, rx, handle) = receiver(0);
+    let failure = block_on(Pipeline::build(&config.addons.reqs2reqs).unwrap().exec(
+        vec![],
+        &config,
+        &context,
+    ))
+    .unwrap_err();
+    assert_eq!(failure.error.kind, "ConnectionError");
+    assert_eq!(
+        failure.logs,
+        vec![
+            notification::Log::new(
+                notification::Level::Warning,
+                "Requests are empty. Exit executor."
+            ),
+            notification::Log::new(notification::Level::Info, "Notify using slack@v1"),
+        ]
+    );
+    rx.recv_timeout(Duration::from_secs(10)).unwrap();
+    handle.join().unwrap();
+
+    let (context, rx, handle) = receiver(0);
+    let mut config = serde_json::to_value(config).unwrap();
+    config["addons"]["reqs2reqs"]
+        .as_array_mut()
+        .unwrap()
+        .insert(0, json!({"name":"repeat","config":{"times":0}}));
+    let output = run_cli(&config, context.webhook_url.as_deref());
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.starts_with("\x1b[33m[WARNING] Requests are empty. Exit executor.\x1b[0m\nNotify using slack@v1\n\x1b[31m[ ERROR ] "),"{stderr}");
+    rx.recv_timeout(Duration::from_secs(10)).unwrap();
+    handle.join().unwrap();
+}
+
+#[test]
+fn notification_info_log_matches_notifier_baselines() {
+    for (version, baseline) in [
+        (
+            1,
+            include_str!("../compat/python-baseline/notify_v1/run.stderr"),
+        ),
+        (
+            2,
+            include_str!("../compat/python-baseline/notify_v2/run.stderr"),
+        ),
+        (
+            2,
+            include_str!("../compat/python-baseline/notify_v2_blocks/run.stderr"),
+        ),
+    ] {
+        let line = baseline
+            .lines()
+            .find(|l| l.starts_with("Notify using "))
+            .unwrap();
+        let mut config = config();
+        config.notifiers.as_mut().unwrap()["local"].version = version;
+        let addons: Vec<Addon> = serde_json::from_value(json!([{"name":"empty_guard","config":{"notifies":[{"notifier":"local","message":"hello"}]}}])).unwrap();
+        let output = block_on(Pipeline::build(&addons).unwrap().exec(
+            vec![],
+            &config,
+            &Context::default(),
+        ))
+        .unwrap();
+        assert_eq!(
+            output.logs[1],
+            notification::Log::new(notification::Level::Info, line)
+        );
+    }
 }

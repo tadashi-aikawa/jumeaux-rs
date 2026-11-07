@@ -93,10 +93,12 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 境界: 空行は除外する。引用符内改行・二重引用符・閉じない引用符はPythonのstrict=Falseと同じく受理する。余分な列はValueError、path欠落はRequiredError。
   - 上限: Pythonの既定値と同じく、fieldは131072文字までとする。
 - JSONとYAMLはRequestの配列を読む。空のオブジェクトはPython同様に空配列となる。
-  - 未知フィールド: Pythonの入口に合わせてJSONは無視、YAMLはUnknownPropertiesErrorとする。
+  - キー正規化: Request直下のキーへOwlMixinのto_snake相当を適用する。`Path`は`path`、`urlEncoding`・`url-encoding`は`url_encoding`になる。正規化後の衝突は後勝ちとし、qs・headers・json・form内のキーは変換しない。
+  - 未知フィールド: 正規化後に判定する。Pythonの入口に合わせてJSONは無視、YAMLはUnknownPropertiesErrorとする。
   - 空ファイル: JSONはJSONDecodeError、YAMLはValueError。pathの欠落・nullはRequiredError。
   - BOM: utf8指定のJSONはBOMを拒否し、YAMLは受理する。utf-8-sig指定なら両方とも除去する。
   - YAML: アンカーとマージキーはconfigと同じ展開処理を再利用する。
+  - 非有限数: `.inf`・`-.inf`・`.nan`は入れ子を含めてValueErrorにする。JSONで表現できない数値をnullへ変換してキーごと省略しない。引用符で囲んだ文字列は保持する。
 - reqs2reqsは設定順に実行する。filter・replace・renameのwhenはRequest.to_dict相当をルートへ渡す。
   - 条件: 未設定のnameなどは未定義値になる。テンプレート描画後のliteral_eval相当の値をtruthinessで判定する。
   - head: 負数もPythonのslice終端として扱う。
@@ -106,21 +108,23 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - rename: 最初に一致した条件だけを適用し、nameをテンプレート描画する。空文字のnameはNoneとして省略する。
   - shuffle: seed未指定時はランダムに並べ替える。比較用APIの`Config::apply(requests, Some(seed))`はu64整数seedのCPython random.shuffleと同じ順序を返す。設定ファイルにseedキーは追加しない。
 - empty_guardは空配列を検出したら通知して終了コード1で止める。
-  - 戻り値: Pipeline::execはrequests・notifications・warnings・exit_codeを返す。後続アドオンは実行しない。
+  - 戻り値: asyncのPipeline::execはrequests・notifications・logs・exit_codeを返す。後続アドオンは実行しない。
+  - ログ: Logはlevelとmessageを持つ。空入力のwarning、`Notify using slack@vN`のinfo、通知結果のログの順に返す。エラー時はFailure.logsにそれ以前のログを保持し、CLIはエラーより先に出力する。
   - テンプレート: config.to_dict(ignore_none=False)相当を渡す。入れ子の未設定フィールドもnullで公開する。
-  - CLI: runの入力段階から接続し、警告と通知エラーをstderrへ出す。通常のrun・retry・initの全体実行は後続のCLI統合タスクで接続する。
+  - CLI: tokioのruntimeからblock_onで入力段階を実行する。infoは本文のみ、warningは黄色の`[WARNING]`、errorは赤色の`[ ERROR ]`でstderrへ出す。通常のrun・retry・initの全体実行は後続のCLI統合タスクで接続する。
 
 ### 通知基盤
 
 - `notification::{payload, notify}`はSlack v1・v2を扱う。
   - v1: channel・username・icon_emoji・icon_urlを送る。icon_emojiの前後にコロンを付ける。
-  - v2: use_blocks=falseはtext、trueはmessageをJSON配列として解析してblocksへ渡す。SLACK_THREAD_TSが非空ならthread_tsを送る。
+  - v2: use_blocks=falseはtext、trueはmessageをJSONとして解析してblocksへ渡す。`null`はblocksを省略し、配列直下のnullはRequiredErrorにする。SLACK_THREAD_TSが非空ならthread_tsを送る。
   - 共通: link_namesは1。Noneと任意JSON内のnullは再帰的に除外する。
-- 通知のHTTP送信は専用関数へ閉じる。
+- 通知のHTTP送信はasyncのreqwestを使う専用関数へ閉じる。
+  - runtime: ライブラリ内でruntimeを生成・block_onしない。HTTP転送側のtokio runtime内からそのままawaitできる。クライアント共有は統合タスクで接続する。
   - 本文: Python同様にキーを再帰ソートし、UTF-8のJSON bytesを送る。Content-Typeは自動付与しない。
   - 結果: HTTP 200だけを成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
-- SLACK_INCOMING_WEBHOOKS_URLが無い場合は送信をスキップし、3件の警告をOutcome.warningsへ返す。
-  - 差異: Python v1はKeyErrorとなる。Rustは発注の指定に合わせてv1もv2と同じスキップにする。
+- SLACK_INCOMING_WEBHOOKS_URLが無い場合は送信をスキップし、3件のwarningログをOutcome.logsへ返す。
+  - 検証順: notifierのversionを先に検証する。未対応のversionはWebhook未設定でも`Type slack@vN is not valid.`でエラーにする。
   - ログ: ライブラリは直接出力しない。表示とプロセス終了はCLI側の責務とする。
 - 関数比較基準は`compat/gen/inputs.py`でPython実装を実行して採取する。
   - 検証: `compat/fixtures/inputs.json`の入力変換・reqs2reqs・ローカル通知を`tests/inputs.rs`で比較する。通知はpayloadだけでなく本文bytesとContent-Typeも照合する。
@@ -233,6 +237,9 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 意図的に変える差異
 
+- Slack v1もWebhook未設定時は警告して送信をスキップする。
+  - Python版: SLACK_INCOMING_WEBHOOKS_URLが無いとKeyErrorになる。
+  - Rust版: v2と同じ3件のwarningログを返す。ライブラリから直接ログを出さない。
 - clapが追加する `help` サブコマンドと `-V` は残す。
   - 条件: Python版にない入力を受理する追加とし、Python版で通る入力の挙動は変えない。
 - `--version` の出力はclapの既定のままとする。
@@ -278,6 +285,31 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
 - YAML 1.1固有の数値表記を受理しない。
   - 例: Pythonの `010` は8、`1_000` は1000となる。Rustの数値フィールドではエラーとする。
+- YAML入力のjson・form本文はYAML 1.2相当の文字列解釈を許容する。
+  - fixture: Pythonの値と型をexpected、Rustの値と型をrust_expectedへ保存する。
+
+| 本文内の入力値 | Python版 | Rust版 |
+| --- | --- | --- |
+| `yes` | boolのtrue | 文字列`yes` |
+| `010` | intの8 | 文字列`010` |
+| `1_000` | intの1000 | 文字列`1_000` |
+| `12:30` | intの750 | 文字列`12:30` |
+| `2020-01-01` | datetime.date | 文字列`2020-01-01` |
+| `.inf`・`-.Inf`・`.nan` | 非有限float | ValueError |
+
+- YAML入力では次の寛容さ・キー解釈の差を許容する。
+
+| 入力例 | Python版 | Rust版 |
+| --- | --- | --- |
+| `path: !!python/str a` | ConstructorError | 文字列`a`を受理 |
+| `qs: {a: [010]}` | InvalidTypeError | 文字列`010`として受理 |
+| `headers: {on: x}` | キー`true`に変換 | キー`on`を保持 |
+
+- 通知blocksの`[NaN]`はRustではJSONDecodeErrorにする。
+  - Python版: json.loadsがNaNを受理する。応答変換と同様、RustはJSONで表現できない値を受理しない。
+- CSV入力では、複数の不備がある場合のエラー検出順を一致させない。
+  - Python版: 全行を辞書へ読み込んでからRequestへ変換するため、後続行の列数エラーが先行行のモデル検証エラーより先になる場合がある。
+  - Rust版: 各行を順にRequestへ変換する。field長・dialect・codecの同時不備も先に検出するエラーが異なる場合がある。
 - f64の指数表記はPythonと一致させない。
   - 例: Pythonの `1e-05` に対しRustは `0.00001`。
   - 影響: 現在の時間値は小数2桁に丸めるため、この差異は出ない。
@@ -1006,11 +1038,6 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
 
 ## 未決
-
-- addのwhen設定とshuffleのseed設定。
-  - 相違: 発注文に記載があるが、基準Python版のaddにはwhen、shuffleにはseedという設定キーが存在しない。
-  - 現実装: 互換設定を維持する。shuffleのseedは比較用APIからだけ指定できる。
-  - 案: 追加仕様として採用する場合は、addのwhenが入力全体と追加対象のどちらを評価するか、seedの型と乱数状態の寿命を先に決める。
 
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。

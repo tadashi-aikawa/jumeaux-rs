@@ -12,7 +12,7 @@ use crate::{
     compat::{Error, Result, template::TemplateEngine},
     config::Config,
     models::{Addon, Request},
-    notification::{Context, Outcome},
+    notification::{Context, Failure, Level, Log, LoggedResult, Outcome},
 };
 use std::sync::LazyLock;
 
@@ -33,7 +33,7 @@ fn load_when(when: &str) -> Result<()> {
 pub struct Execution {
     pub requests: Vec<Request>,
     pub notifications: Vec<Outcome>,
-    pub warnings: Vec<String>,
+    pub logs: Vec<Log>,
     pub exit_code: Option<u8>,
 }
 pub struct Pipeline {
@@ -74,16 +74,16 @@ impl Pipeline {
             .collect::<Result<_>>()?;
         Ok(Self { configs })
     }
-    pub fn exec(
+    pub async fn exec(
         &self,
         requests: Vec<Request>,
         config: &Config,
         context: &Context,
-    ) -> Result<Execution> {
+    ) -> LoggedResult<Execution> {
         let mut result = Execution {
             requests,
             notifications: Vec::new(),
-            warnings: Vec::new(),
+            logs: Vec::new(),
             exit_code: None,
         };
         for c in &self.configs {
@@ -97,19 +97,27 @@ impl Pipeline {
                 AddonConfig::Reqs2ReqsShuffle(c) => c.apply(result.requests, None),
                 AddonConfig::Reqs2ReqsEmptyGuard(c) => {
                     if result.requests.is_empty() {
-                        result
-                            .warnings
-                            .push("Requests are empty. Exit executor.".into());
-                        result.notifications = c.notify(config, context)?;
-                        for outcome in &result.notifications {
-                            result.warnings.extend(outcome.warnings.iter().cloned());
+                        result.logs.push(Log::new(
+                            Level::Warning,
+                            "Requests are empty. Exit executor.",
+                        ));
+                        match c.notify(config, context, &mut result.logs).await {
+                            Ok(outcomes) => result.notifications = outcomes,
+                            Err(error) => {
+                                return Err(Failure {
+                                    error,
+                                    logs: result.logs,
+                                });
+                            }
                         }
                         result.exit_code = Some(1);
                         return Ok(result);
                     }
                     result.requests
                 }
-                _ => return Err(Error::new("ValueError", "expected reqs2reqs configuration")),
+                _ => {
+                    return Err(Error::new("ValueError", "expected reqs2reqs configuration").into());
+                }
             };
         }
         Ok(result)

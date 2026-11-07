@@ -21,10 +21,10 @@ pub fn read(addon: &Addon, body: &[u8]) -> Result<Vec<Request>> {
 }
 
 /// CLI側の接続点。全ファイルを指定順に連結し、reqs2reqsとempty_guardまで実行する。
-pub fn prepare(
+pub async fn prepare(
     config: &crate::config::Config,
     context: &crate::notification::Context,
-) -> Result<super::reqs2reqs::Execution> {
+) -> crate::notification::LoggedResult<super::reqs2reqs::Execution> {
     let pipeline = super::reqs2reqs::Pipeline::build(&config.addons.reqs2reqs)?;
     let reader = super::Chain::<Log2Reqs>::build(&config.addons, &InputFactory)?;
     let files = config
@@ -45,7 +45,7 @@ pub fn prepare(
                 .requests,
         );
     }
-    pipeline.exec(requests, config, context)
+    pipeline.exec(requests, config, context).await
 }
 fn read_config(config: &AddonConfig, body: &[u8]) -> Result<Vec<Request>> {
     match config {
@@ -99,4 +99,27 @@ fn requests(value: serde_json::Value) -> Result<Vec<Request>> {
             })
         })
         .collect()
+}
+
+/// OwlMixinのto_snake。Requestの直下だけを変換し、本文・query・headersは触らない。
+fn normalize_keys(value: &mut serde_json::Value) {
+    if let Some(items) = value.as_array_mut() {
+        for item in items {
+            if let Some(object) = item.as_object_mut() {
+                let mut normalized = serde_json::Map::new();
+                for (key, value) in std::mem::take(object) {
+                    let key = key.trim_matches(['<', '>', '-']);
+                    let mut snake = String::new();
+                    for (index, c) in key.chars().enumerate() {
+                        if index > 0 && c.is_ascii_uppercase() {
+                            snake.push('_');
+                        }
+                        snake.push(c);
+                    }
+                    normalized.insert(snake.to_lowercase().replace('-', "_"), value);
+                }
+                *object = normalized;
+            }
+        }
+    }
 }

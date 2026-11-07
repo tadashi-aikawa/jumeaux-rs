@@ -6,6 +6,9 @@ from pathlib import Path
 import random
 import sys
 import tempfile
+import io
+import math
+from contextlib import redirect_stderr
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
@@ -19,6 +22,7 @@ import jumeaux.addons  # noqa: E402,F401 -- 循環importの入口
 from jumeaux.models import Log2ReqsAddOnPayload, Reqs2ReqsAddOnPayload, Notifier  # noqa: E402
 from jumeaux.domain.config.vo import Config  # noqa: E402
 from jumeaux.notification_handlers import create_notification_handler  # noqa: E402
+from jumeaux.logger import init_logger  # noqa: E402
 
 BASE = {"one": {"name": "one", "host": "http://one"}, "other": {"name": "other", "host": "http://other"}, "output": {"response_dir": "responses"}, "addons": {"log2reqs": {"name": "plain"}}, "title": "empty test", "notifiers": {"local": {"type": "slack", "channel": "#local"}}}
 CASES = []
@@ -82,6 +86,42 @@ add("guard-not-empty", "reqs2reqs", "empty_guard", {"notifies": [{"notifier": "m
 add("guard-notifies", "reqs2reqs", "empty_guard", {"notifies": [{"notifier": "local", "message": "{{ title }} notify! {{ description is none }}"}]}, requests=[])
 add("guard-nested-none", "reqs2reqs", "empty_guard", {"notifies": [{"notifier": "local", "message": "{{ one.proxy is none }} {{ output.logger is none }} {{ addons.log2reqs.config is none }} {{ notifiers.local.icon_url is none }}"}]}, requests=[])
 
+for addon in ["json", "yaml"]:
+    for label, request in [
+        ("case", {"Path": "/a", "urlEncoding": "cp932"}),
+        ("hyphen", {"Path": "/a", "url-encoding": "cp932"}),
+        ("collision", {"Path": "/first", "path": "/last", "urlEncoding": "cp932", "url-encoding": "utf8"}),
+        ("reverse-collision", {"path": "/first", "Path": "/last"}),
+        ("trim", {"<Path>": "/a", "-urlEncoding-": "cp932"}),
+        ("nested", {"Path": "/a", "Qs": {"Keep-Key": ["v"]}, "Headers": {"X-Key": "v"}, "Json": {"Keep-Key": {"Path": "v"}}, "Form": {"Other-Key": "v"}}),
+        ("unknown", {"Path": "/a", "Unknown-Key": "v"}),
+    ]:
+        log(f"{addon}-normalize-{label}", addon, json.dumps([request]))
+
+for container in ["json", "form"]:
+    for label, token in [("yes", "yes"), ("octal", "010"), ("underscore", "1_000"), ("sexagesimal", "12:30"), ("date", "2020-01-01"), ("inf", ".inf"), ("negative-inf", "-.Inf"), ("nan", ".nan")]:
+        log(f"yaml-{container}-{label}", "yaml", f"- path: /a\n  {container}: {{value: {token}}}\n")
+        CASES[-1]["input"]["scalar"] = container
+        CASES[-1]["rust_expected"] = {"error": "ValueError"} if "inf" in label or label == "nan" else {"value": {"type": "str", "value": token}}
+        CASES[-1]["difference"] = "docs/compat-spec.md: YAML 1.1本文の解釈差と非有限数の拒否"
+log("yaml-nested-nonfinite", "yaml", "- path: /a\n  json: {nested: [{value: .nan}]}\n")
+CASES[-1]["input"]["scalar"] = "json"  # 非有限値は下記の観測要約でJSON化する
+CASES[-1]["input"]["nested_nonfinite"] = True
+CASES[-1]["rust_expected"] = {"error": "ValueError"}
+CASES[-1]["difference"] = "docs/compat-spec.md: JSONで表現できない数値を拒否"
+log("yaml-quoted-nonfinite", "yaml", '- path: /a\n  json: {value: ".inf", other: ".nan"}\n')
+for label, text, extra in [
+    ("python-tag", "- path: !!python/str a\n", {"path": "a"}),
+    ("query-octal", "- path: /a\n  qs: {a: [010]}\n", {"qs": {"a": ["010"]}}),
+    ("header-on", "- path: /a\n  headers: {on: x}\n", {"headers": {"on": "x"}}),
+]:
+    log("yaml-permissive-"+label, "yaml", text)
+    CASES[-1]["rust_expected"] = {"value": [{"method": "GET", "path": "/a", "qs": {}, "headers": {}, "url_encoding": "utf-8", **extra}]}
+    CASES[-1]["difference"] = "docs/compat-spec.md: YAML入力でRustが広く受理する差異"
+
+for version in [2, 3]:
+    add(f"guard-cli-v{version}-missing-webhook", "guard_cli", "empty_guard", {"notifies": [{"notifier": "local", "message": "hello"}]}, version=version)
+
 RECORDS = []
 
 
@@ -99,12 +139,27 @@ class Receiver(BaseHTTPRequestHandler):
 
 def outcome(case, webhook):
     p = case["input"]
+    if p["layer"] == "guard_cli":
+        from copy import deepcopy
+        config = deepcopy(BASE)
+        config["notifiers"]["local"]["version"] = p["version"]
+        stderr = io.StringIO()
+        with patch.dict(os.environ, {}, clear=True), redirect_stderr(stderr):
+            init_logger(0)
+            try:
+                importlib.import_module("jumeaux.addons.reqs2reqs.empty_guard").Executor(p["config"]).exec(Reqs2ReqsAddOnPayload.from_dict({"requests": []}), Config.from_dict(config))
+            except SystemExit as error:
+                return {"value": {"exit_code": error.code, "stderr": stderr.getvalue()}}
     executor = importlib.import_module(f"jumeaux.addons.{p['layer']}.{p['addon']}").Executor(p["config"])
     if p["layer"] == "log2reqs":
         with tempfile.NamedTemporaryFile() as file:
             file.write(bytes.fromhex(p["body_hex"]))
             file.flush()
-            return {"value": executor.exec(Log2ReqsAddOnPayload.from_dict({"file": file.name})).to_dicts()}
+            requests = executor.exec(Log2ReqsAddOnPayload.from_dict({"file": file.name})).to_dicts()
+            if "scalar" in p:
+                value = requests[0][p["scalar"]]["nested"][0]["value"] if p.get("nested_nonfinite") else requests[0][p["scalar"]]["value"]
+                return {"value": {"type": type(value).__name__, "value": repr(value) if isinstance(value, float) and not math.isfinite(value) else str(value) if type(value).__name__ == "date" else value}}
+            return {"value": requests}
     requests = p.get("requests", [{"path": f"/{i}"} for i in range(p.get("count", 0))])
     payload = Reqs2ReqsAddOnPayload.from_dict({"requests": requests})
     if "seed" in p:
@@ -133,7 +188,7 @@ def main():
                 except Exception as error:
                     case["expected"] = {"error": type(error).__name__}
             for version, extras in [(1, {}), (1, {"icon_emoji": "owl", "icon_url": "https://example.test/icon"}), (2, {}), (2, {"use_blocks": True})]:
-                for message in (["hello あ", ""] if not extras.get("use_blocks") else ['[{"type":"section","text":{"type":"plain_text","text":"あ"},"drop":null}]', '[]']):
+                for message in (["hello あ", ""] if not extras.get("use_blocks") else ['[{"type":"section","text":{"type":"plain_text","text":"あ"},"drop":null}]', '[]', 'null', '[null]', '[[null],{"a":null}]']):
                     for ts in [None, "123.456", ""]:
                         RECORDS.clear()
                         if ts is None:
@@ -141,8 +196,12 @@ def main():
                         else:
                             os.environ["SLACK_THREAD_TS"] = ts
                         notifier = {"type": "slack", "version": version, "channel": "#local", **extras}
-                        error = create_notification_handler(Notifier.from_dict(notifier)).notify(message).get()
-                        CASES.append({"name": f"slack-{len(CASES)}", "input": {"layer": "notification", "notifier": notifier, "message": message, "thread_ts": ts}, "expected": {"value": {**RECORDS[0], "error": error}}})
+                        try:
+                            error = create_notification_handler(Notifier.from_dict(notifier)).notify(message).get()
+                            expected = {"value": {**RECORDS[0], "error": error}}
+                        except Exception as error:
+                            expected = {"error": type(error).__name__}
+                        CASES.append({"name": f"slack-{len(CASES)}", "input": {"layer": "notification", "notifier": notifier, "message": message, "thread_ts": ts}, "expected": expected})
     finally:
         server.shutdown()
         server.server_close()

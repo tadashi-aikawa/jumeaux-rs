@@ -16,25 +16,31 @@ fn main() -> ExitCode {
         },
     };
     if let Command::Run(args) = &cli.command {
-        let result = jumeaux::config::Config::from_run_args(args).and_then(|config| {
-            jumeaux::addons::log2reqs::prepare(&config, &jumeaux::notification::Context::from_env())
-        });
+        let result = jumeaux::config::Config::from_run_args(args)
+            .map_err(jumeaux::notification::Failure::from)
+            .and_then(|config| {
+                let runtime = tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| jumeaux::compat::Error::new("RuntimeError", e.to_string()))?;
+                runtime.block_on(jumeaux::addons::log2reqs::prepare(
+                    &config,
+                    &jumeaux::notification::Context::from_env(),
+                ))
+            });
         match result {
             Ok(result) => {
-                for warning in result.warnings {
-                    eprintln!("{warning}");
-                }
-                for notification in result.notifications {
-                    if let Some(error) = notification.error {
-                        eprintln!("{error}");
-                    }
-                }
+                print_logs(&result.logs);
                 if let Some(code) = result.exit_code {
                     return ExitCode::from(code);
                 }
             }
             Err(error) => {
-                eprintln!("{error}");
+                print_logs(&error.logs);
+                print_logs(&[jumeaux::notification::Log::new(
+                    jumeaux::notification::Level::Error,
+                    error.error.message,
+                )]);
                 return ExitCode::FAILURE;
             }
         }
@@ -49,4 +55,15 @@ fn main() -> ExitCode {
 
     eprintln!("{command}: 未実装");
     ExitCode::FAILURE
+}
+
+fn print_logs(logs: &[jumeaux::notification::Log]) {
+    use jumeaux::notification::Level;
+    for log in logs {
+        match log.level {
+            Level::Info => eprintln!("{}", log.message),
+            Level::Warning => eprintln!("\x1b[33m[WARNING] {}\x1b[0m", log.message),
+            Level::Error => eprintln!("\x1b[31m[ ERROR ] {}\x1b[0m", log.message),
+        }
+    }
 }

@@ -17,6 +17,7 @@ impl Config {
         let text = crate::compat::encoding::decode_input(body, &self.encoding)?;
         let mut value: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| crate::compat::Error::new("JSONDecodeError", e.to_string()))?;
+        super::normalize_keys(&mut value);
         if let Some(items) = value.as_array_mut() {
             for item in items {
                 if let Some(object) = item.as_object_mut() {

@@ -12,29 +12,43 @@ pub struct Notify {
     pub message: String,
 }
 impl Config {
-    pub fn notify(
+    pub async fn notify(
         &self,
         config: &crate::config::Config,
         context: &crate::notification::Context,
+        logs: &mut Vec<crate::notification::Log>,
     ) -> crate::compat::Result<Vec<crate::notification::Outcome>> {
         let data = config_value(config)?;
-        self.notifies
-            .iter()
-            .map(|item| {
-                let notifier = config
-                    .notifiers
-                    .as_ref()
-                    .and_then(|ns| ns.get(&item.notifier))
-                    .ok_or_else(|| {
-                        crate::compat::Error::new(
-                            "ValueError",
-                            format!("notifier not found: {}", item.notifier),
-                        )
-                    })?;
-                let message = super::engine().render(&item.message, &data)?;
-                crate::notification::notify(notifier, &message, context)
-            })
-            .collect()
+        let mut outcomes = Vec::new();
+        for item in &self.notifies {
+            let notifier = config
+                .notifiers
+                .as_ref()
+                .and_then(|ns| ns.get(&item.notifier))
+                .ok_or_else(|| {
+                    crate::compat::Error::new(
+                        "ValueError",
+                        format!("notifier not found: {}", item.notifier),
+                    )
+                })?;
+            let message = super::engine().render(&item.message, &data)?;
+            logs.push(crate::notification::Log::new(
+                crate::notification::Level::Info,
+                format!("Notify using slack@v{}", notifier.version),
+            ));
+            let outcome = crate::notification::notify(notifier, &message, context).await?;
+            logs.extend(outcome.logs.iter().cloned());
+            outcomes.push(outcome);
+        }
+        for outcome in &outcomes {
+            if let Some(error) = &outcome.error {
+                logs.push(crate::notification::Log::new(
+                    crate::notification::Level::Error,
+                    error,
+                ));
+            }
+        }
+        Ok(outcomes)
     }
 }
 

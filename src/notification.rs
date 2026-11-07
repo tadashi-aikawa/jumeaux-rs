@@ -20,12 +20,65 @@ impl Context {
 }
 #[derive(Debug, Clone, Default)]
 pub struct Outcome {
-    pub warnings: Vec<String>,
+    pub logs: Vec<Log>,
     pub error: Option<String>,
     pub skipped: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Level {
+    Info,
+    Warning,
+    Error,
+}
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Log {
+    pub level: Level,
+    pub message: String,
+}
+impl Log {
+    pub fn new(level: Level, message: impl Into<String>) -> Self {
+        Self {
+            level,
+            message: message.into(),
+        }
+    }
+}
+/// 通信・テンプレート評価が失敗しても、それ以前のログを呼出側へ返す。
+#[derive(Debug)]
+pub struct Failure {
+    pub error: Error,
+    pub logs: Vec<Log>,
+}
+impl From<Error> for Failure {
+    fn from(error: Error) -> Self {
+        Self {
+            error,
+            logs: Vec::new(),
+        }
+    }
+}
+impl std::fmt::Display for Failure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.error.fmt(f)
+    }
+}
+impl std::error::Error for Failure {}
+pub type LoggedResult<T> = std::result::Result<T, Failure>;
+
+fn validate_version(notifier: &Notifier) -> Result<()> {
+    if !matches!(notifier.version, 1 | 2) {
+        return Err(Error::new(
+            "ValueError",
+            format!("Type slack@v{} is not valid.", notifier.version),
+        ));
+    }
+    Ok(())
+}
+
 pub fn payload(notifier: &Notifier, message: &str, context: &Context) -> Result<Value> {
+    validate_version(notifier)?;
     let mut result = match notifier.version {
         1 => {
             let channel = notifier
@@ -44,10 +97,20 @@ pub fn payload(notifier: &Notifier, message: &str, context: &Context) -> Result<
         2 => {
             let mut result = json!({"link_names": 1});
             if notifier.use_blocks {
-                // PythonのTOption[TList[Block]]もlist以外を拒否する。
-                let blocks: Vec<Value> = serde_json::from_str(message)
+                let blocks: Value = serde_json::from_str(message)
                     .map_err(|e| Error::new("JSONDecodeError", e.to_string()))?;
-                result["blocks"] = json!(blocks);
+                if !blocks.is_null() {
+                    let items = blocks
+                        .as_array()
+                        .ok_or_else(|| Error::new("ValueError", "blocks must be a list"))?;
+                    if items.iter().any(Value::is_null) {
+                        return Err(Error::new(
+                            "RequiredError",
+                            "blocks elements cannot be null",
+                        ));
+                    }
+                    result["blocks"] = blocks;
+                }
             } else if !message.is_empty() {
                 result["text"] = json!(message);
             }
@@ -56,36 +119,43 @@ pub fn payload(notifier: &Notifier, message: &str, context: &Context) -> Result<
             }
             result
         }
-        _ => {
-            return Err(Error::new(
-                "ValueError",
-                format!("unsupported slack version: {}", notifier.version),
-            ));
-        }
+        _ => unreachable!("validated version"),
     };
     // OwlMixinは任意JSONのnullも再帰的に省略する。
     omit_nulls(&mut result);
     Ok(result)
 }
 
-pub fn notify(notifier: &Notifier, message: &str, context: &Context) -> Result<Outcome> {
+pub async fn notify(notifier: &Notifier, message: &str, context: &Context) -> Result<Outcome> {
+    validate_version(notifier)?;
     let Some(url) = &context.webhook_url else {
-        return Ok(Outcome { warnings: vec![
-            "[notification_handlers] SLACK_INCOMING_WEBHOOKS_URL is not defined in environmental variables.".into(),
-            "[notification_handlers] Please set SLACK_INCOMING_WEBHOOKS_URL.".into(),
-            "[notification_handlers] Skip notify to...".into(),
-        ], skipped: true, ..Outcome::default() });
+        return Ok(Outcome {
+            logs: vec![
+                Log::new(
+                    Level::Warning,
+                    "[notification_handlers] SLACK_INCOMING_WEBHOOKS_URL is not defined in environmental variables.",
+                ),
+                Log::new(
+                    Level::Warning,
+                    "[notification_handlers] Please set SLACK_INCOMING_WEBHOOKS_URL.",
+                ),
+                Log::new(Level::Warning, "[notification_handlers] Skip notify to..."),
+            ],
+            skipped: true,
+            ..Outcome::default()
+        });
     };
     let data = payload(notifier, message, context)?;
-    send(url, &data)
+    send(url, &data).await
 }
 
 /// requests.post(data=bytes)に合わせ、Content-Typeを自動設定しない。
-fn send(url: &str, payload: &Value) -> Result<Outcome> {
-    let response = reqwest::blocking::Client::new()
+async fn send(url: &str, payload: &Value) -> Result<Outcome> {
+    let response = reqwest::Client::new()
         .post(url)
         .body(json_bytes(payload)?)
         .send()
+        .await
         .map_err(|e| Error::new("ConnectionError", e.to_string()))?;
     let ok = response.status().as_u16() == 200;
     let error = if ok {
@@ -94,6 +164,7 @@ fn send(url: &str, payload: &Value) -> Result<Outcome> {
         Some(
             response
                 .text()
+                .await
                 .map_err(|e| Error::new("ConnectionError", e.to_string()))?,
         )
     };
