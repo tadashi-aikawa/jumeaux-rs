@@ -1,0 +1,447 @@
+[
+  {
+    "name": "insert",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3
+      ],
+      "other": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "delete",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3
+      ],
+      "other": [
+        1,
+        3
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": [
+          "root<1>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "duplicates",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        1,
+        2
+      ],
+      "other": [
+        1,
+        2,
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<1>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "dict-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        {
+          "a": 1
+        },
+        {
+          "a": 2
+        }
+      ],
+      "other": [
+        {
+          "a": 0
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 2
+        }
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0><'a'>",
+          "root<1><'a'>"
+        ],
+        "added": [
+          "root<2>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "nested-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        [
+          1,
+          2
+        ],
+        [
+          3
+        ]
+      ],
+      "other": [
+        [
+          1,
+          0,
+          2
+        ],
+        [
+          3
+        ]
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0><1>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "replace-dict",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1
+      },
+      "other": {
+        "b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "int-float",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "n": 1
+      },
+      "other": {
+        "n": 1.0
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'n'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bool-int",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "n": true
+      },
+      "other": {
+        "n": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'n'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "dict-add-remove",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1,
+        "b": 2
+      },
+      "other": {
+        "b": 2,
+        "c": 3
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<'c'>"
+        ],
+        "removed": [
+          "root<'a'>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "string-insert",
+    "input": {
+      "operation": "diff",
+      "one": [
+        "a",
+        "b"
+      ],
+      "other": [
+        "x",
+        "a",
+        "b"
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "root-array",
+    "input": {
+      "operation": "diff",
+      "one": [],
+      "other": [
+        1
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "equal",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": [
+          null,
+          1
+        ]
+      },
+      "other": {
+        "a": [
+          null,
+          1
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "lookup-root",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "root": 42
+      },
+      "path": "root<'root'>",
+      "segments": [
+        "root"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-myroot",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "myroot": 42
+      },
+      "path": "root<'myroot'>",
+      "segments": [
+        "myroot"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-a[0]",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a[0]": 42
+      },
+      "path": "root<'a[0]'>",
+      "segments": [
+        "a[0]"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-a.b",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a.b": 42
+      },
+      "path": "root<'a.b'>",
+      "segments": [
+        "a.b"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-a'b",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a'b": 42
+      },
+      "path": "root<\"a'b\">",
+      "segments": [
+        "a'b"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-a<b>",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a<b>": 42
+      },
+      "path": "root<'a<b>'>",
+      "segments": [
+        "a<b>"
+      ]
+    },
+    "expected": {
+      "value": 42
+    },
+    "python_mismatch": true,
+    "reason": "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。",
+    "python_observed": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-normal",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "items": [
+          {
+            "id": 7
+          }
+        ]
+      },
+      "path": "root<'items'><0><'id'>"
+    },
+    "expected": {
+      "value": 7
+    }
+  }
+]

@@ -1,0 +1,521 @@
+[
+  {
+    "name": "unit-decide-0",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/xml;charset=UTF-8"
+      },
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d2253686966745f4a495322203f3e",
+      "encoding": "UTF-8",
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "UTF-8"
+    }
+  },
+  {
+    "name": "unit-decide-1",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/xml;charset=ISO-8859-1"
+      },
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d2253686966745f4a495322203f3e",
+      "encoding": "ISO-8859-1",
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "ISO-8859-1"
+    }
+  },
+  {
+    "name": "unit-decide-2",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d2253686966745f4a495322203f3e",
+      "encoding": null,
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "Shift_JIS"
+    }
+  },
+  {
+    "name": "unit-decide-3",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "body_hex": "686f6765",
+      "encoding": null,
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "EUC_JP"
+    }
+  },
+  {
+    "name": "unit-decide-4",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "body_hex": "686f6765",
+      "encoding": null,
+      "apparent_encoding": "EUC_JP",
+      "default": "UTF-8"
+    },
+    "expected": {
+      "value": "UTF-8"
+    }
+  },
+  {
+    "name": "unit-decide-5",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "text/xml"
+      },
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d2253686966745f4a495322203f3e",
+      "encoding": "ISO-8859-1",
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "Shift_JIS"
+    }
+  },
+  {
+    "name": "unit-decide-6",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "text/xml"
+      },
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e30223f3e",
+      "encoding": "ISO-8859-1",
+      "apparent_encoding": "EUC_JP",
+      "default": null
+    },
+    "expected": {
+      "value": "EUC_JP"
+    }
+  },
+  {
+    "name": "unit-decide-7",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {},
+      "body_hex": "64756d6d79",
+      "encoding": null,
+      "apparent_encoding": "dummy-apparent-encoding",
+      "default": "dummy-default-encoding"
+    },
+    "expected": {
+      "value": "dummy-default-encoding"
+    }
+  },
+  {
+    "name": "unit-decide-8",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {},
+      "body_hex": "64756d6d79",
+      "encoding": null,
+      "apparent_encoding": "dummy-apparent-encoding",
+      "default": null
+    },
+    "expected": {
+      "value": "dummy-apparent-encoding"
+    }
+  },
+  {
+    "name": "unit-decide-9",
+    "input": {
+      "operation": "decide_encoding",
+      "headers": {
+        "content-type": "application/octet-stream"
+      },
+      "body_hex": "64756d6d79",
+      "encoding": null,
+      "apparent_encoding": "dummy-apparent-encoding",
+      "default": null
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "unit-content-0",
+    "input": {
+      "operation": "content_encodings",
+      "body_hex": "3c6d65746120636861727365743d227574662d38223e"
+    },
+    "expected": {
+      "value": [
+        "utf-8"
+      ]
+    }
+  },
+  {
+    "name": "unit-content-1",
+    "input": {
+      "operation": "content_encodings",
+      "body_hex": "3c6d65746120687474702d65717569763d22436f6e74656e742d547970652220636f6e74656e743d22746578742f68746d6c3b20636861727365743d53686966745f4a4953223e"
+    },
+    "expected": {
+      "value": [
+        "Shift_JIS"
+      ]
+    }
+  },
+  {
+    "name": "unit-content-2",
+    "input": {
+      "operation": "content_encodings",
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d224555432d4a5022203f3e"
+    },
+    "expected": {
+      "value": [
+        "EUC-JP"
+      ]
+    }
+  },
+  {
+    "name": "unit-content-3",
+    "input": {
+      "operation": "content_encodings",
+      "body_hex": "3c6d65746120636861727365743d227574662d38223e3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d224555432d4a5022203f3e"
+    },
+    "expected": {
+      "value": [
+        "utf-8"
+      ]
+    }
+  },
+  {
+    "name": "unit-content-4",
+    "input": {
+      "operation": "content_encodings",
+      "body_hex": "706c61696e2074657874"
+    },
+    "expected": {
+      "value": []
+    }
+  },
+  {
+    "name": "explicit-latin1-skipped",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "text/plain; charset=ISO-8859-1",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "json-default-ignored",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "application/json",
+      "body_hex": "7b2261223a317d",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "binary-precedence",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "application/octet-stream; charset=UTF-8",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "meta-before-default",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "text/html",
+      "body_hex": "3c6d65746120636861727365743d2253686966745f4a4953223e",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "Shift_JIS"
+    }
+  },
+  {
+    "name": "xml-before-default",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "application/xml",
+      "body_hex": "3c3f786d6c2076657273696f6e3d22312e302220656e636f64696e673d224555432d4a50223f3e3c722f3e",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "EUC-JP"
+    }
+  },
+  {
+    "name": "apparent-utf8-bom",
+    "input": {
+      "operation": "requests_encoding",
+      "content_type": "application/xml",
+      "body_hex": "efbbbf3c723e6162633c2f723e",
+      "default": null
+    },
+    "expected": {
+      "value": "UTF-8-SIG"
+    }
+  },
+  {
+    "name": "response-utf-8",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "e697a5e69cace8aa9e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-utf-8-sig",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "efbbbfe697a5e69cace8aa9e",
+      "encoding": "utf-8-sig"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-utf-16",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "fffee5652c679e8a",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-shift_jis",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "93fa967b8cea",
+      "encoding": "shift_jis"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-cp932",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "93fa967b8cea",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-euc-jp",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "c6fccbdcb8ec",
+      "encoding": "euc-jp"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "response-iso2022_jp",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "1b2442467c4b5c386c1b2842",
+      "encoding": "iso2022_jp"
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "invalid-response",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "ff",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "unknown-codec",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "616263",
+      "encoding": "no-such-codec"
+    },
+    "expected": {
+      "error": "LookupError"
+    }
+  },
+  {
+    "name": "dump-success",
+    "input": {
+      "operation": "dump_encoding",
+      "body_hex": "e697a5e69cace8aa9e",
+      "source": "utf-8",
+      "destination": "cp932"
+    },
+    "expected": {
+      "value": "93fa967b8cea"
+    }
+  },
+  {
+    "name": "dump-decode-fail",
+    "input": {
+      "operation": "dump_encoding",
+      "body_hex": "ff",
+      "source": "utf-8",
+      "destination": "cp932"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "dump-encode-fail",
+    "input": {
+      "operation": "dump_encoding",
+      "body_hex": "f09f9880",
+      "source": "utf-8",
+      "destination": "cp932"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "dump-utf16",
+    "input": {
+      "operation": "dump_encoding",
+      "body_hex": "e697a5e69cace8aa9e",
+      "source": "utf-8",
+      "destination": "utf-16"
+    },
+    "expected": {
+      "value": "fffee5652c679e8a"
+    }
+  },
+  {
+    "name": "url-sjis",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=%93%8c%8b%9e",
+      "candidates": [
+        "utf-8",
+        "sjis"
+      ]
+    },
+    "expected": {
+      "value": "sjis"
+    }
+  },
+  {
+    "name": "url-fallback",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=%ff",
+      "candidates": [
+        "utf-8"
+      ]
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "url-order",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=abc",
+      "candidates": [
+        "euc-jp",
+        "utf-8"
+      ]
+    },
+    "expected": {
+      "value": "euc-jp"
+    }
+  },
+  {
+    "name": "dump-replacement-question-mark",
+    "input": {
+      "operation": "dump_html",
+      "body_hex": "3c703eff3c2f703e",
+      "encoding": "ascii"
+    },
+    "expected": {
+      "value": "3c68746d6c3e0a203c626f64793e0a20203c703e0a2020203f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a"
+    }
+  },
+  {
+    "name": "input-decode-fail",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "ff",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "input-sjis",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "2f783f713d938c8b9e",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "value": [
+        {
+          "method": "GET",
+          "path": "/x",
+          "qs": {
+            "q": [
+              "東京"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        }
+      ]
+    }
+  }
+]

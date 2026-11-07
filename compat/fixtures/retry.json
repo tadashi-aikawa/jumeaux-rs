@@ -1,0 +1,264 @@
+[
+  {
+    "name": "retry-reconstruction",
+    "input": {
+      "report": {
+        "addons": {
+          "did_challenge": [],
+          "dump": [
+            {
+              "cls_name": "Executor",
+              "name": "json"
+            }
+          ],
+          "final": [
+            {
+              "cls_name": "Executor",
+              "name": "json"
+            },
+            {
+              "cls_name": "Executor",
+              "name": "viewer"
+            }
+          ],
+          "judgement": [],
+          "log2reqs": {
+            "cls_name": "Executor",
+            "name": "yaml"
+          },
+          "reqs2reqs": [],
+          "res2dict": [
+            {
+              "cls_name": "Executor",
+              "name": "json"
+            }
+          ],
+          "res2res": [],
+          "store_criterion": [
+            {
+              "cls_name": "Executor",
+              "config": {
+                "when_any": [
+                  "status == 'different'"
+                ]
+              },
+              "name": "free"
+            }
+          ]
+        },
+        "key": "d20ca7b966ad0d1324f6ac1ea9c11b08c82b730228c46612add9fdbdab3fa59e",
+        "summary": {
+          "concurrency": {
+            "processes": 1,
+            "threads": 1
+          },
+          "one": {
+            "headers": {},
+            "host": "http://localhost:8000/api/one",
+            "name": "One endpoint"
+          },
+          "other": {
+            "headers": {},
+            "host": "http://localhost:8000/api/other",
+            "name": "Other endpoint"
+          },
+          "output": {
+            "encoding": "utf8",
+            "response_dir": "responses"
+          },
+          "status": {
+            "different": 2,
+            "failure": 0,
+            "same": 1
+          },
+          "tags": [],
+          "time": {
+            "elapsed_sec": 0,
+            "end": "2026-11-07T13:21:11.605150+09:00",
+            "start": "2026-11-07T13:21:11.592821+09:00"
+          }
+        },
+        "title": "Post",
+        "trials": [
+          {
+            "diffs_by_cognition": {},
+            "form": {
+              "formparam": [
+                "p11",
+                "p12"
+              ]
+            },
+            "headers": {},
+            "method": "POST",
+            "name": "Post x-www-form-urlencoded diff",
+            "one": {
+              "byte": 100,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "mime_type": "application/json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/one/same-1.json?param1=q1-1&param2=q1-2"
+            },
+            "other": {
+              "byte": 100,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "mime_type": "application/json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/other/same-1.json?param1=q1-1&param2=q1-2"
+            },
+            "path": "/same-1.json",
+            "queries": {
+              "param1": [
+                "q1-1"
+              ],
+              "param2": [
+                "q1-2"
+              ]
+            },
+            "request_time": "2026-11-07T13:21:11.593017+09:00",
+            "seq": 1,
+            "status": "same",
+            "tags": []
+          },
+          {
+            "diffs_by_cognition": {
+              "unknown": {
+                "added": [],
+                "changed": [
+                  "root<'name'>"
+                ],
+                "removed": [
+                  "root<'favorites'><1>"
+                ]
+              }
+            },
+            "headers": {},
+            "json": {
+              "id": 1,
+              "name": "Ichiro"
+            },
+            "method": "POST",
+            "name": "Post json diff",
+            "one": {
+              "byte": 100,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "file": "one/(2)Post json diff",
+              "mime_type": "application/json",
+              "prop_file": "one-props/(2)Post json diff.json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/one/diff-1.json?param1=q2-1&param2=q2-2"
+            },
+            "other": {
+              "byte": 84,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "file": "other/(2)Post json diff",
+              "mime_type": "application/json",
+              "prop_file": "other-props/(2)Post json diff.json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/other/diff-1.json?param1=q2-1&param2=q2-2"
+            },
+            "path": "/diff-1.json",
+            "queries": {
+              "param1": [
+                "q2-1"
+              ],
+              "param2": [
+                "q2-2"
+              ]
+            },
+            "request_time": "2026-11-07T13:21:11.599925+09:00",
+            "seq": 2,
+            "status": "different",
+            "tags": []
+          },
+          {
+            "diffs_by_cognition": {
+              "unknown": {
+                "added": [],
+                "changed": [
+                  "root<'name'>"
+                ],
+                "removed": [
+                  "root<'favorites'><1>"
+                ]
+              }
+            },
+            "headers": {},
+            "method": "POST",
+            "name": "Post raw diff",
+            "one": {
+              "byte": 100,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "file": "one/(3)Post raw diff",
+              "mime_type": "application/json",
+              "prop_file": "one-props/(3)Post raw diff.json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/one/diff-1.json"
+            },
+            "other": {
+              "byte": 84,
+              "content_type": "application/json",
+              "encoding": "utf-8",
+              "file": "other/(3)Post raw diff",
+              "mime_type": "application/json",
+              "prop_file": "other-props/(3)Post raw diff.json",
+              "response_sec": 0.0,
+              "status_code": 200,
+              "type": "json",
+              "url": "http://localhost:8000/api/other/diff-1.json"
+            },
+            "path": "/diff-1.json",
+            "queries": {},
+            "raw": "a=100&b=200",
+            "request_time": "2026-11-07T13:21:11.602770+09:00",
+            "seq": 3,
+            "status": "different",
+            "tags": []
+          }
+        ],
+        "version": "7.0.0"
+      },
+      "original_config": {
+        "judge_response_header": true,
+        "ignore_response_header_keys": [
+          "X-Ignore"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "raw": "a=100&b=200",
+        "judge_response_header": true,
+        "ignore_response_header_keys": [
+          "X-Ignore"
+        ]
+      }
+    },
+    "python_mismatch": true,
+    "python_observed": {
+      "value": {
+        "raw": null,
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    },
+    "reason": "retryでrawとヘッダ判定設定が欠落する。設定の保存位置・旧reportへの補完方法は未決。期待値は再構築後の意味上の契約であり新reportのschemaは定めない。"
+  }
+]

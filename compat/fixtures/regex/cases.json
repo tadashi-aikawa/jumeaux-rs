@@ -1,0 +1,161 @@
+[
+  {
+    "name": "unit-exact-0",
+    "input": {
+      "operation": "exact_match",
+      "target": "123",
+      "pattern": "[0-9]+"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-exact-1",
+    "input": {
+      "operation": "exact_match",
+      "target": "a123b",
+      "pattern": "[0-9]+"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-exact-2",
+    "input": {
+      "operation": "exact_match",
+      "target": "a123b",
+      "pattern": "([0-9]|[a-b])+"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-exact-3",
+    "input": {
+      "operation": "exact_match",
+      "target": "aaa",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-exact-4",
+    "input": {
+      "operation": "exact_match",
+      "target": "caaa",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-exact-5",
+    "input": {
+      "operation": "exact_match",
+      "target": "aaac",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-exact-6",
+    "input": {
+      "operation": "exact_match",
+      "target": "bbb",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-exact-7",
+    "input": {
+      "operation": "exact_match",
+      "target": "cbbb",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-exact-8",
+    "input": {
+      "operation": "exact_match",
+      "target": "bbbc",
+      "pattern": "aaa|bbb"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "path-custom",
+    "input": {
+      "operation": "sub",
+      "pattern": "([^-]+)-(\\d).json",
+      "replacement": "\\1/case-\\2.json",
+      "target": "same-1.json"
+    },
+    "expected": {
+      "value": "same/case-1.json"
+    }
+  },
+  {
+    "name": "named-group",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?P<name>\\w+)",
+      "replacement": "\\g<name>/",
+      "target": "abc"
+    },
+    "expected": {
+      "value": "abc/"
+    }
+  },
+  {
+    "name": "lookahead",
+    "input": {
+      "operation": "sub",
+      "pattern": "a(?=b)",
+      "replacement": "x",
+      "target": "ab ac"
+    },
+    "expected": {
+      "value": "xb ac"
+    }
+  },
+  {
+    "name": "backreference",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)\\1",
+      "replacement": "x",
+      "target": "aa ab"
+    },
+    "expected": {
+      "value": "x ab"
+    }
+  },
+  {
+    "name": "invalid",
+    "input": {
+      "operation": "sub",
+      "pattern": "[",
+      "replacement": "x",
+      "target": "abc"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  }
+]

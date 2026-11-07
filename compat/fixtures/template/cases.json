@@ -1,0 +1,1220 @@
+[
+  {
+    "name": "unit-when-0",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-1",
+    "input": {
+      "operation": "when",
+      "expression": "id != 1",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-2",
+    "input": {
+      "operation": "when",
+      "expression": "id == 2",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-3",
+    "input": {
+      "operation": "when",
+      "expression": "age > 40",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-4",
+    "input": {
+      "operation": "when",
+      "expression": "age > 45",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-5",
+    "input": {
+      "operation": "when",
+      "expression": "40 < age < 45",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-6",
+    "input": {
+      "operation": "when",
+      "expression": "\"イチロー\" in nicknames",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-7",
+    "input": {
+      "operation": "when",
+      "expression": "\"イチ\" not in nicknames",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-8",
+    "input": {
+      "operation": "when",
+      "expression": "favorites.1.name == \"Apple\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-9",
+    "input": {
+      "operation": "when",
+      "expression": "favorites[1].name == \"Apple\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-10",
+    "input": {
+      "operation": "when",
+      "expression": "favorites.0.name == \"Apple\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-11",
+    "input": {
+      "operation": "when",
+      "expression": "favorites[0].name == \"Apple\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-12",
+    "input": {
+      "operation": "when",
+      "expression": "age|string|reg(\"[0-9]{2}\")",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-13",
+    "input": {
+      "operation": "when",
+      "expression": "age|string|reg(\"[0-9]{3}\")",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-14",
+    "input": {
+      "operation": "when",
+      "expression": "favorites|length == 2",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-15",
+    "input": {
+      "operation": "when",
+      "expression": "favorites|length == 3",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-16",
+    "input": {
+      "operation": "when",
+      "expression": "\"Apple\" in favorites|map(attribute=\"name\")",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-17",
+    "input": {
+      "operation": "when",
+      "expression": "\"Grape\" in favorites|map(attribute=\"name\")",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-18",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1 and age == 44",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-19",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1 and age == 45",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-20",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1 or age == 44",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-21",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1 or age == 45",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-22",
+    "input": {
+      "operation": "when",
+      "expression": "id == 2 or age == 45",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-23",
+    "input": {
+      "operation": "when",
+      "expression": "(id == 1 or not name) and (favorites|length == 0 or nicknames|length == 0)",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "unit-when-24",
+    "input": {
+      "operation": "when",
+      "expression": "id == 1 or (not name and favorites|length == 0) or nicknames|length == 0",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-25",
+    "input": {
+      "operation": "when",
+      "expression": "carrier[\"2010\"]|default(\"neet\") == \"web\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-26",
+    "input": {
+      "operation": "when",
+      "expression": "carrier[\"2011\"]|default(\"neet\") == \"neet\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-27",
+    "input": {
+      "operation": "when",
+      "expression": "nicknames|join(\"*\") == \"Ichi*イチロー\"",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-28",
+    "input": {
+      "operation": "when",
+      "expression": "favorites[1].name.split(\"p\") == [\"A\", \"\", \"le\"]",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unit-when-29",
+    "input": {
+      "operation": "when",
+      "expression": "calc_distance_km(35.664131, 139.759302, 35.694253, 139.784099)|int",
+      "data": {
+        "id": 1,
+        "name": "一朗",
+        "age": 44,
+        "carrier": {
+          "2010": "web",
+          "2015": "aws"
+        },
+        "favorites": [
+          {
+            "rank": 2,
+            "name": "Orange"
+          },
+          {
+            "rank": 1,
+            "name": "Apple"
+          }
+        ],
+        "nicknames": [
+          "Ichi",
+          "イチロー"
+        ]
+      }
+    },
+    "expected": {
+      "value": 4
+    }
+  },
+  {
+    "name": "missing",
+    "input": {
+      "operation": "when",
+      "expression": "missing",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "error": "SyntaxError"
+    }
+  },
+  {
+    "name": "missing.name",
+    "input": {
+      "operation": "when",
+      "expression": "missing.name",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "'False'",
+    "input": {
+      "operation": "when",
+      "expression": "'False'",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "none is none",
+    "input": {
+      "operation": "when",
+      "expression": "none is none",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "x.0|int == 2",
+    "input": {
+      "operation": "when",
+      "expression": "x.0|int == 2",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "x|length == 2",
+    "input": {
+      "operation": "when",
+      "expression": "x|length == 2",
+      "data": {
+        "x": [
+          "2",
+          "3"
+        ]
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "hello {{ missing }}",
+    "input": {
+      "operation": "render",
+      "template": "hello {{ missing }}",
+      "data": {
+        "x": "a,b"
+      }
+    },
+    "expected": {
+      "value": "hello "
+    }
+  },
+  {
+    "name": "{{ x.split(',')|join('/') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ x.split(',')|join('/') }}",
+      "data": {
+        "x": "a,b"
+      }
+    },
+    "expected": {
+      "value": "a/b"
+    }
+  },
+  {
+    "name": "{{ False }} {{ None }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ False }} {{ None }}",
+      "data": {
+        "x": "a,b"
+      }
+    },
+    "expected": {
+      "value": "False None"
+    }
+  },
+  {
+    "name": "{{ equals_without_host('https://a/x','https://b/x') }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ equals_without_host('https://a/x','https://b/x') }}",
+      "data": {
+        "x": "a,b"
+      }
+    },
+    "expected": {
+      "value": "True"
+    }
+  },
+  {
+    "name": "response-properties-200",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.ok and response.text == '日本語'",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "response-properties-201",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.ok and response.text == '日本語'",
+      "text": "日本語",
+      "status_code": 201
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "response-properties-404",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.ok and response.text == '日本語'",
+      "text": "日本語",
+      "status_code": 404
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "$DATETIME(%Y-%m-%d)(-86400)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y-%m-%d)(-86400)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000-01-01"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y-%m-%d %H:%M:%S)(86400)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y-%m-%d %H:%M:%S)(86400)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000-01-03 03:04:05"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(bad)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(bad)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "literal",
+    "input": {
+      "operation": "datetime",
+      "value": "literal",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "literal"
+    }
+  }
+]

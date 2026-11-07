@@ -1,0 +1,337 @@
+[
+  {
+    "name": "completion",
+    "input": {
+      "format": "html",
+      "body": "<p>hello"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "hello"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "empty-tags",
+    "input": {
+      "format": "html",
+      "body": "<p><br><img src='x'><input disabled></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "br": {
+                "##value": ""
+              },
+              "img": {
+                "#src": "x",
+                "##value": ""
+              },
+              "input": {
+                "#disabled": "",
+                "##value": ""
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "mixed-text",
+    "input": {
+      "format": "html",
+      "body": "<p>a<b>b</b>c</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a\n   \n   c",
+              "b": {
+                "##value": "b"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "repeated",
+    "input": {
+      "format": "html",
+      "body": "<ul><li>a</li><li>b</li></ul>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "ul": {
+              "li": [
+                {
+                  "##value": "a"
+                },
+                {
+                  "##value": "b"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "script",
+    "input": {
+      "format": "html",
+      "body": "<script>if (1 < 2) x = '&';</script>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "script": {
+              "##value": "if (1 < 2) x = '&';"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "table-completion",
+    "input": {
+      "format": "html",
+      "body": "<table><tr><td>a</td></tr></table>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "a"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "unit-html",
+    "input": {
+      "format": "html",
+      "body": "<!DOCTYPE html>\n<html>\n<head>\n  <title>タイトル</title>\n  <meta name=\"format-detection\" content=\"telephone=no\">\n  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n  <script type=\"text/javascript\" charset=\"utf-8\">\n    var hoge = 1 > 2;\n  </script>\n</head>\n<body>\n  <div id=\"main\">\n    <span>Main contents</span>\n  </div>\n</body>\n</html>\n"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "タイトル"
+            },
+            "meta": [
+              {
+                "#content": "telephone=no",
+                "#name": "format-detection",
+                "##value": ""
+              },
+              {
+                "#content": "text/html; charset=utf-8",
+                "#http-equiv": "Content-Type",
+                "##value": ""
+              }
+            ],
+            "script": {
+              "#charset": "utf-8",
+              "#type": "text/javascript",
+              "##value": "var hoge = 1 > 2;"
+            }
+          },
+          "body": {
+            "div": {
+              "#id": "main",
+              "span": {
+                "##value": "Main contents"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "mixed-text",
+    "input": {
+      "format": "xml",
+      "body": "<r a=\"1\">before<c/>after</r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "1",
+          "c": null,
+          "#text": "beforeafter"
+        }
+      }
+    }
+  },
+  {
+    "name": "namespace",
+    "input": {
+      "format": "xml",
+      "body": "<r xmlns=\"urn:default\" xmlns:p=\"urn:test\"><p:c p:a=\"1\">x</p:c></r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@xmlns": "urn:default",
+          "@xmlns:p": "urn:test",
+          "p:c": {
+            "@p:a": "1",
+            "#text": "x"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "cdata",
+    "input": {
+      "format": "xml",
+      "body": "<r><![CDATA[a<b>&c]]></r>"
+    },
+    "expected": {
+      "value": {
+        "r": "a<b>&c"
+      }
+    }
+  },
+  {
+    "name": "entity",
+    "input": {
+      "format": "xml",
+      "body": "<r>&amp;&lt;&#65;&#x3042;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": "&<Aあ"
+      }
+    }
+  },
+  {
+    "name": "internal-entity",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"hello\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "empty-repeat",
+    "input": {
+      "format": "xml",
+      "body": "<r><c/><c a=\"1\"/></r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "c": [
+            null,
+            {
+              "@a": "1"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "unit-xml",
+    "input": {
+      "format": "xml",
+      "body": "<?xml version=\"1.0\"?>\n<catalog>\n    <book id=\"bk001\">\n        <author>Ichiro</author>\n        <title>Ichiro55</title>\n    </book>\n    <book id=\"bk002\">\n        <author>次郎</author>\n        <title>次郎22</title>\n    </book>\n</catalog>\n"
+    },
+    "expected": {
+      "value": {
+        "catalog": {
+          "book": [
+            {
+              "@id": "bk001",
+              "author": "Ichiro",
+              "title": "Ichiro55"
+            },
+            {
+              "@id": "bk002",
+              "author": "次郎",
+              "title": "次郎22"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "html-condition",
+    "input": {
+      "format": "html",
+      "body": "<p>a<b>b</b>c</p>",
+      "when": "dict_one.html.body.p.b['##value'] == 'b'"
+    },
+    "expected": {
+      "value": {
+        "dict": {
+          "html": {
+            "body": {
+              "p": {
+                "##value": "a\n   \n   c",
+                "b": {
+                  "##value": "b"
+                }
+              }
+            }
+          }
+        },
+        "condition": true
+      }
+    }
+  },
+  {
+    "name": "xml-condition",
+    "input": {
+      "format": "xml",
+      "body": "<r a=\"1\">before<c/>after</r>",
+      "when": "dict_one.r.c is none and dict_one.r['#text'] == 'beforeafter'"
+    },
+    "expected": {
+      "value": {
+        "dict": {
+          "r": {
+            "@a": "1",
+            "c": null,
+            "#text": "beforeafter"
+          }
+        },
+        "condition": true
+      }
+    }
+  }
+]
