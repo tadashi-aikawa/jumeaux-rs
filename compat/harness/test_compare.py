@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from compare import compare_case, equal, load, normalize_report, records, validate_report
+from compare import compare_case, equal, load, normalize_report, records, text, validate_report
 
 HERE = Path(__file__).resolve().parent
 BASELINE = HERE.parent / "python-baseline"
@@ -157,6 +157,56 @@ class ComparisonTests(unittest.TestCase):
                         self.fail("occupied port accepted")
                 spawn.assert_not_called()
             self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_verbose_without_urllib3_logs_and_with_rust_version_matches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "verbose_3"
+            shutil.copytree(BASELINE / "verbose_3", target, symlinks=True)
+            path = target / "run.stderr"
+            original = path.read_bytes()
+            changed = b"".join(line for line in original.splitlines(keepends=True) if not line.startswith((b"Starting new HTTP connection", b"http://localhost:8000 ")))
+            self.assertNotEqual(original, changed)
+            self.assertIn(b"jumeaux/7.0.0", changed)
+            path.write_bytes(changed.replace(b"jumeaux/7.0.0", b"jumeaux/0.1.0"))
+            compare_case(BASELINE / "verbose_3", target, RULES)
+
+    def test_urllib3_exclusion_is_limited_to_run_stderr(self):
+        value = b'Starting new HTTP connection (1): localhost:8000\nhttp://localhost:8000 "GET /api/one/x HTTP/1.1" 200 10\n'
+        self.assertEqual(text(value, [], RULES, "run.stderr"), "")
+        for stream in ("run.stdout", "cli.stderr", "retry.stderr"):
+            with self.subTest(stream=stream):
+                self.assertEqual(text(value, [], RULES, stream), value.decode())
+
+    def test_application_log_changes_are_detected(self):
+        def mutate(target):
+            path = target / "run.stderr"
+            path.write_bytes(path.read_bytes().replace(b"[final/viewer] Create", b"[final/viewer] Wrong"))
+        self.mutated_case("verbose_3", mutate)
+
+    def test_template_list_order_is_ignored(self):
+        for case in ("init_no_args", "init_invalid"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory) / case
+                shutil.copytree(BASELINE / case, target)
+                path = target / "cli.stderr"
+                prefix, names = path.read_text().split("✨ [Valid names] ✨\n", 1)
+                for reverse in (False, True):
+                    path.write_text(prefix + "✨ [Valid names] ✨\n" + "\n".join(sorted(names.splitlines(), reverse=reverse)) + "\n")
+                    compare_case(BASELINE / case, target, RULES)
+
+    def test_template_list_missing_extra_duplicate_are_detected(self):
+        for replacement in ("", "unknown_template\n", "simple\nsimple\n"):
+            with self.subTest(replacement=replacement):
+                def mutate(target):
+                    path = target / "cli.stderr"
+                    path.write_text(path.read_text().replace("\nsimple\n", "\n" + replacement))
+                self.mutated_case("init_invalid", mutate)
+
+    def test_template_order_normalization_stays_inside_block(self):
+        value = "zebra\napple\n✨ [Valid names] ✨\nzebra\napple\n\nzebra\napple\n"
+        expected = "zebra\napple\n✨ [Valid names] ✨\napple\nzebra\n\nzebra\napple\n"
+        self.assertEqual(text(value.encode(), [], RULES, "cli.stderr"), expected)
+        self.assertEqual(text(value.encode(), [], RULES, "run.stderr"), value)
 
     def mutated_case(self, case, mutate):
         with tempfile.TemporaryDirectory(prefix="jumeaux-mutation-") as directory:

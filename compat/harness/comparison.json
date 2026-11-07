@@ -16,11 +16,18 @@
   ],
   "text_rules": [
     {"field": "version", "pattern": "(?m)^(Version: ).+$", "replacement": "\\1<version>"},
+    {"field": "version", "pattern": "jumeaux/[0-9.]+", "replacement": "jumeaux/<version>"},
     {"field": "response_sec", "pattern": "(?m)^(\\[\\d+ / \\d+\\] (?:One:|Other:)[ ]+\\d+ / )\\d+(?:\\.\\d+)?s( /)", "replacement": "\\1<response_sec>\\2"},
     {"field": "elapsed_sec", "pattern": "(?m)^(\\[\\d+ / \\d+\\] ⏰ [^\\n]+: +)\\d+(?:\\.\\d+)?ms$", "replacement": "\\1<elapsed_sec>"},
     {"field": "response_sec", "pattern": "<\\d+(?:\\.\\d+)?s - \\d+(?:\\.\\d+)?s>", "replacement": "<response_sec>"}
   ],
-  "unordered_transport_lines": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$"],
+  "excluded_transport_lines": {
+    "streams": ["run.stderr"],
+    "patterns": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$"]
+  },
+  "unordered_text_blocks": [
+    {"streams": ["cli.stderr"], "start": "✨ [Valid names] ✨", "line_pattern": "[a-z][a-z0-9_]*"}
+  ],
   "python_mismatches": {"header_ignore_case": "header_ignore_control"},
   "case_contracts": {
     "threads_2": {"summary.concurrency": {"threads": 2, "processes": 1}},

@@ -95,7 +95,7 @@ def reports(workspace):
     return result
 
 
-def text(data, report_list, rules):
+def text(data, report_list, rules, stream=None):
     value = data.decode("utf-8")
     for i, report in enumerate(report_list):
         for field in rules["text_report_references"]:
@@ -103,15 +103,26 @@ def text(data, report_list, rules):
     for rule in rules["text_rules"]:
         value = re.sub(rule["pattern"], rule["replacement"], value)
     lines = value.splitlines(keepends=True)
-    result, pending = [], []
-    for line in lines + [""]:
-        if any(re.match(pattern, line.rstrip("\n")) for pattern in rules["unordered_transport_lines"]):
-            pending.append(line)
-        else:
-            result.extend(sorted(pending))
-            pending.clear()
+    excluded = rules["excluded_transport_lines"]
+    if stream in excluded["streams"]:
+        lines = [line for line in lines if not any(re.fullmatch(pattern, line.rstrip("\n")) for pattern in excluded["patterns"])]
+    for block in rules["unordered_text_blocks"]:
+        if stream not in block["streams"]:
+            continue
+        result = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
             result.append(line)
-    return "".join(result)
+            i += 1
+            if line.rstrip("\n") == block["start"]:
+                start = i
+                while i < len(lines) and re.fullmatch(block["line_pattern"], lines[i].rstrip("\n")):
+                    i += 1
+                # ソートだけを行い、名前の欠落・追加・重複は残して検出する。
+                result.extend(sorted(lines[start:i]))
+        lines = result
+    return "".join(lines)
 
 
 def tree(root, snapshot=False):
@@ -187,7 +198,7 @@ def compare_case(baseline, actual, rules, input_baseline=None):
             path = f"{label}.{stream}"
             equal((baseline / path).exists(), (actual / path).exists(), path + " existence")
             if (baseline / path).exists():
-                equal(text((baseline / path).read_bytes(), expect_reports, rules), text((actual / path).read_bytes(), actual_reports, rules), path)
+                equal(text((baseline / path).read_bytes(), expect_reports, rules, path), text((actual / path).read_bytes(), actual_reports, rules, path), path)
     left = workspace_tree(baseline, expect_reports, snapshot=True)
     right = workspace_tree(actual, actual_reports, snapshot=baseline == actual)
     equal(set(left), set(right), "workspace tree")

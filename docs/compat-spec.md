@@ -100,12 +100,19 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - PythonランタイムのDeprecationWarningは基準採取時に抑制する。
   - 方法: `PYTHONWARNINGS=ignore`。依存ライブラリが警告設定を上書きするため、Pythonラッパーはimport後にも再設定する。
 - verboseログの計測時間はresponse_sec・elapsed_secに対応する箇所だけ正規化する。
-  - 規則: 並行HTTPの接続・応答ログは連続ブロック内の行順を比較しない。行の内容と回数は維持する。
+- urllib3がrunのstderrへ出す接続・応答ログは比較から外す。
+  - 対象: `Starting new HTTP connection` と `http://... "GET ..." 200 ...` 形式の行。具体的なパターンは `excluded_transport_lines` に列挙する。
+  - 理由: HTTPライブラリ固有の出力であり、Rust版に同じ行を要求しない。API記録の比較は維持する。
+- User-Agentログの `jumeaux/[0-9.]+` は `jumeaux/<version>` へ正規化する。
+  - 扱い: 製品版番号の差としてversionの比較除外に含める。
 - 作業ディレクトリ全体のツリーとファイルを比較する。
   - 規則: responses外のCSVなども対象とし、余分なファイル・ディレクトリ・symlinkも不一致にする。
 
 ## 意図的に変える差異
 
+- Rust版はinitのテンプレート名一覧をソート順で出す。
+  - Python版: ファイルシステムの列挙順で出す。一覧の並びは互換対象にしない。
+  - 比較: `✨ [Valid names] ✨` 直後のテンプレート名の区間だけを順序なしの行として比較する。名前の欠落・追加・重複は許容しない。
 - retry再構築で `raw`、`judge_response_header`、`ignore_response_header_keys` が失われる不具合を直す。
   - 検証: Pythonの観測値と修正後の期待値を分ける。欠落したままの実装は合格にしない。
 - 差分パスの値取得でキーに `root` やブラケットなどを含む場合の不具合を直す。
