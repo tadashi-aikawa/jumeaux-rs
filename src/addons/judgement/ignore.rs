@@ -127,12 +127,13 @@ impl Executor {
                 let value = |dict: &Option<serde_json::Value>| {
                     dict.as_ref()
                         .and_then(|dict| get_by_diff_key(dict, path))
-                        .map(values::from_json)
-                        .unwrap_or_else(|| minijinja::Value::from(()))
+                        .map(values::from_json_for_when)
+                        .transpose()
+                        .map(|value| value.unwrap_or_else(|| minijinja::Value::from(())))
                 };
                 let context = minijinja::Value::from_pairs([
-                    ("one", value(&reference.dict_one)),
-                    ("other", value(&reference.dict_other)),
+                    ("one", value(&reference.dict_one)?),
+                    ("other", value(&reference.dict_other)?),
                 ]);
                 if super::when(&self.engine, case.when.as_deref(), &context)? {
                     matched.push(path.clone());
@@ -154,7 +155,7 @@ impl AddonExecutor<Judgement> for Executor {
             return Ok(payload);
         }
         let diffs = payload.diffs_by_cognition.as_mut().unwrap();
-        let context = super::context(reference);
+        let context = super::context(reference)?;
         for ignore in &self.ignores {
             // 各conditionは同じunknownのスナップショットを見る。重複もPython同様残す。
             let mut matches = Vec::new();

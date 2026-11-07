@@ -86,12 +86,9 @@ impl Executor {
     fn sort(&self, mut payload: Res2ResPayload, text: &str) -> Result<Res2ResPayload> {
         let original = crate::compat::json::parse(text)?;
         let mut sorted = original.clone();
+        let context = crate::compat::values::checked_context(payload.req.to_dict_value())?;
         for sorter in &self.items {
-            if self
-                .engine
-                .when(&sorter.when, payload.req.to_dict_value())?
-                .truthy()
-            {
+            if self.engine.when(&sorter.when, &context)?.truthy() {
                 if !sorted.is_object() && !sorted.is_array() {
                     // Python _list_sort iterates strings; other scalar roots are not iterable.
                     sorted = match sorted.as_str() {

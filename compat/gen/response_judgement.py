@@ -296,5 +296,10 @@ for depth in [129, 200]:
     capture(f"deep-json-{depth}", "res2dict", "json", {}, {"response": response(text)}, summary="depth")
     capture(f"deep-sort-{depth}", "res2res", "json_sort", sort_config(), res_payload(text))
 
+for token in ["nan", "inf", "infinity"]:
+    for text in [token, '{"a":[' + token + ']}']:
+        capture("invalid-number-json-" + text, "res2dict", "json", {}, {"response": response(text)})
+        capture("invalid-number-sort-" + text, "res2res", "json_sort", sort_config(), res_payload(text))
+
 assert len({case["name"] for case in cases}) == len(cases)
 print(json.dumps(cases, ensure_ascii=False, indent=2))

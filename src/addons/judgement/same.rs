@@ -34,7 +34,7 @@ impl AddonExecutor<Judgement> for Executor {
         if payload.regard_as_same_body {
             return Ok(payload);
         }
-        let context = super::context(reference);
+        let context = super::context(reference)?;
         for expression in &self.config.when_any {
             if self.engine.when(expression, &context)?.truthy() {
                 payload.regard_as_same_body = true;

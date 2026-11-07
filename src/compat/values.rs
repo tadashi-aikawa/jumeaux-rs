@@ -23,65 +23,108 @@ pub fn serialized(value: impl Serialize) -> Value {
 
 /// arbitrary_precisionのserde内部表現をテンプレートへ漏らさない。
 pub fn from_json(value: &Json) -> Value {
-    match value {
-        Json::Null => Value::from(()),
-        Json::Bool(value) => Value::from(*value),
-        Json::String(value) => Value::from(value.clone()),
-        Json::Number(value) => {
-            if let Some(value) = value.as_i64() {
-                Value::from(value)
-            } else if let Some(value) = value.as_u64() {
-                Value::from(value)
-            } else if let Some(value) = value.as_i128() {
-                Value::from(value)
-            } else {
-                Value::from(value.as_str().parse::<f64>().expect("JSON number"))
-            }
-        }
-        Json::Array(values) => Value::from(values.iter().map(from_json).collect::<Vec<_>>()),
-        Json::Object(values) => {
-            Value::from_pairs(values.iter().map(|(k, v)| (k.clone(), from_json(v))))
-        }
+    convert_json(value, false).expect("render conversion does not reject numbers")
+}
+
+/// when用の変換では、数値を作る時点で非有限値を拒否する。
+pub fn from_json_for_when(value: &Json) -> super::Result<Value> {
+    convert_json(value, true)
+}
+
+fn convert_json(value: &Json, finite: bool) -> super::Result<Value> {
+    // 子から親の順に組み立てる。深いdictの変換でも呼び出し元のスタックを消費しない。
+    enum Step<'a> {
+        Value(&'a Json),
+        Array(usize),
+        Object(&'a serde_json::Map<String, Json>, usize),
     }
+    let mut pending = vec![Step::Value(value)];
+    let mut converted = Vec::new();
+    while let Some(step) = pending.pop() {
+        let value = match step {
+            Step::Value(Json::Array(values)) => {
+                pending.push(Step::Array(converted.len()));
+                pending.extend(values.iter().rev().map(Step::Value));
+                continue;
+            }
+            Step::Value(Json::Object(values)) => {
+                pending.push(Step::Object(values, converted.len()));
+                pending.extend(values.values().rev().map(Step::Value));
+                continue;
+            }
+            Step::Array(start) => Value::from(converted.split_off(start)),
+            Step::Object(map, start) => {
+                Value::from_pairs(map.keys().cloned().zip(converted.split_off(start)))
+            }
+            Step::Value(Json::Null) => Value::from(()),
+            Step::Value(Json::Bool(value)) => Value::from(*value),
+            Step::Value(Json::String(value)) => Value::from(value.clone()),
+            Step::Value(Json::Number(value)) => {
+                if let Some(value) = value.as_i64() {
+                    Value::from(value)
+                } else if let Some(value) = value.as_u64() {
+                    Value::from(value)
+                } else if let Some(value) = value.as_i128() {
+                    Value::from(value)
+                } else {
+                    let value = value.as_str().parse::<f64>().expect("JSON number");
+                    if finite && !value.is_finite() {
+                        return Err(super::json::nonfinite_error());
+                    }
+                    Value::from(value)
+                }
+            }
+        };
+        converted.push(value);
+    }
+    Ok(converted.pop().expect("JSON root"))
 }
 
 /// JSONは数値を変換し、式用Objectを持つMiniJinja Valueはそのまま渡す。
 /// 任意のserdeモデルにはserialized()を使う。
 pub trait TemplateInput {
-    fn validate(&self) -> super::Result<()>;
+    /// 生JSONは入口で検査する。MiniJinja Valueは構築時に検査済みのcontext。
+    fn into_when_value(self) -> super::Result<Value>;
     fn into_value(self) -> Value;
 }
 impl TemplateInput for Json {
-    fn validate(&self) -> super::Result<()> {
-        super::json::validate(self).map(|_| ())
+    fn into_when_value(self) -> super::Result<Value> {
+        (&self).into_when_value()
     }
     fn into_value(self) -> Value {
         from_json(&self)
     }
 }
 impl TemplateInput for &Json {
-    fn validate(&self) -> super::Result<()> {
-        super::json::validate(self).map(|_| ())
+    fn into_when_value(self) -> super::Result<Value> {
+        super::json::validate(self)?;
+        from_json_for_when(self)
     }
     fn into_value(self) -> Value {
         from_json(self)
     }
 }
 impl TemplateInput for Value {
-    fn validate(&self) -> super::Result<()> {
-        validate_template(self)
+    fn into_when_value(self) -> super::Result<Value> {
+        Ok(self)
     }
     fn into_value(self) -> Value {
         self
     }
 }
 impl TemplateInput for &Value {
-    fn validate(&self) -> super::Result<()> {
-        validate_template(self)
+    fn into_when_value(self) -> super::Result<Value> {
+        Ok(self.clone())
     }
     fn into_value(self) -> Value {
         self.clone()
     }
+}
+
+/// ネイティブのMiniJinja値を使う呼び出し元は、context構築時に一度だけ検査する。
+pub fn checked_context(value: Value) -> super::Result<Value> {
+    validate_template(&value)?;
+    Ok(value)
 }
 
 fn validate_template(value: &Value) -> super::Result<()> {
@@ -280,10 +323,11 @@ impl Object for Headers {
 struct PythonOption(super::Result<Value>);
 
 /// judgement の dict_one/dict_other は TOption をそのまま公開する。
-pub fn optional(value: Option<&Json>) -> Value {
-    Value::from_object(PythonOption(Ok(value
-        .map(from_json)
-        .unwrap_or_else(|| Value::from(())))))
+pub fn optional(value: Option<&Json>) -> super::Result<Value> {
+    Ok(Value::from_object(PythonOption(Ok(value
+        .map(from_json_for_when)
+        .transpose()?
+        .unwrap_or_else(|| Value::from(()))))))
 }
 
 impl Object for PythonOption {

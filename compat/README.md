@@ -131,14 +131,16 @@ cargo test --test markup -- --nocapture
 cargo test --test response_judgement -- --nocapture
 ```
 
-- 関数fixtureは267件。
-  - Python一致: 217件。
+- 関数fixtureは279件。
+  - Python一致: 229件。
   - 承認済み差異: 特殊パスの値取得修正7件、非有限数41件、lone surrogate 2件。Python観測値と`rust_expected`を両方保持する。
   - 未決: 0件。
   - 境界: Optionのvalue、整数の負のゼロ、深さ129・200の読み込みとソートもPythonと比較する。非有限数はjson_sort・res2dict/json・when・diffを同じ入力で比較する。
 - `cargo test --test json_boundary`で深さ1,000と1,001を検証する。
   - 実行: 子プロセス内の2MiBスタックから、配列・辞書・混在JSONの読み込み・ソート・diff・破棄を呼び出す。
   - エラー: 非有限数のエラー種別とメッセージを全入口で検証する。json_sortからres2dict/jsonへの連結も検証する。
+- `cargo test --release --test judgement_performance -- --nocapture`で10万キーのdictに対するsameの条件式1・10・40本を計測する。
+  - 回帰検証: 構築済みcontextの走査回数が条件式の本数で増えないことも固定する。
 - 同梱テンプレート8種とヘッダの追加3ケースは、既存reportの19 trialと比較する。
   - 対象: ignore、ignore_order、judge_response_headers、force_json、xml、html、all_same、root_array。
   - 比較: API応答ファイルに各テンプレートのres2res・res2dict・judgementを順に適用し、diffs_by_cognitionとstatusを検証する。

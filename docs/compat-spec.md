@@ -177,6 +177,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 上書き: 同じレコードキー・ブロック名は後勝ち。ヘッダがないブロックのJSONキーは`"null"`。
 - judgementの初期値は`judgement::initial_payload`で組み立てる。
   - エラー伝播: `initial_payload`と`diff::diff`は`compat::Result`を返す。呼び出し元は`?`で入力エラーを伝播する。
+  - 停止: `initial_payload`のErrは他のアドオンのエラーと同じく実行を停止する。LimitExceededは本文bytesが同じ場合にも返る。
   - 変換なし: 片側でもdictなしならdiffs_by_cognitionは未設定。本文bytesで比較する。
   - 変換あり: 本文bytesが同じなら差分計算を省略する。それ以外は`diff::diff`でunknownを組み立てる。
   - 空差分: unknownが空なら空dictを保持し、regard_as_same_bodyをtrueにする。
@@ -185,6 +186,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
   - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
   - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。Rustは`any`・`flat_map`・`map`をまだ実装していない。
+  - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
+  - whenの入口: 生のserde_json::Valueは検査して変換する。MiniJinja Valueは構築時に検査済みのcontextとして受け取る。ネイティブ値を組み立てる呼び出し元は`values::checked_context`を構築時に一度だけ使う。
 - ignoreはunknownの差分をtitleへ移す。
   - 条件: conditions[].whenが偽なら、その条件から分類を作らない。addedだけの条件はchanged・removedに影響しない。
   - 値参照: caseのpathが完全一致したあと、差分パスから引いた値をone・otherとしてcase.whenへ渡す。片側に値がなければNone。
@@ -242,6 +245,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - Python版: 非有限floatとして受理する。fixtureは非有限値を`nonfinite`タグに置き換えて観測値を保存する。
   - 連結: 旧Rust実装はjson_sortが`Infinity`を書き出し、後続res2dict/jsonが拒否する場合があった。現在はjson_sortの入口で拒否し、この出力を作らない。
   - 整数: JSONの整数はBigInt相当の精度で保持する。when入力へのf64変換で非有限値になる巨大整数も、whenの入口で同じエラーとする。
+  - 小文字: JSON中の`nan`・`inf`・`infinity`はPython同様JSONDecodeErrorとする。whenの描画結果に現れる非有限floatの`nan`・`inf`はValueErrorとする。
 - lone surrogateを含むJSONはRustで表せない入力としてJSONDecodeErrorにする。
   - 例: `"\ud800"`。Pythonは受理し、json_sortではエンコード時に`?`へ置換する。
 - JSONの配列・辞書の深さ上限は1,000コンテナとする。
@@ -288,6 +292,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 以下はPython版と一致しない差異として許容したもの。
 
+- Optionをそのまま条件式に置く`when_any: ["dict_one"]`は、PythonでSyntaxError、Rustで偽となる。
 - ignoreのcasesはRustでは最初の一致で評価を打ち切る。
   - Python版: 全caseを評価してから判定する。差は後続caseのエラーが発生するかどうかだけで、正常時の分類は同じ。
 - whenへ渡すi128超の整数はf64へ丸める。json_sortは整数を丸めず、整数`-0`はPythonと同じ`0`へ正規化する。

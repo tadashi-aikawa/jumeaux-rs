@@ -38,10 +38,10 @@ impl Executor {
 }
 impl AddonExecutor<Res2Res> for Executor {
     fn exec(&self, mut payload: Res2ResPayload, _: &()) -> Result<Res2ResPayload> {
-        let context = minijinja::Value::from_pairs([
+        let context = crate::compat::values::checked_context(minijinja::Value::from_pairs([
             ("req", payload.req.to_dict_value()),
             ("res", payload.response.to_dict_value()),
-        ]);
+        ]))?;
         for condition in &self.config.conditions {
             if match &condition.when {
                 None => true,

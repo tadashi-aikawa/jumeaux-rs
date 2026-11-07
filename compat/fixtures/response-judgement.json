@@ -15282,5 +15282,449 @@
         ]
       }
     }
+  },
+  {
+    "name": "invalid-number-json-nan",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "6e616e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-nan",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "6e616e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-json-{\"a\":[nan]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b6e616e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-{\"a\":[nan]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b6e616e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-json-inf",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "696e66",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-inf",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "696e66",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-json-{\"a\":[inf]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b696e665d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-{\"a\":[inf]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b696e665d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-json-infinity",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "696e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-infinity",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "696e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-json-{\"a\":[infinity]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b696e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "invalid-number-sort-{\"a\":[infinity]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b696e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
   }
 ]

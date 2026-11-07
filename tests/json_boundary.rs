@@ -71,7 +71,7 @@ fn nonfinite_errors_are_identical_at_all_boundaries() {
         assert_nonfinite(engine.when(&expression, json!({})));
     }
     for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-        assert_nonfinite(engine.when("True", minijinja::context!(x => value)));
+        assert_nonfinite(values::checked_context(minijinja::context!(x => value)));
     }
     for text in ["1e400", "-1e400", "{\"a\":[1e400]}"] {
         // serdeのarbitrary_precision経由で文字列入口を迂回した場合も拒否する。
@@ -79,14 +79,12 @@ fn nonfinite_errors_are_identical_at_all_boundaries() {
         assert_nonfinite(diff::diff(&value, &json!(0)));
         assert_nonfinite(diff::diff(&json!(0), &value));
         assert_nonfinite(engine.when("True", &value));
-        assert_nonfinite(engine.when(
-            "True",
-            minijinja::context!(x => values::optional(Some(&value))),
-        ));
+        assert_nonfinite(values::optional(Some(&value)));
     }
     assert_nonfinite(engine.when("'1e400'", json!({})));
     let huge_integer: Value = serde_json::from_str(&format!("1{}", "0".repeat(400))).unwrap();
     assert_nonfinite(engine.when("True", &huge_integer));
+    assert_nonfinite(values::optional(Some(&huge_integer)));
     assert!(diff::diff(&huge_integer, &json!(0)).is_ok());
     assert!(compat::json::parse(r#"["NaN", "Infinity", "1e400"]"#).is_ok());
     assert!(
@@ -180,7 +178,24 @@ fn deep_json_worker() {
                         compat::json::parse(&one[..one.len() - 1]).unwrap_err().kind,
                         "JSONDecodeError"
                     );
-                    drop((a, b));
+                    let reference = addons::payload::JudgementReference {
+                        name: "deep".into(),
+                        path: "/".into(),
+                        qs: Default::default(),
+                        headers: Default::default(),
+                        res_one: response(&one),
+                        res_other: response(&other),
+                        dict_one: Some(a),
+                        dict_other: Some(b),
+                    };
+                    let initial =
+                        addons::judgement::initial_payload(&reference, false, &[]).unwrap();
+                    let same =
+                        addons::judgement::same::Executor::new(addons::judgement::same::Config {
+                            when_any: vec!["False".into(), "dict_one.value is none".into()],
+                        })
+                        .unwrap();
+                    assert!(!same.exec(initial, &reference).unwrap().regard_as_same_body);
                 }
             }
             let too_deep = format!("{}0{}", "[".repeat(1001), "]".repeat(1001));
@@ -195,6 +210,22 @@ fn deep_json_worker() {
             }
             assert_eq!(
                 diff::diff(&value, &json!(0)).unwrap_err().kind,
+                "LimitExceeded"
+            );
+            let reference = addons::payload::JudgementReference {
+                name: "deep".into(),
+                path: "/".into(),
+                qs: Default::default(),
+                headers: Default::default(),
+                res_one: response("{}"),
+                res_other: response("{}"),
+                dict_one: Some(value),
+                dict_other: Some(json!({})),
+            };
+            assert_eq!(
+                addons::judgement::initial_payload(&reference, false, &[])
+                    .unwrap_err()
+                    .kind,
                 "LimitExceeded"
             );
         })

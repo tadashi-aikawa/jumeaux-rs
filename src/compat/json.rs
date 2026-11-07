@@ -13,17 +13,21 @@ fn depth_error() -> Error {
     Error::new("LimitExceeded", "JSON nesting exceeds 1000 containers")
 }
 
-/// 引用文字列を飛ばして数値字句を検査する。whenの描画結果にも使う。
+/// JSONの引用文字列を飛ばして数値字句を検査する。
 pub fn scan(text: &str) -> Result<usize> {
-    scan_tokens(text, true)
+    scan_tokens(text, true, false)
+}
+
+pub(crate) fn scan_literal(text: &str) -> Result<usize> {
+    scan_tokens(text, true, true)
 }
 
 /// 条件式内の識別子は数値字句と区別する。値は式入力・描画結果で検査する。
 pub(crate) fn scan_expression(text: &str) -> Result<usize> {
-    scan_tokens(text, false)
+    scan_tokens(text, false, false)
 }
 
-fn scan_tokens(text: &str, nonfinite_names: bool) -> Result<usize> {
+fn scan_tokens(text: &str, nonfinite_names: bool, lowercase: bool) -> Result<usize> {
     let bytes = text.as_bytes();
     let (mut i, mut depth, mut max_depth) = (0, 0usize, 0);
     while i < bytes.len() {
@@ -76,10 +80,8 @@ fn scan_tokens(text: &str, nonfinite_names: bool) -> Result<usize> {
                     i += 1;
                 }
                 if nonfinite_names
-                    && matches!(
-                        &text[start..i],
-                        "NaN" | "nan" | "Infinity" | "infinity" | "inf"
-                    )
+                    && (matches!(&text[start..i], "NaN" | "Infinity")
+                        || lowercase && matches!(&text[start..i], "nan" | "infinity" | "inf"))
                 {
                     return Err(nonfinite_error());
                 }

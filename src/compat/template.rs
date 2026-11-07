@@ -184,9 +184,7 @@ impl TemplateEngine {
     /// boolに即時変換しない。数値・リストなどは後続の呼び出し元がtruthinessを判定する。
     pub fn when(&self, expression: &str, data: impl TemplateInput) -> Result<LiteralValue> {
         super::json::scan_expression(expression)?;
-        data.validate()?;
-        let data = data.into_value();
-        data.validate()?;
+        let data = data.into_when_value()?;
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }
@@ -884,7 +882,7 @@ impl LiteralValue {
 }
 
 pub fn literal_eval(text: &str) -> Result<LiteralValue> {
-    super::json::scan(text)?;
+    super::json::scan_literal(text)?;
     let expr = ast::Expr::parse(text.trim_start_matches([' ', '\t']), "<when>")
         .map_err(|e| Error::new("SyntaxError", e.to_string()))?;
     let value = literal(&expr)?;

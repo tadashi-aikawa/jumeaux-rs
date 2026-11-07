@@ -85,8 +85,8 @@ pub fn headers_equal(one: &Headers, other: &Headers, ignore: &[String]) -> bool 
     normalized(one) == normalized(other)
 }
 
-fn context(reference: &JudgementReference) -> minijinja::Value {
-    minijinja::Value::from_pairs([
+fn context(reference: &JudgementReference) -> Result<minijinja::Value> {
+    Ok(minijinja::Value::from_pairs([
         (
             "req",
             minijinja::Value::from_pairs([
@@ -96,14 +96,20 @@ fn context(reference: &JudgementReference) -> minijinja::Value {
                 ("headers", values::serialized(&reference.headers)),
             ]),
         ),
-        ("res_one", reference.res_one.to_template_value()),
-        ("res_other", reference.res_other.to_template_value()),
-        ("dict_one", values::optional(reference.dict_one.as_ref())),
+        (
+            "res_one",
+            values::checked_context(reference.res_one.to_template_value())?,
+        ),
+        (
+            "res_other",
+            values::checked_context(reference.res_other.to_template_value())?,
+        ),
+        ("dict_one", values::optional(reference.dict_one.as_ref())?),
         (
             "dict_other",
-            values::optional(reference.dict_other.as_ref()),
+            values::optional(reference.dict_other.as_ref())?,
         ),
-    ])
+    ]))
 }
 
 fn when(
