@@ -89,6 +89,23 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 
 ## ハーネスの自己検証
 
+### JSON差分エンジンの検証
+
+`cargo test --test diff -- --nocapture` で差分fixture全件と特殊キーのパス往復を検証する。
+
+配列の組み合わせを追加してPython版と比較する場合:
+
+```sh
+DIFF_FIXTURE_DIR="$(mktemp -d)"
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/fixtures.py --diff-matrix --output "$DIFF_FIXTURE_DIR"
+JUMEAUX_DIFF_FIXTURES="$DIFF_FIXTURE_DIR/diff/cases.json" cargo test --test diff all_diff_fixtures -- --nocapture
+```
+
+- `--diff-matrix` はscalar配列1,600組と型の混在する配列5,329組を追加する。
+- `JUMEAUX_DIFF_FIXTURES` は検証用のfixture差し替え。通常のテストはリポジトリのfixtureを使う。
+
+### E2E比較ハーネスの検証
+
 ```sh
 uv run --project compat/harness python -m unittest discover -s compat/harness -p 'test_*.py'
 ```
