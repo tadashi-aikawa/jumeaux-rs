@@ -73,6 +73,25 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+### HTTP転送の先行実測
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py > /tmp/jumeaux-http-transport.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --encoding > /tmp/jumeaux-http-encoding.json
+diff compat/fixtures/http-transport.json /tmp/jumeaux-http-transport.json
+diff compat/fixtures/encoding/http.json /tmp/jumeaux-http-encoding.json
+cargo test --test http_encoding -- --nocapture
+```
+
+- 転送fixtureは46件のPython実測。動的ポートのループバック受信先だけを使う。
+  - 対象: 本文bytes、redirect、Cookie、gzip、retry、通信失敗とchallengeの捕捉。
+  - 注入: DNS失敗・接続拒否・connect timeoutはソケット入口で注入し、外部へ通信しない。
+  - 制限: Rust転送との比較は未接続。timeoutの0.2秒は実測用であり、製品の設定ではない。
+- encodingは23件すべてRustでPython期待値と比較する。
+  - 対象: 決定順、空本文、charsetの引用符・重複・空値、MIME typeとパラメータの区別。
+
+### 既存の関数fixture
+
 ```sh
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/fixtures.py
 # 既存fixtureを変更せず再現性を確かめる

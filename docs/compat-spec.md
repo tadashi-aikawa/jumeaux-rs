@@ -133,6 +133,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ### 文字コード
 
+HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契約」に記す。
+
 レスポンスencodingは次の順で決める。
 
 1. Content-Typeに `octet-stream` があればencodingなし。
@@ -958,7 +960,69 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 - MiniJinjaとminijinja-contribは`=3.0.5`に固定する。
   - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
 
+## HTTP転送の接続契約
+
+`compat/gen/http_transport.py`は基準Python環境のrequestsと`HTTPAdapter(max_retries=N)`を実行する。`compat/fixtures/http-transport.json`に46件のPython観測値を保存する。RustのHTTP転送との比較は未接続。
+
+| 項目 | Python版の挙動 | 検証・Rust側の残件 |
+| --- | --- | --- |
+| Session | exec全体で1個。one/otherと各trialで共有 | Cookieを共有するクライアント構成が必要 |
+| Session.close | 各http_get/http_postのfinallyで呼ぶ。Cookieは残る | close後のCookie送信を実測済み。接続プールの寿命は未実装 |
+| gzip | 自動展開。Response.bodyは展開済みbytes | 展開した本文を実測済み。Rustでヘッダ保持も確認する |
+| redirect | 最大30回。31回目の応答を受信後にTooManyRedirects | ローカル受信31回を実測済み |
+| POSTのredirect | 301・302・303ではGETへ変更して本文を消す。307・308ではPOSTと本文を維持 | 5ステータスを実測済み |
+| proxy | endpoint.proxyからhttp用は`http://<host>`、https用は`https://<host>`を生成 | PythonのProxy.from_hostを確認。Rust実装・環境変数との優先順位の受入は残件 |
+| proxy環境変数 | requests.Sessionのtrust_envは既定true | 実測fixtureではfalseに固定。HTTP_PROXY・HTTPS_PROXY・ALL_PROXY・NO_PROXYの受入は残件 |
+| 証明書 | requestsのverifyは既定true。REQUESTS_CA_BUNDLE、次にCURL_CA_BUNDLEを参照 | 自己署名証明書・追加CA・OS trust storeとの差の受入は残件 |
+| timeout | Jumeauxはtimeoutを渡さず、requests既定の無期限 | 実測では例外分類のため0.2秒を注入。他のprobeは3秒。製品の既定値変更ではない |
+| retry回数 | Nは初回を除く追加試行回数 | N=0・2を実測。reqwestのretry設定で再現できるかは未検証 |
+| 接続失敗 | GET・POSTとも初回+N回 | DNS・接続拒否・connect timeoutをソケット入口の注入で実測 |
+| 応答ヘッダ前の切断 | GETは初回+N回。POSTは1回 | ローカル受信回数と例外を実測済み |
+| 応答ヘッダ前のread timeout | GETはN>0なら初回+N回。POSTは1回 | ローカル受信回数と例外を実測済み |
+| 本文読み取り中の失敗 | retryしない | body timeoutと途中切断を実測済み |
+| 503 | Retry-Afterなしではretryしない | GETで実測済み |
+| 503 + Retry-After | GETは初回+N回。N回消費後の503を返す。POSTはretryしない | Retry-After: 0で実測。413・429もurllib3の対象だが未実測 |
+| backoff | HTTPAdapterに整数を渡した場合backoff_factor=0 | urllib3のRetry定義を確認。Retry-Afterによる待機は別扱い |
+
+### 本文と記録の実測
+
+- rawはUTF-8 bytes、formはUTF-8のurlencode、jsonはensure_ascii付きのJSONになる。
+  - JSON: `, `・`: `の空白も本文bytesの契約に含む。多倍長整数の桁も保持する。
+  - form: リストは同名キーへ展開し、Noneは省略する。boolの文字列表現は`True`・`False`。
+- Python版のPOSTは`data=raw or form`と`json=json_`をrequestsへ渡す。
+  - 優先順位: 非空dataがjsonより優先する。空dataとjsonを渡すとjsonになる。
+- fixtureの記録はmethod・path/query・比較対象ヘッダ・body_hexを保持する。
+  - 正規化: ホストはループバックの一時ポートなので省く。ヘッダ名は小文字。リストの順序は比較契約に含めない。
+  - 制限: このfixtureは直列probe。one/otherの並行送信、既存api.jsonlとの比較、Rustとの送信回数一致は未検証。
+
+### 通信失敗とTrialの実測
+
+Pythonの`challenge`は`requests.exceptions.ConnectionError`だけを捕捉する。観測した実例外を`concurrent_request`の境界へ注入し、実際の`challenge`による結果もfixtureへ保存する。
+
+| 障害 | GET N=0 | GET N=2 | POST N=0・2 | challengeの結果 |
+| --- | --- | --- | --- | --- |
+| DNS失敗・接続拒否 | ConnectionError | ConnectionError | ConnectionError | failure |
+| connect timeout | ConnectTimeout | ConnectTimeout | ConnectTimeout | failure。ConnectionErrorの派生型 |
+| 応答ヘッダ前の切断 | ConnectionError | ConnectionError | ConnectionError | failure |
+| 応答ヘッダ前のread timeout | ReadTimeout | ConnectionError | ReadTimeout | ReadTimeoutは捕捉せず停止。ConnectionErrorだけfailure |
+| 本文のread timeout | ConnectionError | ConnectionError | ConnectionError | failure |
+| Content-Lengthに満たない本文で切断 | ChunkedEncodingError | ChunkedEncodingError | ChunkedEncodingError | 捕捉せず停止 |
+| redirect上限超過 | TooManyRedirects | TooManyRedirects | 未実測 | 捕捉せず停止 |
+
+- failureの両側summaryは`url`と`type: unknown`だけを保持する。
+  - 省略: status_code、byte、response_sec、encoding。片側が成功しても失敗側だけのsummaryにはしない。
+  - URL: 送信前に作ったURLを保存する。queryが空でも末尾の`?`が残る。
+- TLSのSSLErrorとProxyErrorもConnectionErrorの派生型。
+  - 検証範囲: requestsの例外型定義を確認した。実通信を伴うfixtureは残件。
+
 ## 未決
+
+- HTTP転送の実装に必要なcrate取得。
+  - 状況: reqwestはローカルキャッシュにない。外部サービスへ送信しない制約により、crates.ioへの取得が自動承認レビューで拒否された。
+  - 案: 依存取得の通信だけを許可し、HTTP受入の宛先は引き続きローカルに限定する。reqwest・tokioの追加とClientBuilder::retryの評価は許可後に進める。
+- タイムアウトを一律failureとするか、Pythonの例外分類を維持するか。
+  - 実測: 上表のReadTimeout・ChunkedEncodingError・TooManyRedirectsはfailureのTrialにならない。
+  - 案: Pythonの捕捉範囲を維持する。一律failureへの変更は互換差異として別途決定する。
 
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。

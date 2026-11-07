@@ -1,0 +1,1973 @@
+[
+  {
+    "name": "get",
+    "input": {
+      "method": "GET",
+      "path": "/probe?q=%93%FA%96%7B&empty=",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe?q=%93%FA%96%7B&empty=",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/probe?q=%93%FA%96%7B&empty=",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "raw",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "日本語"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "e697a5e69cace8aa9e"
+        }
+      ]
+    }
+  },
+  {
+    "name": "form",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": {
+        "a": [
+          "x y",
+          "日本"
+        ],
+        "b": true,
+        "skip": null
+      }
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ],
+            [
+              "content-type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "body_hex": "613d782b7926613d25453625393725413525453625394325414326623d54727565"
+        }
+      ]
+    }
+  },
+  {
+    "name": "json",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "json": {
+        "text": "日本",
+        "n": 18446744073709551617
+      }
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "body_hex": "7b2274657874223a20225c75363565355c7536373263222c20226e223a2031383434363734343037333730393535313631377d"
+        }
+      ]
+    }
+  },
+  {
+    "name": "data-before-json",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw",
+      "json": {
+        "x": 1
+      }
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty-data-json",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": {},
+      "json": {
+        "x": 1
+      }
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "body_hex": "7b2278223a20317d"
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty-post",
+    "input": {
+      "method": "POST",
+      "path": "/probe",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/probe",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/probe",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip",
+    "input": {
+      "method": "GET",
+      "path": "/gzip",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/gzip",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "status-503",
+    "input": {
+      "method": "GET",
+      "path": "/status-503",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 503,
+      "body_hex": "6f6b",
+      "path": "/status-503",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/status-503",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "retry-after-get",
+    "input": {
+      "method": "GET",
+      "path": "/retry-after",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 503,
+      "body_hex": "6f6b",
+      "path": "/retry-after",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/retry-after",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/retry-after",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/retry-after",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "retry-after-post",
+    "input": {
+      "method": "POST",
+      "path": "/retry-after",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 503,
+      "body_hex": "6f6b",
+      "path": "/retry-after",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/retry-after",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "cookie-shared",
+    "input": {
+      "method": "GET",
+      "path": "/cookie/read",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/cookie/read",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/cookie/set",
+          "headers": [],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/cookie/read",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ],
+            [
+              "cookie",
+              "shared=yes"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-post-301",
+    "input": {
+      "method": "POST",
+      "path": "/redirect/301",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/redirect/301",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        },
+        {
+          "method": "GET",
+          "path": "/done",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-post-302",
+    "input": {
+      "method": "POST",
+      "path": "/redirect/302",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/redirect/302",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        },
+        {
+          "method": "GET",
+          "path": "/done",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-post-303",
+    "input": {
+      "method": "POST",
+      "path": "/redirect/303",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/redirect/303",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        },
+        {
+          "method": "GET",
+          "path": "/done",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-post-307",
+    "input": {
+      "method": "POST",
+      "path": "/redirect/307",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/redirect/307",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        },
+        {
+          "method": "POST",
+          "path": "/done",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-post-308",
+    "input": {
+      "method": "POST",
+      "path": "/redirect/308",
+      "max_retries": 2,
+      "timeout": 3.0,
+      "data": "raw"
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "POST",
+          "path": "/redirect/308",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        },
+        {
+          "method": "POST",
+          "path": "/done",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": "726177"
+        }
+      ]
+    }
+  },
+  {
+    "name": "disconnect-get-0",
+    "input": {
+      "method": "GET",
+      "path": "/disconnect",
+      "max_retries": 0,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "disconnect-get-2",
+    "input": {
+      "method": "GET",
+      "path": "/disconnect",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "read-timeout-get-0",
+    "input": {
+      "method": "GET",
+      "path": "/read-timeout",
+      "max_retries": 0,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ReadTimeout",
+      "challenge": {
+        "error": "ReadTimeout"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "read-timeout-get-2",
+    "input": {
+      "method": "GET",
+      "path": "/read-timeout",
+      "max_retries": 2,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "body-timeout-get-0",
+    "input": {
+      "method": "GET",
+      "path": "/body-timeout",
+      "max_retries": 0,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/body-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "body-timeout-get-2",
+    "input": {
+      "method": "GET",
+      "path": "/body-timeout",
+      "max_retries": 2,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/body-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "truncated-get-0",
+    "input": {
+      "method": "GET",
+      "path": "/truncated",
+      "max_retries": 0,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ChunkedEncodingError",
+      "challenge": {
+        "error": "ChunkedEncodingError"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/truncated",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "truncated-get-2",
+    "input": {
+      "method": "GET",
+      "path": "/truncated",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ChunkedEncodingError",
+      "challenge": {
+        "error": "ChunkedEncodingError"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/truncated",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "disconnect-post-0",
+    "input": {
+      "method": "POST",
+      "path": "/disconnect",
+      "max_retries": 0,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "disconnect-post-2",
+    "input": {
+      "method": "POST",
+      "path": "/disconnect",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "read-timeout-post-0",
+    "input": {
+      "method": "POST",
+      "path": "/read-timeout",
+      "max_retries": 0,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ReadTimeout",
+      "challenge": {
+        "error": "ReadTimeout"
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "read-timeout-post-2",
+    "input": {
+      "method": "POST",
+      "path": "/read-timeout",
+      "max_retries": 2,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ReadTimeout",
+      "challenge": {
+        "error": "ReadTimeout"
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "body-timeout-post-0",
+    "input": {
+      "method": "POST",
+      "path": "/body-timeout",
+      "max_retries": 0,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/body-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "body-timeout-post-2",
+    "input": {
+      "method": "POST",
+      "path": "/body-timeout",
+      "max_retries": 2,
+      "timeout": 0.2
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/body-timeout",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "truncated-post-0",
+    "input": {
+      "method": "POST",
+      "path": "/truncated",
+      "max_retries": 0,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ChunkedEncodingError",
+      "challenge": {
+        "error": "ChunkedEncodingError"
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/truncated",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "truncated-post-2",
+    "input": {
+      "method": "POST",
+      "path": "/truncated",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ChunkedEncodingError",
+      "challenge": {
+        "error": "ChunkedEncodingError"
+      },
+      "records": [
+        {
+          "method": "POST",
+          "path": "/truncated",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-loop",
+    "input": {
+      "method": "GET",
+      "path": "/loop",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "TooManyRedirects",
+      "challenge": {
+        "error": "TooManyRedirects"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "dns-get-0",
+    "input": {
+      "method": "GET",
+      "max_retries": 0,
+      "injected": "dns"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "dns-get-2",
+    "input": {
+      "method": "GET",
+      "max_retries": 2,
+      "injected": "dns"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "dns-post-0",
+    "input": {
+      "method": "POST",
+      "max_retries": 0,
+      "injected": "dns"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "dns-post-2",
+    "input": {
+      "method": "POST",
+      "max_retries": 2,
+      "injected": "dns"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connect-timeout-get-0",
+    "input": {
+      "method": "GET",
+      "max_retries": 0,
+      "injected": "connect-timeout"
+    },
+    "expected": {
+      "error": "ConnectTimeout",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connect-timeout-get-2",
+    "input": {
+      "method": "GET",
+      "max_retries": 2,
+      "injected": "connect-timeout"
+    },
+    "expected": {
+      "error": "ConnectTimeout",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connect-timeout-post-0",
+    "input": {
+      "method": "POST",
+      "max_retries": 0,
+      "injected": "connect-timeout"
+    },
+    "expected": {
+      "error": "ConnectTimeout",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connect-timeout-post-2",
+    "input": {
+      "method": "POST",
+      "max_retries": 2,
+      "injected": "connect-timeout"
+    },
+    "expected": {
+      "error": "ConnectTimeout",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connection-refused-get-0",
+    "input": {
+      "method": "GET",
+      "max_retries": 0,
+      "injected": "connection-refused"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connection-refused-get-2",
+    "input": {
+      "method": "GET",
+      "max_retries": 2,
+      "injected": "connection-refused"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connection-refused-post-0",
+    "input": {
+      "method": "POST",
+      "max_retries": 0,
+      "injected": "connection-refused"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 1,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  },
+  {
+    "name": "connection-refused-post-2",
+    "input": {
+      "method": "POST",
+      "max_retries": 2,
+      "injected": "connection-refused"
+    },
+    "expected": {
+      "error": "ConnectionError",
+      "attempts": 3,
+      "challenge": {
+        "value": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "http://localhost/probe?",
+            "type": "unknown"
+          },
+          "method": "POST",
+          "path": "/probe",
+          "status": "failure"
+        }
+      }
+    }
+  }
+]

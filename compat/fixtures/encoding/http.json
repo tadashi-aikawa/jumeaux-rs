@@ -1,0 +1,255 @@
+[
+  {
+    "name": "binary",
+    "input": {
+      "content_type": "application/octet-stream; charset=UTF-8",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "json",
+    "input": {
+      "content_type": "application/json",
+      "body_hex": "7b7d",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "json-meta",
+    "input": {
+      "content_type": "application/json",
+      "body_hex": "3c6d65746120636861727365743d226370393332223e",
+      "default": null
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "latin1-skipped",
+    "input": {
+      "content_type": "text/plain; charset=ISO-8859-1",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "latin1-lowercase-kept",
+    "input": {
+      "content_type": "text/plain; charset=iso-8859-1",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "iso-8859-1"
+    }
+  },
+  {
+    "name": "meta",
+    "input": {
+      "content_type": "text/html",
+      "body_hex": "3c6d65746120636861727365743d2253686966745f4a4953223e",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "Shift_JIS"
+    }
+  },
+  {
+    "name": "meta-priority",
+    "input": {
+      "content_type": "text/html",
+      "body_hex": "3c3f786d6c20656e636f64696e673d226173636969223f3e3c6d65746120636861727365743d226370393332223e",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "xml",
+    "input": {
+      "content_type": "application/xml",
+      "body_hex": "3c3f786d6c20656e636f64696e673d224555432d4a50223f3e3c722f3e",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "EUC-JP"
+    }
+  },
+  {
+    "name": "default",
+    "input": {
+      "content_type": null,
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "ascii",
+    "input": {
+      "content_type": null,
+      "body_hex": "616263",
+      "default": null
+    },
+    "expected": {
+      "value": "ascii"
+    }
+  },
+  {
+    "name": "utf8",
+    "input": {
+      "content_type": null,
+      "body_hex": "e697a5e69cace8aa9ee381aee69687e5ad97e382b3e383bce38389e38292e8aabfe381b9e381bee38199",
+      "default": null
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "cp932",
+    "input": {
+      "content_type": null,
+      "body_hex": "93fa967b8cea82cc95b68e9a8352815b836882f092b282d782dc82b7",
+      "default": null
+    },
+    "expected": {
+      "value": "CP932"
+    }
+  },
+  {
+    "name": "bom",
+    "input": {
+      "content_type": null,
+      "body_hex": "efbbbf616263",
+      "default": null
+    },
+    "expected": {
+      "value": "UTF-8-SIG"
+    }
+  },
+  {
+    "name": "empty",
+    "input": {
+      "content_type": null,
+      "body_hex": "",
+      "default": null
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "empty-text",
+    "input": {
+      "content_type": "text/plain",
+      "body_hex": "",
+      "default": null
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "empty-json",
+    "input": {
+      "content_type": "application/json",
+      "body_hex": "",
+      "default": null
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "empty-default",
+    "input": {
+      "content_type": null,
+      "body_hex": "",
+      "default": "utf-8"
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "duplicate-charset",
+    "input": {
+      "content_type": "text/plain; charset=ascii; charset=cp932",
+      "body_hex": "616263",
+      "default": null
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "quoted-key",
+    "input": {
+      "content_type": "application/xml; 'charset'= 'cp932'",
+      "body_hex": "616263",
+      "default": null
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "text-only-in-parameter",
+    "input": {
+      "content_type": "application/xml; note=text",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "json-only-in-parameter",
+    "input": {
+      "content_type": "application/xml; note=application/json",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "empty-charset",
+    "input": {
+      "content_type": "application/json; charset=",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  },
+  {
+    "name": "uppercase-mime",
+    "input": {
+      "content_type": "APPLICATION/JSON",
+      "body_hex": "616263",
+      "default": "cp932"
+    },
+    "expected": {
+      "value": "cp932"
+    }
+  }
+]

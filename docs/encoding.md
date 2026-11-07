@@ -46,6 +46,16 @@
 
 `decide_encoding`はHTTPライブラリが選んだencodingとapparent_encodingを受け取れる。`http_encoding`はそのヘッダ選択と推定も行う入口とする。
 
+- requestsのヘッダ処理では、`;`より前のMIME typeだけをtext・application/jsonの既定codec判定に使う。
+  - 例: `application/xml; note=application/json`はUTF-8指定として扱わない。
+- charsetパラメータのキー・値は両端の引用符と空白を除く。重複時は最後の値を使う。
+  - 条件: 空のcharsetはMIME typeの既定codecへ戻さず、meta・default・推定へ進む。
+- 基準環境のrequests/charset-normalizerは空本文を`utf-8`と推定する。
+  - 実装: `detect`は空本文をchardetngへ渡す前に処理する。
+- 追加のHTTP境界fixtureは`compat/fixtures/encoding/http.json`に23件を保存する。
+  - 採取: `compat/gen/http_transport.py --encoding`がPythonのrequests.ResponseとJumeauxの`Response._decide_encoding`を呼ぶ。
+  - 検証: `cargo test --test http_encoding`で23件すべてPython期待値と比較する。
+
 ## codecと別名
 
 | codec | 主な受理名 | decode | encode |
