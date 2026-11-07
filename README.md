@@ -10,3 +10,8 @@ cargo build --release
 ```
 
 バイナリは `target/release/jumeaux` に生成される。
+
+## 互換仕様とテスト
+
+- [互換仕様](docs/compat-spec.md)
+- [比較ハーネスとfixtureの実行手順](compat/README.md)

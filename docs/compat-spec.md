@@ -80,10 +80,10 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 | version | 存在と文字列型。Python版とRust版の製品版番号の差を許容 |
 | key | 空でない文字列。実行ディレクトリ名と一致し、latestがそこを指すこと |
 | time | summaryの開始・終了が日時で、終了が開始以降 |
-| request_time | trialの開始・終了が日時で、終了が開始以降 |
+| request_time | trialのリクエスト時刻がISO日時 |
 | response_sec | endpointの応答時間が非負の数値 |
 | elapsed_sec | 経過時間が非負の数値 |
-| retry_hash | 通常runはnull。retryは入力に使った元reportのkeyと一致 |
+| retry_hash | 通常runは未出力またはnull。retryは入力に使った元reportのkeyと一致 |
 
 - stdout/stderrとsummary.txt中の同じ可変値も、対応する意味に限定して比較する。
 - API本文、dict化結果、通知本文の任意の同名キーは除外しない。
@@ -114,6 +114,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
 - retry用ヘッダ判定設定のreport内の保存位置と、その情報を持たない旧reportの扱い。
   - 根拠: Python版Reportには `judge_response_header` と `ignore_response_header_keys` がなく、旧reportだけから元の値を復元できない。保存形式の追加は本タスクで決定しない。
+- Python固有の警告・tracebackをRust版のstderrでどこまで一致させるか。
+  - 実測: encoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存し、成功する設定へ独断で修正しない。
 
 ## 受入の段階
 

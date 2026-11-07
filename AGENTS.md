@@ -29,7 +29,11 @@ cargo test
 
 ## E2Eテスト実行
 
-後続タスクで比較ハーネスと実行コマンドを追加する。
+```bash
+uv run --project compat/harness python compat/harness/run.py
+```
+
+`JUMEAUX_BIN` で実行ファイルを差し替える。Python版を使ったハーネスの自己検証と前提条件は `compat/README.md` を参照する。
 
 ## フォーマット・Lint
 
