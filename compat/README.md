@@ -8,7 +8,7 @@ compat/
 ├── python-baseline/     16テンプレート＋追加19ケースの実測
 ├── fixtures/
 │   ├── diff/            DeepDiff、差分パスの値取得
-│   ├── markup/          HTML・XMLのdict化
+│   ├── markup/          HTML・XMLのdict化とdump整形
 │   ├── template/        条件式、文字列描画、日時、Responseプロパティ
 │   ├── regex/           完全一致、置換、後方参照、lookahead
 │   ├── encoding/        決定順、別名、BOM、変換失敗、入力、URL
@@ -87,6 +87,27 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
   - 出力: `python-baseline/unit-tests.*`、版一覧、lock、README。
   - 再生成: `--output /tmp/jumeaux-new-baseline` を指定する。既存の環境情報があれば、既定先でも明示先でも上書きを拒否する。
+
+### markupの先行検証
+
+```sh
+cargo test --test markup -- --nocapture
+```
+
+- `input.operation`が`pretty`のケースはdumpの整形文字列を比較する。省略時はdict化。
+- 221件中179件はPython期待値と完全一致する。
+- 未決の42件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
+  - 規則: Python期待値は変更しない。差異の重複・未使用・理由欠落・解消済みの差異はテストで検出する。
+  - 詳細: [互換仕様の未決](../docs/compat-spec.md#未決)。
+- 条件式付き2件はdictの参照と比較を検証する。
+  - 制限: 条件式エンジンの統合検証は後続タスクで行う。
+- `input.summary: "expansion"`は属性と本文のエンティティ展開量を検証する。
+  - 入力: 1万文字の内部エンティティを使い、`attributes`個の属性、`text`個の本文参照、`padding`文字のコメントを生成する。
+  - 出力: dictは属性と本文の文字数、prettyはinvalid token判定と文字数。生成式は`gen/fixtures.py`と`tests/markup.rs`に置く。
+- `input.summary: "depth"`は`depth`個のrまたはdivを入れ子にし、末端をxにする。
+  - 出力: XML dictは深さと末端値、prettyはinvalid token判定と文字数。
+- `input.serialize: true`はdictをJSON保存するところまでPythonで実行する。
+  - 対象: plaintextの循環オブジェクトによるValueErrorを記録する。
 
 ## ハーネスの自己検証
 

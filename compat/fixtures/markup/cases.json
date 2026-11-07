@@ -175,6 +175,1108 @@
     }
   },
   {
+    "name": "attributes",
+    "input": {
+      "format": "html",
+      "body": "<DIV Z=\"  z  \" class=\"a   b\" title=\"&quot;x&quot; &amp; y\" empty=\"\" blank=\"  \">x&nbsp;&lt;&gt;</DIV>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "div": {
+              "#class": "a b",
+              "#empty": "",
+              "#title": "\"x\" & y",
+              "#z": "z",
+              "##value": "x <>"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "pre-textarea",
+    "input": {
+      "format": "html",
+      "body": "<pre>  a\n b <b>x</b></pre><textarea>  a\n b &amp; c</textarea>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "pre": {
+              "##value": "a\n b",
+              "b": {
+                "##value": "x"
+              }
+            },
+            "textarea": {
+              "##value": "a\n b & c"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "comments",
+    "input": {
+      "format": "html",
+      "body": "<!--outside--><p>a<!--inside-->b</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a\n   \n   b"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "whitespace",
+    "input": {
+      "format": "html",
+      "body": "<p> \n a   b\t c \r\n </p><div></div><p> </p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": [
+              {
+                "##value": "a   b\t c"
+              },
+              {}
+            ],
+            "div": {}
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "explicit-empty",
+    "input": {
+      "format": "html",
+      "body": "<html><head></head><body></body></html>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {},
+          "body": {}
+        }
+      }
+    }
+  },
+  {
+    "name": "explicit-tbody",
+    "input": {
+      "format": "html",
+      "body": "<table><tbody><tr><td>x</td></tr></tbody></table>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": {
+              "tbody": {
+                "tr": {
+                  "td": {
+                    "##value": "x"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "implicit-paragraph",
+    "input": {
+      "format": "html",
+      "body": "<p>first<p>second"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": [
+              {
+                "##value": "first"
+              },
+              {
+                "##value": "second"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "plain-text",
+    "input": {
+      "format": "html",
+      "body": "hello &amp; world"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "hello & world"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "empty",
+    "input": {
+      "format": "html",
+      "body": ""
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "comment-only",
+    "input": {
+      "format": "html",
+      "body": "<!--alone-->"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "table-foster-parenting",
+    "input": {
+      "format": "html",
+      "body": "<table>before<tr><td>x</td></tr>after</table>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": {
+              "##value": "before\n   \n   after",
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "misnested-formatting",
+    "input": {
+      "format": "html",
+      "body": "<p><b>bold<i>both</b>italic</i></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "italic",
+              "b": {
+                "##value": "bold",
+                "i": {
+                  "##value": "both"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "tables-with-and-without-tbody",
+    "input": {
+      "format": "html",
+      "body": "<table><tbody><tr><td>a</td></tr></tbody></table><table><tr><td>b</td></tr></table>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": [
+              {
+                "tbody": {
+                  "tr": {
+                    "td": {
+                      "##value": "a"
+                    }
+                  }
+                }
+              },
+              {
+                "tr": {
+                  "td": {
+                    "##value": "b"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-and-body",
+    "input": {
+      "format": "html",
+      "body": "<title>Title</title><p>Body</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "Title"
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "Body"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "pre-leading-newline",
+    "input": {
+      "format": "html",
+      "body": "<pre>\n  a\n</pre>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "pre": {
+              "##value": "a"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "unicode-whitespace",
+    "input": {
+      "format": "html",
+      "body": "<p> </p><p>a</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": [
+              {},
+              {
+                "##value": "a"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "script-style-entities",
+    "input": {
+      "format": "html",
+      "body": "<script>var x=\"&amp;\";</script><style>a>b { content: \"&amp;\"; }</style>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "script": {
+              "##value": "var x=\"&amp;\";"
+            },
+            "style": {
+              "##value": "a>b { content: \"&amp;\"; }"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "quoted-attribute",
+    "input": {
+      "format": "html",
+      "body": "<p title=\"a &quot;quote&quot; and &apos;apostrophe&apos;\">&notin; &#x1f600;</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "#title": "a \"quote\" and 'apostrophe'",
+              "##value": "∉ 😀"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "noscript",
+    "input": {
+      "format": "html",
+      "body": "<noscript><p>fallback</p></noscript>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "noscript": {
+              "p": {
+                "##value": "fallback"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "body-noscript",
+    "input": {
+      "format": "html",
+      "body": "<body><noscript><b>fallback</b></noscript></body>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "noscript": {
+              "b": {
+                "##value": "fallback"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-noscript",
+    "input": {
+      "format": "html",
+      "body": "<head><noscript><p>fallback</p></noscript></head>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "noscript": {
+              "p": {
+                "##value": "fallback"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "paragraph-block",
+    "input": {
+      "format": "html",
+      "body": "<p>a<div>b</div>c</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "c",
+            "p": {
+              "##value": "a"
+            },
+            "div": {
+              "##value": "b"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "paragraph-list",
+    "input": {
+      "format": "html",
+      "body": "<p>a<ul><li>x</li></ul>b</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "b",
+            "p": {
+              "##value": "a"
+            },
+            "ul": {
+              "li": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "stray-p-end",
+    "input": {
+      "format": "html",
+      "body": "<div>a</p>b</div>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "div": {
+              "##value": "ab"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "stray-br-end",
+    "input": {
+      "format": "html",
+      "body": "<div>a</br>b</div>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "div": {
+              "##value": "ab"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "paragraph-table",
+    "input": {
+      "format": "html",
+      "body": "<!DOCTYPE html><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a"
+            },
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "formatting-across-paragraphs",
+    "input": {
+      "format": "html",
+      "body": "<p><b>x</p><p>y</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": [
+              {
+                "b": {
+                  "##value": "x"
+                }
+              },
+              {
+                "##value": "y"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "after-body",
+    "input": {
+      "format": "html",
+      "body": "<html><body><p>a</p></body><div>b</div>tail</html>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "##value": "tail",
+          "body": {
+            "p": {
+              "##value": "a"
+            }
+          },
+          "div": {
+            "##value": "b"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "after-html",
+    "input": {
+      "format": "html",
+      "body": "<html><body>a</body></html><p>discard</p>tail"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "a"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "self-closing-div",
+    "input": {
+      "format": "html",
+      "body": "<div/>after<p>x</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "after",
+            "div": {},
+            "p": {
+              "##value": "x"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "self-closing-script",
+    "input": {
+      "format": "html",
+      "body": "<script src=\"x\" /><p>after</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "script": {
+              "#src": "x"
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "after"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "body-template",
+    "input": {
+      "format": "html",
+      "body": "<body><template><p>x</p></template></body>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "template": {
+              "p": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "comment-padding",
+    "input": {
+      "format": "html",
+      "body": "<p>a<!--  comment  -->b</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a\n   \n   b"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "empty-comment",
+    "input": {
+      "format": "html",
+      "body": "<p>a<!---->b</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a\n   \n   b"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "svg-case",
+    "input": {
+      "format": "html",
+      "body": "<svg viewBox=\"0 0 10 10\"><linearGradient/></svg>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "svg": {
+              "#viewbox": "0 0 10 10",
+              "lineargradient": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "mathml-case",
+    "input": {
+      "format": "html",
+      "body": "<math definitionURL=\"x\"><mi>x</mi></math>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "math": {
+              "#definitionurl": "x",
+              "mi": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "nested-headings",
+    "input": {
+      "format": "html",
+      "body": "<h1>a<h2>b</h2>c</h1>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "h1": {
+              "##value": "a\n   \n   c",
+              "h2": {
+                "##value": "b"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "nested-form",
+    "input": {
+      "format": "html",
+      "body": "<form id=\"a\"><form id=\"b\">x</form>y</form>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "y",
+            "form": [
+              {
+                "#id": "a"
+              },
+              {
+                "#id": "b",
+                "##value": "x"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "table-form",
+    "input": {
+      "format": "html",
+      "body": "<table><form><input name=\"x\"></form></table>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": {
+              "form": {
+                "input": {
+                  "#name": "x",
+                  "##value": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "orphan-table-elements",
+    "input": {
+      "format": "html",
+      "body": "<tr><td>x</td></tr>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "tr": {
+              "td": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "image-alias",
+    "input": {
+      "format": "html",
+      "body": "<image src=\"x\">after"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "image": {
+              "#src": "x",
+              "##value": "after"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "isindex",
+    "input": {
+      "format": "html",
+      "body": "<isindex prompt=\"x\">after"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "after",
+            "isindex": {
+              "#prompt": "x",
+              "##value": ""
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "nested-nobr",
+    "input": {
+      "format": "html",
+      "body": "<nobr>a<nobr>b</nobr>c</nobr>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "nobr": {
+              "##value": "a\n   \n   c",
+              "nobr": {
+                "##value": "b"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "second-body",
+    "input": {
+      "format": "html",
+      "body": "<body id=\"first\">a<body class=\"second\">b</body>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "#id": "first",
+            "##value": "ab"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "plaintext",
+    "input": {
+      "format": "html",
+      "body": "<plaintext>a<b>b</b>",
+      "serialize": true
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "head-template",
+    "input": {
+      "format": "html",
+      "body": "<template><p>x</p></template>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "template": {
+              "p": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "implicit-head-noscript",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title><noscript><link rel=\"stylesheet\" href=\"x\"></noscript><p>x</p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            },
+            "noscript": {
+              "link": {
+                "#href": "x",
+                "#rel": "stylesheet",
+                "##value": ""
+              }
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "x"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-ended-by-text",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title>body<noscript><b>x</b></noscript>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            }
+          },
+          "body": {
+            "##value": "body",
+            "noscript": {
+              "b": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "head-ended-by-element",
+    "input": {
+      "format": "html",
+      "body": "<title>t</title><p>x</p><noscript><b>y</b></noscript>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "title": {
+              "##value": "t"
+            }
+          },
+          "body": {
+            "p": {
+              "##value": "x"
+            },
+            "noscript": {
+              "b": {
+                "##value": "y"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "quirks-paragraph-table",
+    "input": {
+      "format": "html",
+      "body": "<p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a"
+            },
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "transitional-paragraph-table",
+    "input": {
+      "format": "html",
+      "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "p": {
+              "##value": "a"
+            },
+            "table": {
+              "tr": {
+                "td": {
+                  "##value": "x"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "body-end-in-element",
+    "input": {
+      "format": "html",
+      "body": "<body><div>a</body>b</div>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "##value": "b",
+          "body": {
+            "div": {
+              "##value": "a"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "self-closing-head-title",
+    "input": {
+      "format": "html",
+      "body": "<head/><title>t</title>"
+    },
+    "expected": {
+      "value": {
+        "html": {
+          "head": {},
+          "title": {
+            "##value": "t"
+          }
+        }
+      }
+    }
+  },
+  {
     "name": "mixed-text",
     "input": {
       "format": "xml",
@@ -290,6 +1392,430 @@
     }
   },
   {
+    "name": "whitespace",
+    "input": {
+      "format": "xml",
+      "body": "<r> \n <c>  a   b\t c  </c> \n </r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "c": "a   b\t c"
+        }
+      }
+    }
+  },
+  {
+    "name": "comments-pi",
+    "input": {
+      "format": "xml",
+      "body": "<?test x?><r>a<!--comment-->b<?test y?>c</r>"
+    },
+    "expected": {
+      "value": {
+        "r": "abc"
+      }
+    }
+  },
+  {
+    "name": "cdata-mixed",
+    "input": {
+      "format": "xml",
+      "body": "<r>a<![CDATA[<b>]]>c<d/>e</r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "d": null,
+          "#text": "a<b>ce"
+        }
+      }
+    }
+  },
+  {
+    "name": "attribute-entities",
+    "input": {
+      "format": "xml",
+      "body": "<r a=\"&quot;&apos;&lt;&gt;&amp;&#10;&#9;\" b=\"a\n b\t c\"/>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "\"'<>&\n\t",
+          "@b": "a  b  c"
+        }
+      }
+    }
+  },
+  {
+    "name": "namespace-rebinding",
+    "input": {
+      "format": "xml",
+      "body": "<r xmlns:p=\"urn:a\"><p:c/><c xmlns:p=\"urn:b\" p:a=\"1\"/><p:d/></r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@xmlns:p": "urn:a",
+          "p:c": null,
+          "c": {
+            "@xmlns:p": "urn:b",
+            "@p:a": "1"
+          },
+          "p:d": null
+        }
+      }
+    }
+  },
+  {
+    "name": "xml-space",
+    "input": {
+      "format": "xml",
+      "body": "<r xml:space=\"preserve\">  a  </r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@xml:space": "preserve",
+          "#text": "a"
+        }
+      }
+    }
+  },
+  {
+    "name": "empty",
+    "input": {
+      "format": "xml",
+      "body": ""
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "unclosed",
+    "input": {
+      "format": "xml",
+      "body": "<r><c></r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "duplicate-attribute",
+    "input": {
+      "format": "xml",
+      "body": "<r a=\"1\" a=\"2\"/>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "undefined-entity",
+    "input": {
+      "format": "xml",
+      "body": "<r>&missing;</r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "multiple-roots",
+    "input": {
+      "format": "xml",
+      "body": "<a/><b/>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "external-entity",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x SYSTEM \"file:///jumeaux-fixture-must-not-read\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "nested-entity",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY a \"A\"><!ENTITY b \"&a;&amp;B\">]><r>&b;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "attribute-internal-entity",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"hello\">]><r a=\"&x;\">&x;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "hello"
+        }
+      }
+    }
+  },
+  {
+    "name": "markup-entity",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"<c>hello</c>\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "dtd-default-attribute",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"default\">]><r/>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "default"
+        }
+      }
+    }
+  },
+  {
+    "name": "unbound-prefix",
+    "input": {
+      "format": "xml",
+      "body": "<p:r/>"
+    },
+    "expected": {
+      "value": {
+        "p:r": null
+      }
+    }
+  },
+  {
+    "name": "invalid-name",
+    "input": {
+      "format": "xml",
+      "body": "<1root/>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "invalid-character",
+    "input": {
+      "format": "xml",
+      "body": "<r>\u0001</r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "invalid-comment",
+    "input": {
+      "format": "xml",
+      "body": "<r><!--a--b--></r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "unclosed-root",
+    "input": {
+      "format": "xml",
+      "body": "<r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "carriage-return",
+    "input": {
+      "format": "xml",
+      "body": "<r a=\"&#13;\">a&#13;b\r\nc\rd</r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "\r",
+          "#text": "a\rb\nc\nd"
+        }
+      }
+    }
+  },
+  {
+    "name": "bom-declaration",
+    "input": {
+      "format": "xml",
+      "body": "﻿<?xml version=\"1.0\"?><r/>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "space-before-declaration",
+    "input": {
+      "format": "xml",
+      "body": " <?xml version=\"1.0\"?><r/>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "external-dtd",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE html SYSTEM \"fixture.dtd\"><html>&nbsp;</html>"
+    },
+    "expected": {
+      "value": {
+        "html": null
+      }
+    }
+  },
+  {
+    "name": "public-dtd",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE html PUBLIC \"fixture\" \"fixture.dtd\"><html>&nbsp;</html>"
+    },
+    "expected": {
+      "value": {
+        "html": null
+      }
+    }
+  },
+  {
+    "name": "parameter-declaration",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY % p \"unused\">]><r/>"
+    },
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "name": "dtd-comment",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!-- <!ENTITY x \"fake\"> -->]><r>&x;</r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "dtd-pi",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<?test <!ENTITY x \"fake\"> ?>]><r>&x;</r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "dtd-quoted",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA #IMPLIED><!ENTITY y '<!ENTITY x \"fake\">'>]><r>&x;</r>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "dtd-fixed-attribute",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA #FIXED \"fixed\">]><r/>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "fixed"
+        }
+      }
+    }
+  },
+  {
+    "name": "non-ascii-element",
+    "input": {
+      "format": "xml",
+      "body": "<日本語>本文</日本語>"
+    },
+    "expected": {
+      "value": {
+        "日本語": "本文"
+      }
+    }
+  },
+  {
+    "name": "entity-amp-number",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"&#38;amp;\">]><r a=\"&x;\">&x;</r>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "&"
+        }
+      }
+    }
+  },
+  {
+    "name": "external-dtd-attribute",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r SYSTEM \"fixture.dtd\"><r a=\"before&missing;after\"/>"
+    },
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "beforeafter"
+        }
+      }
+    }
+  },
+  {
+    "name": "invalid-dtd-default",
+    "input": {
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
     "name": "html-condition",
     "input": {
       "format": "html",
@@ -331,6 +1857,1364 @@
           }
         },
         "condition": true
+      }
+    }
+  },
+  {
+    "name": "dump-completion",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>hello"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   hello\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-empty-tags",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p><br><img src='x'><input disabled></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   <br/>\n   <img src=\"x\"/>\n   <input disabled=\"\"/>\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-mixed-text",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<b>b</b>c</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <b>\n    b\n   </b>\n   c\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-repeated",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<ul><li>a</li><li>b</li></ul>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <ul>\n   <li>\n    a\n   </li>\n   <li>\n    b\n   </li>\n  </ul>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-script",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<script>if (1 < 2) x = '&';</script>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <script>\n   if (1 < 2) x = '&';\n  </script>\n </head>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-table-completion",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<table><tr><td>a</td></tr></table>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   <tr>\n    <td>\n     a\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-unit-html",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!DOCTYPE html>\n<html>\n<head>\n  <title>タイトル</title>\n  <meta name=\"format-detection\" content=\"telephone=no\">\n  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n  <script type=\"text/javascript\" charset=\"utf-8\">\n    var hoge = 1 > 2;\n  </script>\n</head>\n<body>\n  <div id=\"main\">\n    <span>Main contents</span>\n  </div>\n</body>\n</html>\n"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   タイトル\n  </title>\n  <meta content=\"telephone=no\" name=\"format-detection\"/>\n  <meta content=\"text/html; charset=utf-8\" http-equiv=\"Content-Type\"/>\n  <script charset=\"utf-8\" type=\"text/javascript\">\n   var hoge = 1 > 2;\n  </script>\n </head>\n <body>\n  <div id=\"main\">\n   <span>\n    Main contents\n   </span>\n  </div>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-attributes",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<DIV Z=\"  z  \" class=\"a   b\" title=\"&quot;x&quot; &amp; y\" empty=\"\" blank=\"  \">x&nbsp;&lt;&gt;</DIV>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div blank=\"  \" class=\"a b\" empty=\"\" title='\"x\" &amp; y' z=\"  z  \">\n   x &lt;&gt;\n  </div>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-pre-textarea",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<pre>  a\n b <b>x</b></pre><textarea>  a\n b &amp; c</textarea>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <pre>  a\n b <b>x</b></pre>\n  <textarea>  a\n b &amp; c</textarea>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-comments",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!--outside--><p>a<!--inside-->b</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <!--inside-->\n   b\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-whitespace",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p> \n a   b\t c \r\n </p><div></div><p> </p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a   b\t c\n  </p>\n  <div>\n  </div>\n  <p>\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-explicit-empty",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<html><head></head><body></body></html>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n </head>\n <body>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-explicit-tbody",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<table><tbody><tr><td>x</td></tr></tbody></table>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   <tbody>\n    <tr>\n     <td>\n      x\n     </td>\n    </tr>\n   </tbody>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-implicit-paragraph",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>first<p>second"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   first\n  </p>\n  <p>\n   second\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-plain-text",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "hello &amp; world"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  hello &amp; world\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-empty",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": ""
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-comment-only",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!--alone-->"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-table-foster-parenting",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<table>before<tr><td>x</td></tr>after</table>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   before\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n   after\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-misnested-formatting",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p><b>bold<i>both</b>italic</i></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   italic\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-tables-with-and-without-tbody",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<table><tbody><tr><td>a</td></tr></tbody></table><table><tr><td>b</td></tr></table>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   <tbody>\n    <tr>\n     <td>\n      a\n     </td>\n    </tr>\n   </tbody>\n  </table>\n  <table>\n   <tr>\n    <td>\n     b\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-and-body",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>Title</title><p>Body</p>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   Title\n  </title>\n </head>\n <body>\n  <p>\n   Body\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-pre-leading-newline",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<pre>\n  a\n</pre>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <pre>\n  a\n</pre>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-unicode-whitespace",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p> </p><p>a</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n  </p>\n  <p>\n   a\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-script-style-entities",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<script>var x=\"&amp;\";</script><style>a>b { content: \"&amp;\"; }</style>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <script>\n   var x=\"&amp;\";\n  </script>\n  <style>\n   a>b { content: \"&amp;\"; }\n  </style>\n </head>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-quoted-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p title=\"a &quot;quote&quot; and &apos;apostrophe&apos;\">&notin; &#x1f600;</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p title=\"a &quot;quote&quot; and 'apostrophe'\">\n   ∉ 😀\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-noscript",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<noscript><p>fallback</p></noscript>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <noscript>\n   <p>\n    fallback\n   </p>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-body-noscript",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<body><noscript><b>fallback</b></noscript></body>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <noscript>\n   <b>\n    fallback\n   </b>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-noscript",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<head><noscript><p>fallback</p></noscript></head>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <noscript>\n   <p>\n    fallback\n   </p>\n  </noscript>\n </head>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-paragraph-block",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<div>b</div>c</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <div>\n   b\n  </div>\n  c\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-paragraph-list",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<ul><li>x</li></ul>b</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <ul>\n   <li>\n    x\n   </li>\n  </ul>\n  b\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-stray-p-end",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<div>a</p>b</div>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n   ab\n  </div>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-stray-br-end",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<div>a</br>b</div>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n   ab\n  </div>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-paragraph-table",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!DOCTYPE html><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-formatting-across-paragraphs",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p><b>x</p><p>y</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   <b>\n    x\n   </b>\n  </p>\n  <p>\n   y\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-after-body",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<html><body><p>a</p></body><div>b</div>tail</html>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n </body>\n <div>\n  b\n </div>\n tail\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-after-html",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<html><body>a</body></html><p>discard</p>tail"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  a\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-self-closing-div",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<div/>after<p>x</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n  </div>\n  after\n  <p>\n   x\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-self-closing-script",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<script src=\"x\" /><p>after</p>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <script src=\"x\">\n  </script>\n </head>\n <body>\n  <p>\n   after\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-body-template",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<body><template><p>x</p></template></body>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-comment-padding",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<!--  comment  -->b</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <!--  comment  -->\n   b\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-empty-comment",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<!---->b</p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <!-- -->\n   b\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-svg-case",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<svg viewBox=\"0 0 10 10\"><linearGradient/></svg>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <svg viewbox=\"0 0 10 10\">\n   <lineargradient>\n   </lineargradient>\n  </svg>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-mathml-case",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<math definitionURL=\"x\"><mi>x</mi></math>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <math definitionurl=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-nested-headings",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<h1>a<h2>b</h2>c</h1>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <h1>\n   a\n   <h2>\n    b\n   </h2>\n   c\n  </h1>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-nested-form",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<form id=\"a\"><form id=\"b\">x</form>y</form>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <form id=\"a\">\n  </form>\n  <form id=\"b\">\n   x\n  </form>\n  y\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-table-form",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<table><form><input name=\"x\"></form></table>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   <form>\n    <input name=\"x\"/>\n   </form>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-orphan-table-elements",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<tr><td>x</td></tr>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <tr>\n   <td>\n    x\n   </td>\n  </tr>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-image-alias",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<image src=\"x\">after"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <image src=\"x\">\n   after\n  </image>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-isindex",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<isindex prompt=\"x\">after"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <isindex prompt=\"x\"/>\n  after\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-nested-nobr",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<nobr>a<nobr>b</nobr>c</nobr>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <nobr>\n   a\n   <nobr>\n    b\n   </nobr>\n   c\n  </nobr>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-second-body",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<body id=\"first\">a<body class=\"second\">b</body>"
+    },
+    "expected": {
+      "value": "<html>\n <body id=\"first\">\n  ab\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-plaintext",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<plaintext>a<b>b</b>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <plaintext>\n   a&lt;b&gt;b&lt;/b&gt;\n  </plaintext>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-template",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<template><p>x</p></template>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-implicit-head-noscript",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title><noscript><link rel=\"stylesheet\" href=\"x\"></noscript><p>x</p>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n  <noscript>\n   <link href=\"x\" rel=\"stylesheet\"/>\n  </noscript>\n </head>\n <body>\n  <p>\n   x\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-ended-by-text",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title>body<noscript><b>x</b></noscript>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n <body>\n  body\n  <noscript>\n   <b>\n    x\n   </b>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-head-ended-by-element",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<title>t</title><p>x</p><noscript><b>y</b></noscript>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n  <title>\n   t\n  </title>\n </head>\n <body>\n  <p>\n   x\n  </p>\n  <noscript>\n   <b>\n    y\n   </b>\n  </noscript>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-quirks-paragraph-table",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-transitional-paragraph-table",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><p>a<table><tr><td>x</td></tr></table></p>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n  </p>\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-body-end-in-element",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<body><div>a</body>b</div>"
+    },
+    "expected": {
+      "value": "<html>\n <body>\n  <div>\n   a\n  </div>\n </body>\n b\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-self-closing-head-title",
+    "input": {
+      "operation": "pretty",
+      "format": "html",
+      "body": "<head/><title>t</title>"
+    },
+    "expected": {
+      "value": "<html>\n <head>\n </head>\n <title>\n  t\n </title>\n</html>\n"
+    }
+  },
+  {
+    "name": "dump-mixed-text",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r a=\"1\">before<c/>after</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"1\">\n    before\n    <c/>\n    after\n</r>\n"
+    }
+  },
+  {
+    "name": "dump-namespace",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r xmlns=\"urn:default\" xmlns:p=\"urn:test\"><p:c p:a=\"1\">x</p:c></r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<ns0:r xmlns:ns0=\"urn:default\" xmlns:ns1=\"urn:test\">\n    <ns1:c ns1:a=\"1\">x</ns1:c>\n</ns0:r>\n"
+    }
+  },
+  {
+    "name": "dump-cdata",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r><![CDATA[a<b>&c]]></r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>a&lt;b&gt;&amp;c</r>\n"
+    }
+  },
+  {
+    "name": "dump-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r>&amp;&lt;&#65;&#x3042;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>&amp;&lt;Aあ</r>\n"
+    }
+  },
+  {
+    "name": "dump-internal-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"hello\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>hello</r>\n"
+    }
+  },
+  {
+    "name": "dump-empty-repeat",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r><c/><c a=\"1\"/></r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>\n    <c/>\n    <c a=\"1\"/>\n</r>\n"
+    }
+  },
+  {
+    "name": "dump-unit-xml",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<?xml version=\"1.0\"?>\n<catalog>\n    <book id=\"bk001\">\n        <author>Ichiro</author>\n        <title>Ichiro55</title>\n    </book>\n    <book id=\"bk002\">\n        <author>次郎</author>\n        <title>次郎22</title>\n    </book>\n</catalog>\n"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<catalog>\n    \n    \n    <book id=\"bk001\">\n        \n        \n        <author>Ichiro</author>\n        \n        \n        <title>Ichiro55</title>\n        \n    \n    </book>\n    \n    \n    <book id=\"bk002\">\n        \n        \n        <author>次郎</author>\n        \n        \n        <title>次郎22</title>\n        \n    \n    </book>\n    \n\n</catalog>\n"
+    }
+  },
+  {
+    "name": "dump-whitespace",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r> \n <c>  a   b\t c  </c> \n </r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>\n     \n \n    <c>  a   b\t c  </c>\n     \n \n</r>\n"
+    }
+  },
+  {
+    "name": "dump-comments-pi",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<?test x?><r>a<!--comment-->b<?test y?>c</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>abc</r>\n"
+    }
+  },
+  {
+    "name": "dump-cdata-mixed",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r>a<![CDATA[<b>]]>c<d/>e</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>\n    a&lt;b&gt;c\n    <d/>\n    e\n</r>\n"
+    }
+  },
+  {
+    "name": "dump-attribute-entities",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r a=\"&quot;&apos;&lt;&gt;&amp;&#10;&#9;\" b=\"a\n b\t c\"/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"&quot;'&lt;&gt;&amp;&#10;&#9;\" b=\"a  b  c\"/>\n"
+    }
+  },
+  {
+    "name": "dump-namespace-rebinding",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r xmlns:p=\"urn:a\"><p:c/><c xmlns:p=\"urn:b\" p:a=\"1\"/><p:d/></r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r xmlns:ns0=\"urn:a\" xmlns:ns1=\"urn:b\">\n    <ns0:c/>\n    <c ns1:a=\"1\"/>\n    <ns0:d/>\n</r>\n"
+    }
+  },
+  {
+    "name": "dump-xml-space",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r xml:space=\"preserve\">  a  </r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r xml:space=\"preserve\">  a  </r>\n"
+    }
+  },
+  {
+    "name": "dump-empty",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": ""
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        \n        "
+    }
+  },
+  {
+    "name": "dump-unclosed",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r><c></r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r><c></r>\n        "
+    }
+  },
+  {
+    "name": "dump-duplicate-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r a=\"1\" a=\"2\"/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r a=\"1\" a=\"2\"/>\n        "
+    }
+  },
+  {
+    "name": "dump-undefined-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r>&missing;</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r>&missing;</r>\n        "
+    }
+  },
+  {
+    "name": "dump-multiple-roots",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<a/><b/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <a/><b/>\n        "
+    }
+  },
+  {
+    "name": "dump-external-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x SYSTEM \"file:///jumeaux-fixture-must-not-read\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<!ENTITY x SYSTEM \"file:///jumeaux-fixture-must-not-read\">]><r>&x;</r>\n        "
+    }
+  },
+  {
+    "name": "dump-nested-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY a \"A\"><!ENTITY b \"&a;&amp;B\">]><r>&b;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>A&amp;B</r>\n"
+    }
+  },
+  {
+    "name": "dump-attribute-internal-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"hello\">]><r a=\"&x;\">&x;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"hello\">hello</r>\n"
+    }
+  },
+  {
+    "name": "dump-markup-entity",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"<c>hello</c>\">]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>\n    <c>hello</c>\n</r>\n"
+    }
+  },
+  {
+    "name": "dump-dtd-default-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"default\">]><r/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"default\"/>\n"
+    }
+  },
+  {
+    "name": "dump-unbound-prefix",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<p:r/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <p:r/>\n        "
+    }
+  },
+  {
+    "name": "dump-invalid-name",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<1root/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <1root/>\n        "
+    }
+  },
+  {
+    "name": "dump-invalid-character",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r>\u0001</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r>\u0001</r>\n        "
+    }
+  },
+  {
+    "name": "dump-invalid-comment",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r><!--a--b--></r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r><!--a--b--></r>\n        "
+    }
+  },
+  {
+    "name": "dump-unclosed-root",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <r>\n        "
+    }
+  },
+  {
+    "name": "dump-carriage-return",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<r a=\"&#13;\">a&#13;b\r\nc\rd</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"&#13;\">a\nb\nc\nd</r>\n"
+    }
+  },
+  {
+    "name": "dump-bom-declaration",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "﻿<?xml version=\"1.0\"?><r/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
+    }
+  },
+  {
+    "name": "dump-space-before-declaration",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": " <?xml version=\"1.0\"?><r/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n         <?xml version=\"1.0\"?><r/>\n        "
+    }
+  },
+  {
+    "name": "dump-external-dtd",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE html SYSTEM \"fixture.dtd\"><html>&nbsp;</html>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE html SYSTEM \"fixture.dtd\"><html>&nbsp;</html>\n        "
+    }
+  },
+  {
+    "name": "dump-public-dtd",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE html PUBLIC \"fixture\" \"fixture.dtd\"><html>&nbsp;</html>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE html PUBLIC \"fixture\" \"fixture.dtd\"><html>&nbsp;</html>\n        "
+    }
+  },
+  {
+    "name": "dump-parameter-declaration",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY % p \"unused\">]><r/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
+    }
+  },
+  {
+    "name": "dump-dtd-comment",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!-- <!ENTITY x \"fake\"> -->]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<!-- <!ENTITY x \"fake\"> -->]><r>&x;</r>\n        "
+    }
+  },
+  {
+    "name": "dump-dtd-pi",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<?test <!ENTITY x \"fake\"> ?>]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<?test <!ENTITY x \"fake\"> ?>]><r>&x;</r>\n        "
+    }
+  },
+  {
+    "name": "dump-dtd-quoted",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA #IMPLIED><!ENTITY y '<!ENTITY x \"fake\">'>]><r>&x;</r>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<!ATTLIST r a CDATA #IMPLIED><!ENTITY y '<!ENTITY x \"fake\">'>]><r>&x;</r>\n        "
+    }
+  },
+  {
+    "name": "dump-dtd-fixed-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA #FIXED \"fixed\">]><r/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"fixed\"/>\n"
+    }
+  },
+  {
+    "name": "dump-non-ascii-element",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<日本語>本文</日本語>"
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "dump-entity-amp-number",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ENTITY x \"&#38;amp;\">]><r a=\"&x;\">&x;</r>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"&amp;\">&amp;</r>\n"
+    }
+  },
+  {
+    "name": "dump-external-dtd-attribute",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r SYSTEM \"fixture.dtd\"><r a=\"before&missing;after\"/>"
+    },
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"beforeafter\"/>\n"
+    }
+  },
+  {
+    "name": "dump-invalid-dtd-default",
+    "input": {
+      "operation": "pretty",
+      "format": "xml",
+      "body": "<!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>"
+    },
+    "expected": {
+      "value": "Include invalid token\n\n        <!DOCTYPE r [<!ATTLIST r a CDATA \"<x>\">]><r/>\n        "
+    }
+  },
+  {
+    "name": "expansion-below-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "expansion",
+      "attributes": 700,
+      "text": 0,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "attribute_chars": 7000000,
+        "text_chars": 0
+      }
+    }
+  },
+  {
+    "name": "expansion-below-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "expansion",
+      "attributes": 700,
+      "text": 0,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "invalid": false,
+        "length": 7009832
+      }
+    }
+  },
+  {
+    "name": "expansion-attributes-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "expansion",
+      "attributes": 900,
+      "text": 0,
+      "padding": 0
+    },
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "name": "expansion-attributes-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "expansion",
+      "attributes": 900,
+      "text": 0,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "invalid": true,
+        "length": 20883
+      }
+    }
+  },
+  {
+    "name": "expansion-mixed-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "expansion",
+      "attributes": 450,
+      "text": 450,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "attribute_chars": 4500000,
+        "text_chars": 0
+      }
+    }
+  },
+  {
+    "name": "expansion-mixed-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "expansion",
+      "attributes": 450,
+      "text": 450,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "invalid": true,
+        "length": 16833
+      }
+    }
+  },
+  {
+    "name": "expansion-text-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "expansion",
+      "attributes": 0,
+      "text": 900,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "attribute_chars": 0,
+        "text_chars": 0
+      }
+    }
+  },
+  {
+    "name": "expansion-text-over-threshold",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "expansion",
+      "attributes": 0,
+      "text": 900,
+      "padding": 0
+    },
+    "expected": {
+      "value": {
+        "invalid": true,
+        "length": 12783
+      }
+    }
+  },
+  {
+    "name": "expansion-large-low-amplification",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "expansion",
+      "attributes": 900,
+      "text": 0,
+      "padding": 150000
+    },
+    "expected": {
+      "value": {
+        "attribute_chars": 9000000,
+        "text_chars": 0
+      }
+    }
+  },
+  {
+    "name": "expansion-large-low-amplification",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "expansion",
+      "attributes": 900,
+      "text": 0,
+      "padding": 150000
+    },
+    "expected": {
+      "value": {
+        "invalid": false,
+        "length": 9012632
+      }
+    }
+  },
+  {
+    "name": "depth-1000",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "depth",
+      "depth": 1000
+    },
+    "expected": {
+      "value": {
+        "depth": 1000,
+        "leaf": "x"
+      }
+    }
+  },
+  {
+    "name": "depth-1000",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "depth",
+      "depth": 1000
+    },
+    "expected": {
+      "error": "RecursionError"
+    }
+  },
+  {
+    "name": "depth-1001",
+    "input": {
+      "format": "xml",
+      "operation": "dict",
+      "summary": "depth",
+      "depth": 1001
+    },
+    "expected": {
+      "value": {
+        "depth": 1001,
+        "leaf": "x"
+      }
+    }
+  },
+  {
+    "name": "depth-1001",
+    "input": {
+      "format": "xml",
+      "operation": "pretty",
+      "summary": "depth",
+      "depth": 1001
+    },
+    "expected": {
+      "error": "RecursionError"
+    }
+  },
+  {
+    "name": "depth-1000",
+    "input": {
+      "format": "html",
+      "operation": "pretty",
+      "summary": "depth",
+      "depth": 1000
+    },
+    "expected": {
+      "value": {
+        "invalid": false,
+        "length": 1017036
       }
     }
   }
