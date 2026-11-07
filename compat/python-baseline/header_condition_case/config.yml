@@ -1,0 +1,44 @@
+title: Simple
+
+one:
+  name: One endpoint
+  host: http://localhost:8000/api/one
+
+other:
+  name: Other endpoint
+  host: http://localhost:8000/api/other
+
+output:
+  response_dir: responses
+
+addons:
+  log2reqs:
+    name: plain
+
+  res2dict:
+    - name: json
+
+  judgement:
+    - name: same
+      config:
+        when_any:
+          - "res_one.headers['lAsT-mOdIfIeD'] == 'Sat, 01 Jan 2000 00:00:00 GMT' and res_other.headers['LAST-MODIFIED'] == 'Sun, 02 Jan 2000 00:00:00 GMT'"
+
+  store_criterion:
+    - name: free
+      config:
+        when_any:
+          - status == 'different'
+
+  dump:
+    - name: json
+
+  final:
+    - name: json
+    - name: viewer
+  #   - name: miroir
+  #     config:
+  #       table: miroir
+  #       bucket: mamansoft-miroir
+  #       cache_max_age: 120
+

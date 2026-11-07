@@ -14,6 +14,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 | 外部IF | 契約 |
 | --- | --- |
 | CLI | `run`、`retry`、`init`、`server`、`viewer` の引数・既定値・終了コード、help、ログレベル |
+| 標準出力 | `final/summary`・`final/json` の `sysout`。`final/csv` の任意パス出力も保存成果物として比較 |
 | config.yml | 全キーと既定値、指定順のマージ、`include` の相対パス、アドオンのタグ除外と実行順 |
 | requests | `plain`、`csv`、`json`、`yaml` の4形式。名前、メソッド、パス、query、ヘッダ、raw/form/json本文、URL文字コード |
 | テンプレート式 | `when` の値と型、描画文字列、未定義値・エラー、Python文字列メソッド、Responseの公開プロパティ、独自filterと関数、`$DATETIME` |
@@ -32,7 +33,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - output: `response_dir`、`encoding`、旧 `logger`。
 - 複数configは後のトップレベル値を優先する。addonsはレイヤーごとに更新し、リストは連結しない。
 - CLI指定はPython版 `merge_args2config` と同じ条件で上書きする。
-- `--processes` は受理し、実際には並列数として扱ってよい。
+- `--processes` は受理し、並列数として扱う。
   - 規則: 有効なprocesses指定があれば `concurrency.threads = 1`、`concurrency.processes = 指定値`。
   - 規則: processesがなければ `concurrency.threads = threads`、`concurrency.processes = 1`。threads既定値は1。
   - 例: `--threads 4 --processes 2` は並列数2、レポートは `{"threads":1,"processes":2}`。
@@ -83,13 +84,25 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 | request_time | trialのリクエスト時刻がISO日時 |
 | response_sec | endpointの応答時間が非負の数値 |
 | elapsed_sec | 経過時間が非負の数値 |
-| retry_hash | 通常runは未出力またはnull。retryは入力に使った元reportのkeyと一致 |
+| retry_hash | 通常runはキーなし。retryは入力に使った元reportのkeyと一致 |
 
 - stdout/stderrとsummary.txt中の同じ可変値も、対応する意味に限定して比較する。
 - API本文、dict化結果、通知本文の任意の同名キーは除外しない。
 - 日時で変化する入力はハーネスで固定したテスト入力を使う。`$DATETIME` 自体は固定時刻の関数fixtureで検証する。
 - モックのDate、Last-Modified、Serverは固定する。これらのレスポンス値を除外しない。
 - 比較規則は `compat/harness/comparison.json` に集約する。
+- API・通知のリクエストヘッダは `request_header_rules` に従う。
+  - 比較対象: configのheaders、requestsのheadersに指定したヘッダ、およびContent-Type。
+  - 規則: ヘッダ名は大小無視、並び順も無視する。値は完全一致とする。
+  - 比較対象外: HTTPクライアントが自動付与したUser-Agent、Accept-Encoding、Accept、Connection、Content-Length、Hostなど。
+  - 例外: 同じ名前でもconfigやrequestsで明示したヘッダは比較する。
+  - 維持: メソッド、URL、本文bytes、回数は完全比較する。原記録には自動ヘッダも残す。
+- PythonランタイムのDeprecationWarningは基準採取時に抑制する。
+  - 方法: `PYTHONWARNINGS=ignore`。依存ライブラリが警告設定を上書きするため、Pythonラッパーはimport後にも再設定する。
+- verboseログの計測時間はresponse_sec・elapsed_secに対応する箇所だけ正規化する。
+  - 規則: 並行HTTPの接続・応答ログは連続ブロック内の行順を比較しない。行の内容と回数は維持する。
+- 作業ディレクトリ全体のツリーとファイルを比較する。
+  - 規則: responses外のCSVなども対象とし、余分なファイル・ディレクトリ・symlinkも不一致にする。
 
 ## 意図的に変える差異
 
@@ -114,8 +127,10 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
 - retry用ヘッダ判定設定のreport内の保存位置と、その情報を持たない旧reportの扱い。
   - 根拠: Python版Reportには `judge_response_header` と `ignore_response_header_keys` がなく、旧reportだけから元の値を復元できない。保存形式の追加は本タスクで決定しない。
-- Python固有の警告・tracebackをRust版のstderrでどこまで一致させるか。
+- Python固有のtracebackをRust版のstderrでどこまで一致させるか。
   - 実測: encoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存し、成功する設定へ独断で修正しない。
+- `encoding_hell` テンプレート自体を修正して同梱するか。
+  - 検証: ハーネスの変種だけjson_sortを `when` へ直し、CSVに欠落しているGETも補う。同梱テンプレートの基準は失敗を維持する。
 
 ## 受入の段階
 
@@ -123,4 +138,6 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - CLI統合後は16テンプレートのreport、保存ファイル、stdout、stderr、終了コードとAPI記録を比較する。
 - 通知は追加ケースでSlack v1・v2をローカル受信先に送って比較する。
 - 既存不具合は `python_mismatch: true`、理由、Python観測値、修正後のexpectedを持つfixtureで検証する。
+- ヘッダ除外の大小無視は、Pythonの観測ケースと正しい大小表記の対照ケースを両方採取する。
+  - 規則: Pythonラッパーの自己比較は観測値と一致させる。Rustバイナリは対照ケースの出力を期待値とし、大小を変えた入力configで成功することを検証する。
 - Viewer目視、実OSでのHTTP環境依存挙動、Miroir実接続は後続の全体受入で行う。

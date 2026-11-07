@@ -1,5 +1,3 @@
-/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/util.py:136: DeprecationWarning: codecs.open() is deprecated. Use open() instead.
-  with codecs.open(fpath, encoding=encoding) as f:
 
         ____  _             _         _
 __/\__ / ___|| |_ __ _ _ __| |_      | |_   _ _ __ ___   ___  __ _ _   ___  __ __/\__
@@ -53,7 +51,7 @@ Version: 7.0.0
 
 --------------------------------------------------------------------------------
 | Simple
-| (de6d3fd2982e5f833974941fc9288928b427e952998d4c75f88e8998cd96badd)
+| (4fc7e8e35020354061776de0231146e6feb90518e6c66a762103c1d1301bbd72)
 --------------------------------------------------------------------------------
 | None
 --------------------------------------------------------------------------------
@@ -62,5 +60,5 @@ Version: 7.0.0
 --------------------------------------------------------------------------------
     
 [2 / 2] X (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} /diff-1.json
-[final/viewer] Create responses/de6d3fd2982e5f833974941fc9288928b427e952998d4c75f88e8998cd96badd/index.html
+[final/viewer] Create responses/4fc7e8e35020354061776de0231146e6feb90518e6c66a762103c1d1301bbd72/index.html
 Notify using slack@v1

@@ -1,10 +1,11 @@
 # 互換テスト
 
 契約は [互換仕様](../docs/compat-spec.md) に記す。
+以下のコマンドはリポジトリルートで実行する。
 
 ```text
 compat/
-├── python-baseline/     16テンプレート＋通知3件＋retry1件の実測
+├── python-baseline/     16テンプレート＋追加19ケースの実測
 ├── fixtures/
 │   ├── diff/            DeepDiff、差分パスの値取得
 │   ├── markup/          HTML・XMLのdict化
@@ -35,20 +36,35 @@ uv run --project compat/harness python compat/harness/run.py
 
 - `JUMEAUX_BIN` は単一の実行ファイルパス。引数を含むコマンド文字列は受け付けない。
 - `--case simple` のように対象を限定できる。
+- `--run-arg=--threads --run-arg=2` のようにrunの引数を追加できる。
+  - 条件: 比較時は同じ引数で採取した別の基準を `--baseline` で指定する。
 - `--output /tmp/jumeaux-actual` で結果保存先を指定できる。
   - 既定: 一意の一時ディレクトリ。失敗時も削除しない。
 - 既存出力は上書きしない。
 - APIは127.0.0.1:8000、Webhookは127.0.0.1:8001で待ち受ける。
   - 条件: ポートが使用中なら失敗する。他のプロセスは停止しない。
+  - 実装: 起動前に接続確認し、`allow_reuse_address=False` で排他的にbindする。受信先は全ケースを通じて1回だけ起動する。
+  - 待機: LISTENしていない終了直後のTIME_WAITは、各ポート最大65秒だけbindを再試行する。
 - proxyとSlackの環境変数を子プロセス用環境から除去し、Webhookをlocalhostへ固定する。
 - API記録はリクエストの多重集合を比較する。
-  - 内容: メソッド、URL、ヘッダの原表記と順序、本文bytes、同一リクエストの回数。
+  - 内容: メソッド、URL、本文bytes、同一リクエストの回数。
+  - ヘッダ: 設定・requests由来とContent-Typeだけを比較する。名前の大小と順序を無視し、値を比較する。
+  - 原記録: 自動ヘッダも含め、ヘッダの原表記と順序をJSONLへ保存する。
   - 条件: one/other間の到着順だけには依存しない。
-- 保存ファイルはbyte単位、reportはJSONの型を含めて比較する。
+- 作業ディレクトリ全体の保存ファイルはbyte単位、reportはJSONの型を含めて比較する。
 - `comparison.json` の明示パスだけ可変値を扱う。
   - 検証: keyとlatest、retry_hashと元report、ファイル参照、非負時間、日時形式もチェックする。
-- Pythonランタイムの警告と失敗時のtracebackも基準に残る。
+- `PYTHONWARNINGS=ignore` を設定し、Pythonラッパーはowlmixinのimport後にも警告抑制を設定する。
+  - 理由: owlmixinが環境変数によるignoreを上書きするため。
+- 失敗時のtracebackは基準に残る。
   - 制限: encoding_hellのstderrはPython版の絶対パスとランタイム版に依存する。別環境やRust版のエラー表現の許容範囲は未決であり、暗黙に除外しない。
+
+追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
+
+- `encoding_fixed` はjson_sortとCSVを修正した変種。`output_encoding` はUTF-16で保存する。
+- `header_ignore_case` は小文字の除外設定、`header_ignore_control` は対照用の正規表記。
+  - 差異: Python版の小文字設定ではdifferentになる。Rust版の期待出力はsameとなる対照ケースを使う。入力configは小文字のまま比較する。
+- `header_condition_case` は大小を混ぜた条件式でone/otherの異なるLast-Modifiedを検証する。
 
 ## 関数fixture
 
@@ -69,6 +85,7 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
   - 出力: `python-baseline/unit-tests.*`、版一覧、lock、README。
+  - 再生成: `--output /tmp/jumeaux-new-baseline` を指定する。既存の環境情報があれば、既定先でも明示先でも上書きを拒否する。
 
 ## ハーネスの自己検証
 

@@ -4,8 +4,12 @@ import copy
 import json
 from pathlib import Path
 import shutil
+import socket
+import subprocess
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from compare import compare_case, equal, load, normalize_report, records, validate_report
 
@@ -16,8 +20,8 @@ RULES = load(HERE / "comparison.json")
 
 class ComparisonTests(unittest.TestCase):
     def test_all_baselines_are_self_consistent(self):
-        from run import TEMPLATES, EXTRAS
-        for case in TEMPLATES + list(EXTRAS):
+        from run import TEMPLATES, EXTRAS, CLI_CASES
+        for case in TEMPLATES + list(EXTRAS) + list(CLI_CASES):
             with self.subTest(case=case):
                 compare_case(BASELINE / case, BASELINE / case, RULES)
 
@@ -68,6 +72,91 @@ class ComparisonTests(unittest.TestCase):
         for value in (True, 1.0):
             with self.assertRaises(AssertionError):
                 equal(1, value, "payload")
+
+    def test_normal_run_rejects_null_retry_hash(self):
+        report = load(BASELINE / "simple/report.json")
+        report["retry_hash"] = None
+        with self.assertRaises(AssertionError):
+            validate_report(report, BASELINE / "simple/responses" / report["key"])
+
+    def change_headers(self, target, transform, filename="api.jsonl"):
+        path = target / filename
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        for row in rows:
+            row["headers"] = transform(row["headers"])
+        path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+
+    def test_automatic_headers_and_header_order_are_ignored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "simple"
+            shutil.copytree(BASELINE / "simple", target, symlinks=True)
+            self.change_headers(target, lambda headers: [[name.swapcase(), "different-client" if name.lower() in RULES["request_header_rules"]["automatic_examples"] else value] for name, value in reversed(headers)])
+            compare_case(BASELINE / "simple", target, RULES)
+
+    def test_configured_user_agent_is_compared(self):
+        self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, "wrong" if name.lower() == "user-agent" else value] for name, value in headers]))
+
+    def test_missing_configured_header_is_detected(self):
+        self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, value] for name, value in headers if name.lower() != "xxx-header-key"]))
+
+    def test_configured_header_case_and_order_are_ignored(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "request_headers"
+            shutil.copytree(BASELINE / "request_headers", target, symlinks=True)
+            self.change_headers(target, lambda headers: [[name.swapcase(), value] for name, value in reversed(headers)])
+            compare_case(BASELINE / "request_headers", target, RULES)
+
+    def test_content_type_is_compared_for_api_and_notifications(self):
+        for case, filename in (("post", "api.jsonl"), ("notify_v1", "notifications.jsonl")):
+            with self.subTest(case=case):
+                self.mutated_case(case, lambda target: self.change_headers(target, lambda headers: [[name, value] for name, value in headers if name.lower() != "content-type"] + [["Content-Type", "wrong/type"]], filename))
+
+    def test_unexpected_file_outside_responses_is_detected(self):
+        self.mutated_case("simple", lambda target: (target / "unexpected.csv").write_text("extra"))
+
+    def test_unexpected_file_for_failed_init_is_detected(self):
+        self.mutated_case("init_invalid", lambda target: (target / "config.yml").touch())
+
+    def test_wrong_report_encoding_is_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "output_encoding"
+            shutil.copytree(BASELINE / "output_encoding", target, symlinks=True)
+            report = load(target / "report.json")
+            path = target / "responses" / report["key"] / "report.json"
+            path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises((UnicodeError, ValueError, AssertionError)):
+                compare_case(BASELINE / "output_encoding", target, RULES)
+
+    def test_header_ignore_corrected_baseline_rejects_python_bug(self):
+        with self.assertRaises(AssertionError):
+            compare_case(BASELINE / "header_ignore_control", BASELINE / "header_ignore_case", RULES, input_baseline=BASELINE / "header_ignore_case")
+
+    def test_header_ignore_corrected_baseline_accepts_fixed_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "header_ignore_case"
+            shutil.copytree(BASELINE / "header_ignore_control", target, symlinks=True)
+            for marker in target.rglob(".gitkeep"):
+                marker.unlink()
+            shutil.copyfile(BASELINE / "header_ignore_case/config.yml", target / "config.yml")
+            compare_case(BASELINE / "header_ignore_control", target, RULES, input_baseline=BASELINE / "header_ignore_case")
+
+    def test_environment_generator_refuses_existing_baseline(self):
+        result = subprocess.run([sys.executable, "-B", str(HERE.parent / "gen/environment.py")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("既存の環境情報を上書きしません", result.stderr)
+
+    def test_busy_port_is_rejected_before_process_start(self):
+        import run
+        with socket.socket() as occupied, tempfile.TemporaryDirectory() as directory:
+            occupied.bind(("127.0.0.1", 0))
+            occupied.listen()
+            port = occupied.getsockname()[1]
+            with patch.dict(run.RULES["server"], api_port=port), patch("run.subprocess.Popen") as spawn:
+                with self.assertRaisesRegex(RuntimeError, "already in use"):
+                    with run.receiver(Path(directory)):
+                        self.fail("occupied port accepted")
+                spawn.assert_not_called()
+            self.assertEqual(list(Path(directory).iterdir()), [])
 
     def mutated_case(self, case, mutate):
         with tempfile.TemporaryDirectory(prefix="jumeaux-mutation-") as directory:

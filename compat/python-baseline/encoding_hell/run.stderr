@@ -1,7 +1,5 @@
-/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/util.py:136: DeprecationWarning: codecs.open() is deprecated. Use open() instead.
-  with codecs.open(fpath, encoding=encoding) as f:
 Traceback (most recent call last):
-  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/main.py", line 24, in <module>
+  File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux-rs/compat/harness/python_entry.py", line 13, in <module>
     main()
     ~~~~^^
   File "/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/jumeaux/main.py", line 16, in main

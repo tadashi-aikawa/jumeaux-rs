@@ -1,0 +1,12 @@
+Usage:
+  jumeaux <command> [<subcommand>] [<args>...]
+  jumeaux <command> [<subcommand>] (-h | --help)
+  jumeaux (-h | --help)
+  jumeaux --version
+
+Commands:
+  init                Initialize a project template for Jumeaux
+  retry               Retry Jumeaux from report
+  run                 Run Jumeaux
+  server              Boot mock API server
+  viewer              Boot Jumeaux Viewer

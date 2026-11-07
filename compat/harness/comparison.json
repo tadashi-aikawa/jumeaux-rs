@@ -16,10 +16,32 @@
   ],
   "text_rules": [
     {"field": "version", "pattern": "(?m)^(Version: ).+$", "replacement": "\\1<version>"},
+    {"field": "response_sec", "pattern": "(?m)^(\\[\\d+ / \\d+\\] (?:One:|Other:)[ ]+\\d+ / )\\d+(?:\\.\\d+)?s( /)", "replacement": "\\1<response_sec>\\2"},
+    {"field": "elapsed_sec", "pattern": "(?m)^(\\[\\d+ / \\d+\\] ⏰ [^\\n]+: +)\\d+(?:\\.\\d+)?ms$", "replacement": "\\1<elapsed_sec>"},
     {"field": "response_sec", "pattern": "<\\d+(?:\\.\\d+)?s - \\d+(?:\\.\\d+)?s>", "replacement": "<response_sec>"}
   ],
+  "unordered_transport_lines": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$"],
+  "python_mismatches": {"header_ignore_case": "header_ignore_control"},
+  "case_contracts": {
+    "threads_2": {"summary.concurrency": {"threads": 2, "processes": 1}},
+    "processes_2": {"summary.concurrency": {"threads": 1, "processes": 2}},
+    "threads_and_processes": {"summary.concurrency": {"threads": 1, "processes": 2}},
+    "header_ignore_case": {"summary.status": {"same": 0, "different": 1, "failure": 0}},
+    "header_ignore_control": {"summary.status": {"same": 1, "different": 0, "failure": 0}},
+    "header_condition_case": {"summary.status": {"same": 2, "different": 0, "failure": 0}},
+    "encoding_fixed": {"summary.status": {"same": 0, "different": 1, "failure": 0}},
+    "output_encoding": {"summary.output.encoding": "utf-16"}
+  },
   "text_report_references": ["key"],
   "request_records": "multiset_with_occurrence_count",
+  "request_header_rules": {
+    "always_compare": ["content-type"],
+    "configured_sources": ["summary.one.headers", "summary.other.headers", "trials.*.headers"],
+    "name_case": "insensitive",
+    "order": "ignore",
+    "unconfigured": "ignore",
+    "automatic_examples": ["user-agent", "accept-encoding", "accept", "connection", "content-length", "host"]
+  },
   "numeric_tolerance": 0,
   "fixed_inputs": {
     "$DATETIME(%Y-%m-%d)(-86400)": "2000-01-01",
@@ -29,6 +51,10 @@
     "api_port": 8000,
     "notification_port": 8001,
     "http_date": "Sat, 01 Jan 2000 00:00:00 GMT",
+    "last_modified": {
+      "one": "Sat, 01 Jan 2000 00:00:00 GMT",
+      "other": "Sun, 02 Jan 2000 00:00:00 GMT"
+    },
     "server_version": "SimpleHTTP/0.6 Python/compat"
   }
 }

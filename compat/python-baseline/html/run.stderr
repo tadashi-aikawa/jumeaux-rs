@@ -1,5 +1,3 @@
-/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/owlmixin/util.py:136: DeprecationWarning: codecs.open() is deprecated. Use open() instead.
-  with codecs.open(fpath, encoding=encoding) as f:
 
         ____  _             _         _
 __/\__ / ___|| |_ __ _ _ __| |_      | |_   _ _ __ ___   ___  __ _ _   ___  __ __/\__
@@ -53,7 +51,7 @@ Version: 7.0.0
 
 --------------------------------------------------------------------------------
 | html
-| (3eab00228302ed5e3a3ea3a580f6e8a34a5fe2cdca58b5abda00b42312198c20)
+| (e534089583fbafa62b88fc1c8b1315a55fa419c1e6c90156fa069fa645330b36)
 --------------------------------------------------------------------------------
 | None
 --------------------------------------------------------------------------------
@@ -62,6 +60,4 @@ Version: 7.0.0
 --------------------------------------------------------------------------------
     
 [1 / 1] X (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} /diff-1.html
-[final/viewer] Create responses/3eab00228302ed5e3a3ea3a580f6e8a34a5fe2cdca58b5abda00b42312198c20/index.html
-/Users/tadashi-aikawa/git/github.com/tadashi-aikawa/jumeaux/.venv/lib/python3.15/site-packages/bs4/builder/_lxml.py:124: DeprecationWarning: The 'strip_cdata' option of HTMLParser() has never done anything and will eventually be removed.
-  parser = parser(
+[final/viewer] Create responses/e534089583fbafa62b88fc1c8b1315a55fa419c1e6c90156fa069fa645330b36/index.html

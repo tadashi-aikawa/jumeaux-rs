@@ -9,7 +9,7 @@ import re
 
 
 def load(path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_bytes())
 
 
 def match(pattern, path):
@@ -64,9 +64,10 @@ def equal(expected, actual, label):
 
 def validate_report(report, folder, source_key=None):
     require(report["key"] == folder.name, f"{folder}: key/directory mismatch")
-    require(report.get("retry_hash") == source_key, f"{folder}: retry_hash/source mismatch")
+    require(("retry_hash" not in report) if source_key is None else report.get("retry_hash") == source_key, f"{folder}: retry_hash/source mismatch")
     clock = report["summary"]["time"]
     require(datetime.fromisoformat(clock["end"]) >= datetime.fromisoformat(clock["start"]), "negative time span")
+    equal(report, json.loads((folder / "report.json").read_bytes().decode(report["summary"]["output"]["encoding"])), "report output.encoding")
     for trial in report["trials"]:
         for side in ("one", "other"):
             for field in ("file", "prop_file"):
@@ -101,14 +102,36 @@ def text(data, report_list, rules):
             value = value.replace(report[field], f"<{field}:{i}>")
     for rule in rules["text_rules"]:
         value = re.sub(rule["pattern"], rule["replacement"], value)
-    return value
+    lines = value.splitlines(keepends=True)
+    result, pending = [], []
+    for line in lines + [""]:
+        if any(re.match(pattern, line.rstrip("\n")) for pattern in rules["unordered_transport_lines"]):
+            pending.append(line)
+        else:
+            result.extend(sorted(pending))
+            pending.clear()
+            result.append(line)
+    return "".join(result)
 
 
 def tree(root, snapshot=False):
     return sorted((p.relative_to(root).as_posix(), "dir" if p.is_dir() else "file") for p in root.rglob("*") if not (snapshot and p.name == ".gitkeep"))
 
 
-def records(path):
+def configured_headers(report_list, rules):
+    result = {}
+    for report in report_list:
+        for trial in report["trials"]:
+            for side in ("one", "other"):
+                names = result.setdefault((trial["method"], trial[side]["url"]), set())
+                if f"summary.{side}.headers" in rules["configured_sources"]:
+                    names.update(key.lower() for key in report["summary"][side]["headers"])
+                if "trials.*.headers" in rules["configured_sources"]:
+                    names.update(key.lower() for key in trial["headers"])
+    return result
+
+
+def records(path, header_rules=None, configured=None):
     result = Counter()
     occurrences = Counter()
     for line in path.read_text().splitlines():
@@ -117,14 +140,32 @@ def records(path):
         identity = json.dumps(row, sort_keys=True)
         occurrences[identity] += 1
         require(occurrence == occurrences[identity], f"{path}: occurrence count mismatch")
-        # ヘッダの順序を保った原記録を比較。本文はbase64のままbytes完全一致。
-        result[identity] += 1
+        if header_rules:
+            require(header_rules["name_case"] == "insensitive" and header_rules["order"] == "ignore" and header_rules["unconfigured"] == "ignore", "unsupported request header rule")
+            names = set(header_rules["always_compare"]) | (configured or {}).get((row["method"], row["url"]), set())
+            row["headers"] = sorted((name.lower(), value) for name, value in row["headers"] if name.lower() in names)
+        result[json.dumps(row, sort_keys=True)] += 1
     return dict(result)
 
 
-def compare_case(baseline, actual, rules):
+def workspace_tree(workspace, report_list, snapshot=False):
+    keys = {report["key"]: f"<key:{i}>" for i, report in enumerate(report_list)}
+    result = {}
+    for file in workspace.rglob("*"):
+        if snapshot and file.name == ".gitkeep":
+            continue
+        name = "/".join(keys.get(part, part) for part in file.relative_to(workspace).parts)
+        kind = "symlink" if file.is_symlink() else "dir" if file.is_dir() else "file"
+        target = keys.get(str(file.readlink()), str(file.readlink())) if file.is_symlink() else None
+        result[name] = (kind, target, file)
+    return result
+
+
+def compare_case(baseline, actual, rules, input_baseline=None):
     baseline, actual = Path(baseline), Path(actual)
     expect_reports, actual_reports = reports(baseline), reports(actual)
+    validate_case_contract(baseline.name, expect_reports, rules)
+    validate_case_contract(baseline.name, actual_reports, rules)
     equal(len(expect_reports), len(actual_reports), "report count")
     for one, other in zip(expect_reports, actual_reports):
         equal(normalize_report(one, rules), normalize_report(other, rules), "report")
@@ -134,18 +175,42 @@ def compare_case(baseline, actual, rules):
             if kind == "file" and rel != "report.json":
                 equal((left / rel).read_bytes(), (right / rel).read_bytes(), rel)
     for path in ("api.jsonl", "notifications.jsonl"):
-        equal(records(baseline / path), records(actual / path), path)
+        if not (baseline / path).exists():
+            continue
+        header_rules = rules["request_header_rules"]
+        configured = configured_headers(expect_reports, header_rules) if path == "api.jsonl" else {}
+        equal(records(baseline / path, header_rules, configured), records(actual / path, header_rules, configured), path)
     if actual.name.startswith("notify_"):
         require(sum(records(actual / "notifications.jsonl").values()) == 1, "notification missing/duplicated")
-    for path in ("artifacts.json", "init-config.yml", "config.yml", "requests"):
-        equal((baseline / path).read_bytes(), (actual / path).read_bytes(), path)
-    equal(tree(baseline / "api"), tree(actual / "api"), "init api tree")
-    for rel, kind in tree(baseline / "api"):
-        if kind == "file":
-            equal((baseline / "api" / rel).read_bytes(), (actual / "api" / rel).read_bytes(), "init api " + rel)
-    for label in ("init", "run", "retry"):
+    for label in ("cli", "init", "run", "retry"):
         for stream in ("stdout", "stderr", "exit-code"):
             path = f"{label}.{stream}"
             equal((baseline / path).exists(), (actual / path).exists(), path + " existence")
             if (baseline / path).exists():
                 equal(text((baseline / path).read_bytes(), expect_reports, rules), text((actual / path).read_bytes(), actual_reports, rules), path)
+    left = workspace_tree(baseline, expect_reports, snapshot=True)
+    right = workspace_tree(actual, actual_reports, snapshot=baseline == actual)
+    equal(set(left), set(right), "workspace tree")
+    for name, (kind, target, file) in left.items():
+        other_kind, other_target, other_file = right[name]
+        equal((kind, target), (other_kind, other_target), name)
+        report_paths = {"report.json", "source-report.json"} | {f"responses/<key:{i}>/report.json" for i in range(len(expect_reports))}
+        if kind != "file" or name in {"api.jsonl", "notifications.jsonl"} | report_paths:
+            continue
+        if file.name in {f"{label}.{stream}" for label in ("cli", "init", "run", "retry") for stream in ("stdout", "stderr", "exit-code")}:
+            continue
+        if input_baseline and name == "config.yml":
+            file = Path(input_baseline) / name
+        equal(file.read_bytes(), other_file.read_bytes(), name)
+
+
+def validate_case_contract(case, report_list, rules):
+    for path, expected in rules["case_contracts"].get(case, {}).items():
+        value = report_list[-1]
+        for key in path.split("."):
+            value = value[key]
+        equal(expected, value, case + "." + path)
+    if case == "retry_notifier":
+        require(len(report_list) == 2, "retry_notifier: source missing")
+        require(bool(report_list[0].get("notifiers")), "retry_notifier: notifiers missing")
+        equal(report_list[0]["notifiers"], report_list[1].get("notifiers"), "retry notifiers")
