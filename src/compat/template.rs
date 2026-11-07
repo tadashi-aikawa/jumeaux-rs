@@ -1,5 +1,8 @@
 //! Jinja2描画とast.literal_evalの二段階を維持する。
-use std::{fmt::Write, sync::LazyLock};
+use std::{
+    fmt::Write,
+    sync::{LazyLock, RwLock},
+};
 
 use chrono::{DateTime, Duration, FixedOffset, Local};
 use minijinja::{
@@ -7,13 +10,12 @@ use minijinja::{
     value::{Kwargs, Rest, ValueKind, ValueOrKwargs, from_args},
 };
 use rustpython_parser::{Parse, ast};
-use serde::Serialize;
 use serde_json::Value as Json;
 
-use super::{Error, Result, regex};
+use super::{Error, Result, regex, values::TemplateInput};
 
 pub struct TemplateEngine {
-    env: Environment<'static>,
+    env: RwLock<Environment<'static>>,
 }
 
 impl Default for TemplateEngine {
@@ -45,40 +47,142 @@ impl TemplateEngine {
         env.add_filter("int", python_int);
         env.add_filter("float", python_float);
         env.add_filter("tojson", python_tojson);
+        env.add_filter("string", |value: &Value| {
+            if value.is_safe() {
+                value.clone()
+            } else {
+                Value::from(python_display(value, false))
+            }
+        });
+        env.add_filter("join", python_join);
+        env.add_filter("replace", python_replace);
+        env.add_filter("urlencode", python_urlencode);
         use minijinja_contrib::{filters, globals};
-        env.add_filter("truncate", filters::truncate);
-        env.add_filter("filesizeformat", filters::filesizeformat);
+        env.add_filter(
+            "truncate",
+            |state: &mut State, value: &Value, args: Rest<ValueOrKwargs>| {
+                filters::truncate(
+                    state,
+                    value,
+                    positional_kwargs(args, &["length", "killwords", "end", "leeway"])?,
+                )
+            },
+        );
+        env.add_filter(
+            "filesizeformat",
+            |value: f64, args: Rest<ValueOrKwargs>| -> MiniResult<String> {
+                let kwargs = positional_kwargs(args, &["binary"])?;
+                let binary = kwargs.get("binary")?;
+                kwargs.assert_all_used()?;
+                Ok(filters::filesizeformat(value, binary))
+            },
+        );
         env.add_filter("striptags", filters::striptags);
         env.add_filter("wordcount", filters::wordcount);
-        env.add_filter("wordwrap", filters::wordwrap);
+        env.add_filter("wordwrap", |value: &Value, args: Rest<ValueOrKwargs>| {
+            filters::wordwrap(
+                value,
+                positional_kwargs(
+                    args,
+                    &[
+                        "width",
+                        "break_long_words",
+                        "wrapstring",
+                        "break_on_hyphens",
+                    ],
+                )?,
+            )
+        });
+        env.add_filter(
+            "sort",
+            |state: &State, value: Value, args: Rest<ValueOrKwargs>| {
+                minijinja::filters::sort(
+                    state,
+                    value,
+                    positional_kwargs(args, &["reverse", "case_sensitive", "attribute"])?,
+                )
+            },
+        );
+        env.add_filter("dictsort", |value: &Value, args: Rest<ValueOrKwargs>| {
+            minijinja::filters::dictsort(
+                value,
+                positional_kwargs(args, &["case_sensitive", "by", "reverse"])?,
+            )
+        });
+        env.add_filter(
+            "unique",
+            |state: &State, value: Value, args: Rest<ValueOrKwargs>| {
+                minijinja::filters::unique(
+                    state,
+                    value,
+                    positional_kwargs(args, &["case_sensitive", "attribute"])?,
+                )
+            },
+        );
+        env.add_filter("groupby", |value: Value, args: Rest<ValueOrKwargs>| {
+            minijinja::filters::groupby(
+                value,
+                None,
+                positional_kwargs(args, &["attribute", "default", "case_sensitive"])?,
+            )
+        });
         env.add_filter("random", filters::random);
         env.add_function("cycler", |items: Rest<Value>| globals::cycler(items.0));
         env.add_function("joiner", globals::joiner);
         env.add_function("lipsum", globals::lipsum);
-        Self { env }
+        for name in ["bool", "chain", "lines", "split", "zip"] {
+            env.remove_filter(name);
+        }
+        for name in ["startingwith", "endingwith", "safe"] {
+            env.remove_test(name);
+        }
+        Self {
+            env: RwLock::new(env),
+        }
     }
 
     pub fn validate(&self, template: &str) -> Result<()> {
-        self.env
-            .template_from_str(template)
-            .map_err(template_error)?;
+        self.load(template)
+    }
+
+    /// 設定読み込み時に構文・登録名を検査し、コンパイル済みテンプレートを保持する。
+    pub fn load(&self, template: &str) -> Result<()> {
+        if self
+            .env
+            .read()
+            .expect("template environment")
+            .get_template(template)
+            .is_ok()
+        {
+            return Ok(());
+        }
+        let mut env = self.env.write().expect("template environment");
+        if env.get_template(template).is_ok() {
+            return Ok(());
+        }
         // 文字列検索ではコメントや未実行分岐を正しく扱えないため、ASTを走査する。
         let ast = minijinja::machinery::parse(template, "<template>", Default::default())
             .map_err(template_error)?;
         let ast = serde_json::to_value(ast)
             .map_err(|e| Error::new("TemplateSyntaxError", e.to_string()))?;
-        validate_names(&ast, &self.env.empty_state())
+        validate_names(&ast, &env.empty_state())?;
+        env.add_template_owned(template.to_owned(), template.to_owned())
+            .map_err(template_error)
     }
 
-    pub fn render(&self, template: &str, data: impl Serialize) -> Result<String> {
-        self.validate(template)?;
+    pub fn render(&self, template: &str, data: impl TemplateInput) -> Result<String> {
+        self.load(template)?;
         self.env
-            .render_str(template, super::values::serialized(data))
+            .read()
+            .expect("template environment")
+            .get_template(template)
+            .map_err(template_error)?
+            .render(data.into_value())
             .map_err(template_error)
     }
 
     /// boolに即時変換しない。数値・リストなどは後続の呼び出し元がtruthinessを判定する。
-    pub fn when(&self, expression: &str, data: impl Serialize) -> Result<LiteralValue> {
+    pub fn when(&self, expression: &str, data: impl TemplateInput) -> Result<LiteralValue> {
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }
@@ -121,7 +225,16 @@ fn numeric_string(value: &Value, base: Option<u32>) -> Value {
     let Some(s) = value.as_str() else {
         return value.clone();
     };
-    let s = s.trim();
+    let normalized: String = s
+        .trim()
+        .chars()
+        .map(|c| {
+            decimal_digit(c)
+                .and_then(|n| char::from_digit(n, 10))
+                .unwrap_or(c)
+        })
+        .collect();
+    let s = normalized.as_str();
     let digits = s.trim_start_matches(['+', '-']);
     let prefix = digits.get(..2).unwrap_or("").to_ascii_lowercase();
     let detected = match prefix.as_str() {
@@ -196,6 +309,9 @@ fn python_int(
     let mut base = u32::try_from(base_value).unwrap_or(1);
     kwargs.assert_all_used()?;
     let value = numeric_string(value, Some(base));
+    if value.is_none() {
+        return Ok(default);
+    }
     if value
         .as_str()
         .filter(|s| !(2..=36).contains(&base) || i128::from_str_radix(s, base).is_err())
@@ -219,13 +335,43 @@ fn python_int(
             };
         }
     }
-    minijinja::filters::int(
+    let converted = minijinja::filters::int(
         state,
         &value,
-        Some(default),
+        None,
         Some(base),
         Kwargs::from_iter(std::iter::empty::<(&str, Value)>()),
-    )
+    );
+    converted.or_else(|_| {
+        let fallback = numeric_string(&value, None);
+        Ok(fallback
+            .as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .filter(|f| f.is_finite())
+            .map(|f| Value::from(f as i128))
+            .unwrap_or(default))
+    })
+}
+
+fn decimal_digit(c: char) -> Option<u32> {
+    if c.is_ascii_digit() {
+        return c.to_digit(10);
+    }
+    static DECIMAL: LazyLock<::regex::Regex> =
+        LazyLock::new(|| ::regex::Regex::new(r"^\p{Nd}$").unwrap());
+    let mut buffer = [0; 4];
+    if !DECIMAL.is_match(c.encode_utf8(&mut buffer)) {
+        return None;
+    }
+    // Unicode Ndの連続区間は0〜9の組。数学用数字では複数組が隣接する。
+    let mut start = u32::from(c);
+    while let Some(previous) = char::from_u32(start - 1) {
+        if !DECIMAL.is_match(previous.encode_utf8(&mut buffer)) {
+            break;
+        }
+        start -= 1;
+    }
+    Some((u32::from(c) - start) % 10)
 }
 
 fn python_float(
@@ -267,15 +413,129 @@ fn python_float(
     )
 }
 
+type MiniResult<T> = std::result::Result<T, minijinja::Error>;
+
+fn positional_kwargs(args: Rest<ValueOrKwargs>, names: &[&str]) -> MiniResult<Kwargs> {
+    let values = args.into_values();
+    let (args, kwargs): (&[Value], Kwargs) = from_args(&values)?;
+    if args.len() > names.len() {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "too many positional arguments",
+        ));
+    }
+    let mut mapped = indexmap::IndexMap::new();
+    for name in kwargs.args() {
+        mapped.insert(name.to_owned(), kwargs.get::<Value>(name)?);
+    }
+    for (name, value) in names.iter().zip(args) {
+        if mapped.insert((*name).into(), value.clone()).is_some() {
+            return Err(minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                "duplicate argument",
+            ));
+        }
+    }
+    Ok(mapped.into_iter().collect())
+}
+
+fn python_replace(value: &Value, args: Rest<ValueOrKwargs>) -> MiniResult<String> {
+    let kwargs = positional_kwargs(args, &["old", "new", "count"])?;
+    if !kwargs.has("old") || !kwargs.has("new") {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "replace requires old and new",
+        ));
+    }
+    let old = kwargs.get::<Value>("old")?;
+    let new = kwargs.get::<Value>("new")?;
+    let count = kwargs.get::<Option<i64>>("count")?.unwrap_or(-1);
+    kwargs.assert_all_used()?;
+    let input = python_display(value, false);
+    let old = python_display(&old, false);
+    let new = python_display(&new, false);
+    Ok(if count < 0 {
+        input.replace(&old, &new)
+    } else {
+        input.replacen(&old, &new, count as usize)
+    })
+}
+
+fn python_join(value: &Value, args: Rest<ValueOrKwargs>) -> MiniResult<String> {
+    let kwargs = positional_kwargs(args, &["d", "attribute"])?;
+    let delimiter = if kwargs.has("d") {
+        python_display(&kwargs.get::<Value>("d")?, false)
+    } else {
+        String::new()
+    };
+    let attribute = kwargs.get::<Option<Value>>("attribute")?;
+    kwargs.assert_all_used()?;
+    let mut items = Vec::new();
+    for mut item in value.try_iter()? {
+        if let Some(attribute) = &attribute {
+            for key in attribute.to_string().split('.') {
+                item = if let Ok(index) = key.parse::<usize>() {
+                    item.get_item(&Value::from(index))?
+                } else {
+                    item.get_attr(key)?
+                };
+            }
+        }
+        if item.kind() == ValueKind::Invalid {
+            item.try_iter()?;
+        }
+        items.push(python_display(&item, false));
+    }
+    Ok(items.join(&delimiter))
+}
+
+fn python_urlencode(value: &Value) -> MiniResult<String> {
+    if !matches!(
+        value.kind(),
+        ValueKind::Map | ValueKind::Seq | ValueKind::Iterable
+    ) {
+        return minijinja::filters::urlencode(&Value::from(python_display(value, false)));
+    }
+    let mut pairs = Vec::new();
+    for item in value.try_iter()? {
+        let (key, value) = if value.kind() == ValueKind::Map {
+            (item.clone(), value.get_item(&item)?)
+        } else {
+            let pair: Vec<_> = item.try_iter()?.collect();
+            if pair.len() != 2 {
+                return Err(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "urlencode expects pairs",
+                ));
+            }
+            (pair[0].clone(), pair[1].clone())
+        };
+        let quote = |value| {
+            super::encoding::quote_plus(&python_display(value, false), "utf-8").map_err(|e| {
+                minijinja::Error::new(minijinja::ErrorKind::InvalidOperation, e.to_string())
+            })
+        };
+        pairs.push(format!("{}={}", quote(&key)?, quote(&value)?));
+    }
+    Ok(pairs.join("&"))
+}
+
 fn python_tojson(
     value: &Value,
     indent: Option<Value>,
     kwargs: Kwargs,
 ) -> std::result::Result<Value, minijinja::Error> {
-    let rendered = minijinja::filters::tojson(value, indent, kwargs)?;
+    let indent = indent
+        .or(kwargs.get::<Option<Value>>("indent")?)
+        .map(|v| i64::try_from(v).map(|v| v.max(0) as usize))
+        .transpose()?;
+    kwargs.assert_all_used()?;
+    let rendered = json_display(value, indent, 0)?;
     let mut output = String::new();
-    for c in rendered.as_str().unwrap().chars() {
-        if c.is_ascii() {
+    for c in rendered.chars() {
+        if matches!(c, '<' | '>' | '&' | '\'') {
+            write!(output, "\\u{:04x}", u32::from(c)).unwrap();
+        } else if c.is_ascii() {
             output.push(c);
         } else {
             for unit in c.encode_utf16(&mut [0; 2]) {
@@ -284,6 +544,92 @@ fn python_tojson(
         }
     }
     Ok(Value::from_safe_string(output))
+}
+
+fn json_display(value: &Value, indent: Option<usize>, depth: usize) -> MiniResult<String> {
+    let quoted = |s: &str| serde_json::to_string(s).expect("string JSON");
+    let (open, close, parts) = match value.kind() {
+        ValueKind::None => return Ok("null".into()),
+        ValueKind::Bool => return Ok(if value.is_true() { "true" } else { "false" }.into()),
+        ValueKind::String => return Ok(quoted(value.as_str().unwrap())),
+        ValueKind::Number if value.is_integer() => return Ok(value.to_string()),
+        ValueKind::Number => {
+            let number = f64::try_from(value.clone())?;
+            return Ok(if number.is_nan() {
+                "NaN".into()
+            } else if number == f64::INFINITY {
+                "Infinity".into()
+            } else if number == f64::NEG_INFINITY {
+                "-Infinity".into()
+            } else {
+                python_float_repr(number)
+            });
+        }
+        ValueKind::Seq => (
+            '[',
+            ']',
+            value
+                .try_iter()?
+                .map(|v| json_display(&v, indent, depth + 1))
+                .collect::<MiniResult<Vec<_>>>()?,
+        ),
+        ValueKind::Map => {
+            let mut keys: Vec<_> = value.try_iter()?.collect();
+            let comparable =
+                |key: &Value| matches!(key.kind(), ValueKind::Number | ValueKind::Bool);
+            if keys.len() > 1
+                && !(keys.iter().all(|k| k.kind() == ValueKind::String)
+                    || keys.iter().all(comparable))
+            {
+                return Err(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "JSON keys cannot be sorted together",
+                ));
+            }
+            let sort_key = |key: &Value| {
+                if key.kind() == ValueKind::Bool {
+                    Value::from(i64::from(key.is_true()))
+                } else {
+                    key.clone()
+                }
+            };
+            keys.sort_by_key(sort_key);
+            let parts = keys
+                .iter()
+                .map(|k| {
+                    Ok(format!(
+                        "{}: {}",
+                        quoted(&if k.kind() == ValueKind::String {
+                            k.to_string()
+                        } else {
+                            json_display(k, None, 0)?
+                        }),
+                        json_display(&value.get_item(k)?, indent, depth + 1)?
+                    ))
+                })
+                .collect::<MiniResult<Vec<_>>>()?;
+            ('{', '}', parts)
+        }
+        _ => {
+            return Err(minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                "value is not JSON serializable",
+            ));
+        }
+    };
+    if parts.is_empty() {
+        return Ok(format!("{open}{close}"));
+    }
+    Ok(if let Some(width) = indent {
+        let padding = " ".repeat(width * (depth + 1));
+        format!(
+            "{open}\n{padding}{}\n{}{close}",
+            parts.join(&format!(",\n{padding}")),
+            " ".repeat(width * depth)
+        )
+    } else {
+        format!("{open}{}{close}", parts.join(", "))
+    })
 }
 
 fn template_error(error: minijinja::Error) -> Error {
@@ -358,6 +704,9 @@ fn python_display(value: &Value, nested: bool) -> String {
 }
 
 fn python_float_repr(value: f64) -> String {
+    if value.is_nan() {
+        return "nan".into();
+    }
     if !value.is_finite() {
         return value.to_string();
     }

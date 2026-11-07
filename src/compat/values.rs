@@ -12,7 +12,63 @@ use serde_json::Value as Json;
 use super::encoding;
 
 pub fn serialized(value: impl Serialize) -> Value {
-    Value::from(minijinja::value::Serde(value))
+    match serde_json::to_value(value) {
+        Ok(value) => from_json(&value),
+        Err(error) => Value::from(minijinja::Error::new(
+            ErrorKind::InvalidOperation,
+            error.to_string(),
+        )),
+    }
+}
+
+/// arbitrary_precisionのserde内部表現をテンプレートへ漏らさない。
+pub fn from_json(value: &Json) -> Value {
+    match value {
+        Json::Null => Value::from(()),
+        Json::Bool(value) => Value::from(*value),
+        Json::String(value) => Value::from(value.clone()),
+        Json::Number(value) => {
+            if let Some(value) = value.as_i64() {
+                Value::from(value)
+            } else if let Some(value) = value.as_u64() {
+                Value::from(value)
+            } else if let Some(value) = value.as_i128() {
+                Value::from(value)
+            } else {
+                Value::from(value.as_str().parse::<f64>().expect("JSON number"))
+            }
+        }
+        Json::Array(values) => Value::from(values.iter().map(from_json).collect::<Vec<_>>()),
+        Json::Object(values) => {
+            Value::from_pairs(values.iter().map(|(k, v)| (k.clone(), from_json(v))))
+        }
+    }
+}
+
+/// JSONは数値を変換し、式用Objectを持つMiniJinja Valueはそのまま渡す。
+/// 任意のserdeモデルにはserialized()を使う。
+pub trait TemplateInput {
+    fn into_value(self) -> Value;
+}
+impl TemplateInput for Json {
+    fn into_value(self) -> Value {
+        from_json(&self)
+    }
+}
+impl TemplateInput for &Json {
+    fn into_value(self) -> Value {
+        from_json(self)
+    }
+}
+impl TemplateInput for Value {
+    fn into_value(self) -> Value {
+        self
+    }
+}
+impl TemplateInput for &Value {
+    fn into_value(self) -> Value {
+        self.clone()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,7 +127,7 @@ impl Request {
         ] {
             fields.insert(name.into(), Value::from_object(PythonOption(Ok(value))));
         }
-        serialized(fields)
+        Value::from_pairs(fields)
     }
 }
 
