@@ -62,6 +62,7 @@ uv run --project compat/harness python compat/harness/run.py
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
 
 - `encoding_fixed` はjson_sortとCSVを修正した変種。`output_encoding` はUTF-16で保存する。
+- Rust版の同梱テンプレート `encoding_hell` は、json_sortの `conditions` の `path` を `when` へ直し、requestsにメソッド列 `GET` を補う。
 - `header_ignore_case` は小文字の除外設定、`header_ignore_control` は対照用の正規表記。
   - 差異: Python版の小文字設定ではdifferentになる。Rust版の期待出力はsameとなる対照ケースを使う。入力configは小文字のまま比較する。
 - `header_condition_case` は大小を混ぜた条件式でone/otherの異なるLast-Modifiedを検証する。

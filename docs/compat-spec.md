@@ -110,6 +110,15 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 意図的に変える差異
 
+- clapが追加する `help` サブコマンドと `-V` は残す。
+  - 条件: Python版にない入力を受理する追加とし、Python版で通る入力の挙動は変えない。
+- `--version` の出力はclapの既定のままとする。
+  - Rust版: `jumeaux 0.1.0`。
+  - Python版: `7.0.0` のみ。
+- Rust版は同梱テンプレート `encoding_hell` の不具合を直す。
+  - 修正: `res2res/json_sort` の `conditions` にある廃止済みの `path` キーを `when` へ置き換え、`requests` にメソッド列 `GET` を補う。
+  - 実装時期: 後続の「Report集計・final・CLI」タスクで、initの同梱テンプレートを置くときに修正する。
+  - 基準: Python版リポジトリは変更せず、同梱テンプレートの失敗を観測値として維持する。
 - Rust版はinitのテンプレート名一覧をソート順で出す。
   - Python版: ファイルシステムの列挙順で出す。一覧の並びは互換対象にしない。
   - 比較: `✨ [Valid names] ✨` 直後のテンプレート名の区間だけを順序なしの行として比較する。名前の欠落・追加・重複は許容しない。
@@ -127,17 +136,11 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 未決
 
-- clapが追加する `help` サブコマンドを残すか。
-- clapの `-V` を残すか。
-- `--version` の出力形式。
-  - 現状: Python版は `7.0.0` のみ、Rust版の骨組みは `jumeaux 0.1.0`。
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
 - retry用ヘッダ判定設定のreport内の保存位置と、その情報を持たない旧reportの扱い。
   - 根拠: Python版Reportには `judge_response_header` と `ignore_response_header_keys` がなく、旧reportだけから元の値を復元できない。保存形式の追加は本タスクで決定しない。
 - Python固有のtracebackをRust版のstderrでどこまで一致させるか。
-  - 実測: encoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存し、成功する設定へ独断で修正しない。
-- `encoding_hell` テンプレート自体を修正して同梱するか。
-  - 検証: ハーネスの変種だけjson_sortを `when` へ直し、CSVに欠落しているGETも補う。同梱テンプレートの基準は失敗を維持する。
+  - 実測: Python版のencoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存する。
 
 ## 受入の段階
 
