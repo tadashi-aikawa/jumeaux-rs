@@ -13,6 +13,13 @@ pub struct Regex {
 }
 
 impl Regex {
+    /// exact_match用の設定は必ずこの入口で検査する。ラッパーもgroup番号に含む。
+    pub fn new_exact(pattern: &str) -> Result<Self> {
+        let mut regex = Self::new(&format!("^({pattern})$"))?;
+        regex.pattern = pattern.into();
+        regex.exact = OnceLock::from(Ok(regex.inner.clone()));
+        Ok(regex)
+    }
     pub fn new(pattern: &str) -> Result<Self> {
         let translated = translate_pattern(pattern)?;
         let tree = fancy_regex::Expr::parse_tree(&translated)
@@ -39,10 +46,7 @@ impl Regex {
     /// 終端の改行を許容し、ラッパーのキャプチャもPython版と同じにする。
     pub fn exact_match(&self, target: &str) -> Result<bool> {
         self.exact
-            .get_or_init(|| {
-                fancy_regex::Regex::new(&format!(r"^({})(?:$|(?=\n\z))", self.translated))
-                    .map_err(|e| self.error(e))
-            })
+            .get_or_init(|| Self::new(&format!("^({})$", self.pattern)).map(|regex| regex.inner))
             .as_ref()
             .map_err(Clone::clone)?
             .is_match(target)
@@ -289,19 +293,30 @@ fn translate_pattern(pattern: &str) -> Result<String> {
     let mut class_start = false;
     let mut ascii = false;
     let mut scopes = Vec::new();
+    let mut groups = Vec::new();
+    let mut capture_count = 0usize;
+    let mut closed = HashSet::new();
+    let mut flags_allowed = true;
+    let mut can_repeat = false;
+    let mut quantified = false;
     let mut names = HashSet::new();
     let error = |message| Error::new("PatternError", format!("{pattern:?}: {message}"));
     while i < chars.len() {
         let c = chars[i];
         i += 1;
+        if c != '(' {
+            flags_allowed = false;
+        }
         match c {
             '\\' => {
                 let Some(&escaped) = chars.get(i) else {
                     return Err(error("bad escape at end of pattern"));
                 };
                 i += 1;
-                if matches!(escaped, 'p' | 'P' | 'h' | 'H' | 'e' | 'k' | 'N')
-                    || (escaped == 'x' && chars.get(i) == Some(&'{'))
+                if matches!(
+                    escaped,
+                    'p' | 'P' | 'h' | 'H' | 'e' | 'k' | 'N' | 'G' | 'K' | 'g'
+                ) || (escaped == 'x' && chars.get(i) == Some(&'{'))
                 {
                     return Err(error("unsupported Python pattern escape"));
                 }
@@ -323,6 +338,17 @@ fn translate_pattern(pattern: &str) -> Result<String> {
                         return Err(error("octal escape outside 0..377"));
                     }
                     result.push_str(&format!(r"\x{{{value:x}}}"));
+                } else if !in_class && ('1'..='9').contains(&escaped) {
+                    let mut digits = escaped.to_string();
+                    if chars.get(i).is_some_and(char::is_ascii_digit) {
+                        digits.push(chars[i]);
+                        i += 1;
+                    }
+                    let group: usize = digits.parse().unwrap();
+                    if !closed.contains(&group) {
+                        return Err(error("invalid reference or reference to an open group"));
+                    }
+                    result.push_str(&format!(r"\{digits}"));
                 } else if ascii && matches!(escaped, 'w' | 'W' | 'd' | 'D' | 's' | 'S') {
                     let body = match escaped {
                         'w' | 'W' => "a-zA-Z0-9_",
@@ -352,6 +378,8 @@ fn translate_pattern(pattern: &str) -> Result<String> {
                     });
                 }
                 class_start = false;
+                can_repeat = true;
+                quantified = false;
             }
             '[' => {
                 if in_class {
@@ -369,13 +397,19 @@ fn translate_pattern(pattern: &str) -> Result<String> {
             ']' if in_class && !class_start => {
                 in_class = false;
                 result.push(c);
+                can_repeat = true;
+                quantified = false;
             }
-            '&' if in_class && chars.get(i) == Some(&'&') => {
-                return Err(error("set intersection is unsupported"));
+            '&' | '-' | '~' if in_class && chars.get(i) == Some(&c) => {
+                return Err(error("set operations are unsupported"));
             }
             '(' if !in_class => {
                 let rest: String = chars[i..].iter().collect();
                 if rest.starts_with("?(")
+                    || rest.starts_with("?'")
+                    || rest.starts_with('*')
+                    || rest.starts_with("?R")
+                    || rest.starts_with("?U")
                     || (rest.starts_with("?<")
                         && !rest.starts_with("?<=")
                         && !rest.starts_with("?<!"))
@@ -392,30 +426,116 @@ fn translate_pattern(pattern: &str) -> Result<String> {
                         return Err(error("invalid or duplicate group name"));
                     }
                 }
-                if rest.starts_with("?a)") {
-                    ascii = true;
-                    i += 3;
-                    continue;
+                if let Some(flags) = rest.strip_prefix('?') {
+                    let count = flags
+                        .chars()
+                        .take_while(|c| "aiLmsux-".contains(*c))
+                        .count();
+                    let end = flags.chars().nth(count);
+                    if count > 0 && matches!(end, Some(')' | ':')) {
+                        let flags: String = flags.chars().take(count).collect();
+                        if end == Some(')') && !flags_allowed {
+                            return Err(error("global flags not at the start of the expression"));
+                        }
+                        if flags.contains('L') {
+                            return Err(error("LOCALE is invalid for a string pattern"));
+                        }
+                        if end == Some(':') {
+                            scopes.push(ascii);
+                            groups.push(None);
+                            flags_allowed = false;
+                        }
+                        if flags.contains('a') {
+                            ascii = true;
+                        }
+                        let flags = flags.replace('a', "");
+                        if !flags.is_empty() || end == Some(':') {
+                            result.push_str(&format!("(?{flags}{}", end.unwrap()));
+                        }
+                        i += count + 2;
+                        can_repeat = false;
+                        quantified = false;
+                        continue;
+                    }
                 }
+                flags_allowed = false;
                 scopes.push(ascii);
-                if rest.starts_with("?a:") {
-                    ascii = true;
-                    result.push_str("(?:");
-                    i += 3;
+                let capture = !rest.starts_with('?') || rest.starts_with("?P<");
+                groups.push(if capture {
+                    capture_count += 1;
+                    Some(capture_count)
                 } else {
-                    result.push(c);
-                }
+                    None
+                });
+                result.push(c);
+                can_repeat = false;
+                quantified = false;
             }
             ')' if !in_class => {
                 ascii = scopes.pop().unwrap_or(ascii);
+                if let Some(Some(group)) = groups.pop() {
+                    closed.insert(group);
+                }
                 result.push(c);
+                can_repeat = true;
+                quantified = false;
+            }
+            '{' if !in_class => {
+                let end = chars[i..].iter().position(|c| *c == '}').map(|n| i + n);
+                if let Some(end) = end {
+                    let body: String = chars[i..end].iter().collect();
+                    let parts: Vec<_> = body.split(',').collect();
+                    if parts.len() <= 2
+                        && parts.iter().all(|s| s.chars().all(|c| c.is_ascii_digit()))
+                        && !body.is_empty()
+                    {
+                        if !can_repeat || quantified {
+                            return Err(error("nothing to repeat or multiple repeat"));
+                        }
+                        let lo = parts[0].parse::<usize>().unwrap_or(0);
+                        let hi = if parts.len() == 1 {
+                            lo
+                        } else {
+                            parts[1].parse::<usize>().unwrap_or(usize::MAX)
+                        };
+                        if lo > hi {
+                            return Err(error("min repeat greater than max repeat"));
+                        }
+                        result.push('{');
+                        result.push_str(&body);
+                        result.push('}');
+                        i = end + 1;
+                        quantified = true;
+                        continue;
+                    }
+                }
+                result.push(c);
+                can_repeat = true;
+                quantified = false;
+            }
+            '*' | '+' | '?' if !in_class => {
+                result.push(c);
+                quantified = true;
+            }
+            '^' | '|' if !in_class => {
+                result.push(c);
+                can_repeat = false;
+                quantified = false;
             }
             // Rustの$は通常、末尾改行の直前を受理しない。
-            '$' if !in_class => result.push_str(r"(?:$|(?=\n\z))"),
+            '$' if !in_class => {
+                result.push_str(r"(?:$|(?=\n\z))");
+                can_repeat = false;
+                quantified = false;
+            }
             c => {
                 result.push(c);
                 if c != '^' || !class_start {
                     class_start = false;
+                }
+                if !in_class {
+                    can_repeat = true;
+                    quantified = false;
                 }
             }
         }
@@ -424,5 +544,5 @@ fn translate_pattern(pattern: &str) -> Result<String> {
 }
 
 pub fn exact_match(target: &str, pattern: &str) -> Result<bool> {
-    Regex::new(pattern)?.exact_match(target)
+    Regex::new_exact(pattern)?.exact_match(target)
 }

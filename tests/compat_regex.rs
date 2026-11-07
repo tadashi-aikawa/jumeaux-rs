@@ -10,7 +10,11 @@ fn python_regex_fixtures() {
     for case in &cases {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
-        let actual = Regex::new(string("pattern")).and_then(|regex| match string("operation") {
+        let compiled = match string("operation") {
+            "exact_match" | "reg" => Regex::new_exact(string("pattern")),
+            _ => Regex::new(string("pattern")),
+        };
+        let actual = compiled.and_then(|regex| match string("operation") {
             "exact_match" | "reg" => regex.exact_match(string("target")).map(Value::from),
             "search" => regex.search(string("target")).map(Value::from),
             "sub" => regex
