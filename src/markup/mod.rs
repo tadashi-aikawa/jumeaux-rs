@@ -41,7 +41,7 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-const MAX_DEPTH: usize = 256;
+const MAX_DEPTH: usize = 1000;
 
 fn insert_repeated(object: &mut Map<String, Value>, key: String, value: Value) {
     match object.get_mut(&key) {

@@ -94,12 +94,19 @@ cargo test --test markup -- --nocapture
 ```
 
 - `input.operation`が`pretty`のケースはdumpの整形文字列を比較する。省略時はdict化。
-- 110件中103件はPython期待値と完全一致する。
-- 未決の7件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
+- 203件中168件はPython期待値と完全一致する。
+- 未決の35件も実行し、`tests/markup_differences.json`のRust現出力との一致を検証する。
   - 規則: Python期待値は変更しない。差異の重複・未使用・理由欠落・解消済みの差異はテストで検出する。
   - 詳細: [互換仕様の未決](../docs/compat-spec.md#未決)。
 - 条件式付き2件はdictの参照と比較を検証する。
   - 制限: 条件式エンジンの統合検証は後続タスクで行う。
+- `input.summary: "expansion"`は属性と本文のエンティティ展開量を検証する。
+  - 入力: 1万文字の内部エンティティを使い、`attributes`個の属性、`text`個の本文参照、`padding`文字のコメントを生成する。
+  - 出力: dictは属性と本文の文字数、prettyはinvalid token判定と文字数。生成式は`gen/fixtures.py`と`tests/markup.rs`に置く。
+- `input.summary: "depth"`は`depth`個のrまたはdivを入れ子にし、末端をxにする。
+  - 出力: XML dictは深さと末端値、prettyはinvalid token判定と文字数。
+- `input.serialize: true`はdictをJSON保存するところまでPythonで実行する。
+  - 対象: plaintextの循環オブジェクトによるValueErrorを記録する。
 
 ## ハーネスの自己検証
 

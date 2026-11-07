@@ -127,121 +127,524 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 未決
 
-- HTML/XMLの先行実装で確認した差異。
-  - 状態: 許容を決定したものではない。以下の4種類・7fixtureを`tests/markup_differences.json`でRustの現出力として固定し、Python期待値との不一致も検証する。
-  - 検証範囲: markupの110fixture中103件はPythonと完全一致。既存16件の期待値は変更していない。
-  - 実装: `markup::html::{to_dict, pretty}`、`markup::xml::{to_dict, pretty}`。デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
-  - 境界: encoding、force、レスポンス種別による適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照先と比較結果を検証し、テンプレートエンジン自体の統合はまだ行わない。
+- HTML/XMLの先行実装では203fixture中168件がPythonと完全一致する。
+  - 差異: 以下の35件は許容を決定したものではない。`tests/markup_differences.json`にRustの現出力を固定し、Python期待値との不一致も検証する。
+  - 維持: レビュー前の110件のPython期待値は変更していない。
+- APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
+  - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
+  - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
+- table内テキストの移動と不正なインラインタグの複製は修正済み。
+  - 検証: 以前の4差異fixtureもPython期待値と一致する。
 
-### HTMLのtable内テキスト移動
-
-- 入力: `<table>before<tr><td>x</td></tr>after</table>`
-- 理由: html5everのHTML5 foster parentingはtable内の不正なテキストをtableの前へ移す。lxmlはtable内に残す。補完済みDOMから元の位置を復元できないため、個別入力への書き換えは行わない。
-- fixture: `html/table-foster-parenting`、`html/dump-table-foster-parenting`。
-
-dictのPython出力:
-
-```json
-{"html":{"body":{"table":{"##value":"before\n   \n   after","tr":{"td":{"##value":"x"}}}}}}
-```
-
-dictのRust出力:
-
-```json
-{"html":{"body":{"##value":"beforeafter","table":{"tr":{"td":{"##value":"x"}}}}}}
-```
-
-dumpのPython出力をJSON文字列で表現:
-
-```json
-"<html>\n <body>\n  <table>\n   before\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n   after\n  </table>\n </body>\n</html>\n"
-```
-
-dumpのRust出力をJSON文字列で表現:
-
-```json
-"<html>\n <body>\n  beforeafter\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
-```
-
-### HTMLの不正なインラインタグの回復
-
-- 入力: `<p><b>bold<i>both</b>italic</i></p>`
-- 理由: html5everのHTML5 adoption agency algorithmは閉じたbの後でiを再構築する。lxmlはitalicをp直下のテキストにする。この回復アルゴリズムの置き換えは先行実装の対象に含めていない。
-- fixture: `html/misnested-formatting`、`html/dump-misnested-formatting`。
-
-dictのPython出力:
-
-```json
-{"html":{"body":{"p":{"##value":"italic","b":{"##value":"bold","i":{"##value":"both"}}}}}}
-```
-
-dictのRust出力:
-
-```json
-{"html":{"body":{"p":{"b":{"##value":"bold","i":{"##value":"both"}},"i":{"##value":"italic"}}}}}
-```
-
-dumpのPython出力をJSON文字列で表現:
-
-```json
-"<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   italic\n  </p>\n </body>\n</html>\n"
-```
-
-dumpのRust出力をJSON文字列で表現:
-
-```json
-"<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   <i>\n    italic\n   </i>\n  </p>\n </body>\n</html>\n"
-```
+以下の出力はfixtureと同じ`value`または`error`のJSONで示す。dump文字列の改行・空白はJSONエスケープで保持する。
 
 ### XMLのDTD既定属性
 
 - 入力: `<!DOCTYPE r [<!ATTLIST r a CDATA "default">]><r/>`
-- 理由: quick-xmlはDTDをDocTypeイベントとして渡す。属性宣言を解釈して既定値を補う機能は今回のイベント処理に含めていない。一般エンティティ宣言の読み取りと、DTDの属性型・既定値の解釈は別の処理になる。
-- fixture: `xml/dtd-default-attribute`、`xml/dump-dtd-default-attribute`。
-- dictのPython出力: `{"r":{"@a":"default"}}`
-- dictのRust出力: `{"r":null}`
+- 理由: DTDのATTLIST既定値を補完しない。
 
-dumpのPython出力をJSON文字列で表現:
+dictのPython出力:
 
 ```json
-"<?xml version=\"1.0\" ?>\n<r a=\"default\"/>\n"
+{"value":{"r":{"@a":"default"}}}
 ```
 
-dumpのRust出力をJSON文字列で表現:
+dictのRust出力:
 
 ```json
-"<?xml version=\"1.0\" ?>\n<r/>\n"
+{"value":{"r":null}}
 ```
 
-### XMLのタグを含むDTDエンティティ
+prettyのPython出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r a=\"default\"/>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r/>\n"}
+```
+
+### XMLのDTD #FIXED属性
+
+- 入力: `<!DOCTYPE r [<!ATTLIST r a CDATA #FIXED "fixed">]><r/>`
+- 理由: DTDのATTLIST #FIXED値を補完しない。
+
+dictのPython出力:
+
+```json
+{"value":{"r":{"@a":"fixed"}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"r":null}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r a=\"fixed\"/>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r/>\n"}
+```
+
+### XMLのタグを含むエンティティのdump
 
 - 入力: `<!DOCTYPE r [<!ENTITY x "<c>hello</c>">]><r>&x;</r>`
-- 理由: dumpは内部エンティティを文字列として展開する。ElementTreeのように展開先をXMLイベントとして再パースして要素にする処理は含めていない。文字列だけの内部エンティティと入れ子の参照は一致する。
-- fixture: `xml/dump-markup-entity`。
-- dict出力は両方とも`{"r":null}`で一致する。
-  - 理由: xmltodictは本文の一般エンティティ展開を無効にしている。
+- 理由: エンティティ置換内のタグを要素として再パースしない。
 
-dumpのPython出力をJSON文字列で表現:
+prettyのPython出力:
 
 ```json
-"<?xml version=\"1.0\" ?>\n<r>\n    <c>hello</c>\n</r>\n"
+{"value":"<?xml version=\"1.0\" ?>\n<r>\n    <c>hello</c>\n</r>\n"}
 ```
 
-dumpのRust出力をJSON文字列で表現:
+prettyのRust出力:
 
 ```json
-"<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"
+{"value":"<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"}
 ```
+
+### XMLの非ASCII要素名のdump
+
+- 入力: `<日本語>本文</日本語>`
+- 理由: PythonのElementTree→minidom経路は非ASCII要素名でExpatErrorになる。
+
+prettyのPython出力:
+
+```json
+{"error":"ExpatError"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<日本語>本文</日本語>\n"}
+```
+
+### XMLのエンティティ値中の`&#38;`
+
+- 入力: `<!DOCTYPE r [<!ENTITY x "&#38;amp;">]><r a="&x;">&x;</r>`
+- 理由: エンティティ宣言中の`&#38;`を展開後に再解釈する段階が異なる。
+
+dictのPython出力:
+
+```json
+{"value":{"r":{"@a":"&"}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"r":{"@a":"&amp;"}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r a=\"&amp;\">&amp;</r>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<?xml version=\"1.0\" ?>\n<r a=\"&amp;amp;\">&amp;amp;</r>\n"}
+```
+
+### HTMLのコメント前後の空白
+
+- 入力: `<p>a<!--  comment  -->b</p>`
+- 理由: dump/htmlでコメント前後の空白をtrimする。
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <!--  comment  -->\n   b\n  </p>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <!--comment-->\n   b\n  </p>\n </body>\n</html>\n"}
+```
+
+### HTMLの空コメント
+
+- 入力: `<p>a<!---->b</p>`
+- 理由: dump/htmlで空コメントに空白を補わない。
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <!-- -->\n   b\n  </p>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <p>\n   a\n   <!---->\n   b\n  </p>\n </body>\n</html>\n"}
+```
+
+### HTMLのSVG名の大小
+
+- 入力: `<svg viewBox="0 0 10 10"><linearGradient/></svg>`
+- 理由: HTML5はSVGの要素名・属性名をキャメルケースへ補正する。
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <svg viewbox=\"0 0 10 10\">\n   <lineargradient>\n   </lineargradient>\n  </svg>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <svg viewBox=\"0 0 10 10\">\n   <linearGradient>\n   </linearGradient>\n  </svg>\n </body>\n</html>\n"}
+```
+
+### HTMLのMathML名の大小
+
+- 入力: `<math definitionURL="x"><mi>x</mi></math>`
+- 理由: HTML5はMathMLの属性名をキャメルケースへ補正する。
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <math definitionurl=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <math definitionURL=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: h1内のh2
+
+- 入力: `<h1>a<h2>b</h2>c</h1>`
+- 理由: HTML5はh2開始時にh1を閉じる。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"h1":{"##value":"a\n   \n   c","h2":{"##value":"b"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"c","h1":{"##value":"a"},"h2":{"##value":"b"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <h1>\n   a\n   <h2>\n    b\n   </h2>\n   c\n  </h1>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <h1>\n   a\n  </h1>\n  <h2>\n   b\n  </h2>\n  c\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: 入れ子のform
+
+- 入力: `<form id="a"><form id="b">x</form>y</form>`
+- 理由: HTML5は入れ子のform開始タグを無視する。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"##value":"y","form":[{"#id":"a"},{"##value":"x","#id":"b"}]}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"y","form":{"##value":"x","#id":"a"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <form id=\"a\">\n  </form>\n  <form id=\"b\">\n   x\n  </form>\n  y\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <form id=\"a\">\n   x\n  </form>\n  y\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: table内のform
+
+- 入力: `<table><form><input name="x"></form></table>`
+- 理由: HTML5はtable内のformを即座に閉じる。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"table":{"form":{"input":{"##value":"","#name":"x"}}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"table":{"form":{},"input":{"##value":"","#name":"x"}}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <table>\n   <form>\n    <input name=\"x\"/>\n   </form>\n  </table>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <table>\n   <form>\n   </form>\n   <input name=\"x\"/>\n  </table>\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: table外のtr・td
+
+- 入力: `<tr><td>x</td></tr>`
+- 理由: HTML5はtable外のtr・tdを無視する。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"tr":{"td":{"##value":"x"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"x"}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <tr>\n   <td>\n    x\n   </td>\n  </tr>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  x\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: image
+
+- 入力: `<image src="x">after`
+- 理由: HTML5はimageをimgとして扱う。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"image":{"##value":"after","#src":"x"}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"after","img":{"##value":"","#src":"x"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <image src=\"x\">\n   after\n  </image>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <img src=\"x\"/>\n  after\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: isindex
+
+- 入力: `<isindex prompt="x">after`
+- 理由: isindexの空要素判定がlxmlと異なる。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"##value":"after","isindex":{"##value":"","#prompt":"x"}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"isindex":{"##value":"after","#prompt":"x"}}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <isindex prompt=\"x\"/>\n  after\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <isindex prompt=\"x\">\n   after\n  </isindex>\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: 入れ子のnobr
+
+- 入力: `<nobr>a<nobr>b</nobr>c</nobr>`
+- 理由: HTML5はnobrの入れ子を解除する。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"nobr":{"##value":"a\n   \n   c","nobr":{"##value":"b"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"c","nobr":[{"##value":"a"},{"##value":"b"}]}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <nobr>\n   a\n   <nobr>\n    b\n   </nobr>\n   c\n  </nobr>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body>\n  <nobr>\n   a\n  </nobr>\n  <nobr>\n   b\n  </nobr>\n  c\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: 2つ目のbody
+
+- 入力: `<body id="first">a<body class="second">b</body>`
+- 理由: HTML5は2つ目のbodyの属性を最初のbodyへ合流する。
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"##value":"ab","#id":"first"}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"##value":"ab","#class":"second","#id":"first"}}}}
+```
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body id=\"first\">\n  ab\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <body class=\"second\" id=\"first\">\n  ab\n </body>\n</html>\n"}
+```
+
+### HTML5の木構造: plaintext
+
+- 入力: `<plaintext>a<b>b</b>`
+- 理由: Pythonのdictは`__parent__`を残す循環参照になり、JSON保存でValueErrorになる。
+- 観測: Pythonのdictは循環オブジェクトを返す。fixtureの`serialize: true`でJSON保存まで実行した結果を示す。dumpは一致する。
+
+dictのPython出力:
+
+```json
+{"error":"ValueError"}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"body":{"plaintext":{"##value":"a<b>b</b>"}}}}}
+```
+
+### HTMLのbody開始前のtemplate
+
+- 入力: `<template><p>x</p></template>`
+- 理由: body開始前のtemplateをHTML5はheadへ配置する。
+
+prettyのPython出力:
+
+```json
+{"value":"<html>\n <body>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </body>\n</html>\n"}
+```
+
+prettyのRust出力:
+
+```json
+{"value":"<html>\n <head>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </head>\n</html>\n"}
+```
+
+dictのPython出力:
+
+```json
+{"value":{"html":{"body":{"template":{"p":{"##value":"x"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"value":{"html":{"head":{"template":{"p":{"##value":"x"}}}}}}
+```
+
+### HTML/XMLの深さ上限
+
+- RustはXMLを1000要素まで、HTMLをルートのhtmlを0とする深さ1000まで処理する。
+  - HTMLの例: bodyが補完されるdivの入れ子は999個まで成功する。
+  - エラー: XMLのdictはExpatError相当、dumpは`Include invalid token\n\n        {input}\n        `、HTMLは`LimitExceeded`を返す。
+- PythonのXML dictは1001要素でも成功する。XML dumpは999要素以上の実測で`RecursionError`となる。
+- PythonのHTML dumpは1001個のdivでも成功する。
+- fixtureは深さ1000・1001の比較を明示する。
+  - 入力生成: XMLは`"<r>" * depth + "x" + "</r>" * depth`、HTMLは`"<div>" * depth + "x" + "</div>" * depth`。
+  - 出力要約: dictはrを辿った深さと末端値、dumpはinvalid token判定と文字数。巨大な整形文字列そのものはfixtureに格納しない。
+  - 理由: Pythonの再帰上限とRustの明示上限は異なる。以下の4差異の扱いは未決。
+
+- 入力パラメーター: `{"format":"xml","operation":"dict","summary":"depth","depth":1001}`
+  - Python: `{"value":{"depth":1001,"leaf":"x"}}`
+  - Rust: `{"error":"ExpatError"}`
+- 入力パラメーター: `{"format":"xml","operation":"pretty","summary":"depth","depth":1000}`
+  - Python: `{"error":"RecursionError"}`
+  - Rust: `{"value":{"invalid":false,"length":4001027}}`
+- 入力パラメーター: `{"format":"xml","operation":"pretty","summary":"depth","depth":1001}`
+  - Python: `{"error":"RecursionError"}`
+  - Rust: `{"value":{"invalid":true,"length":7048}}`
+- 入力パラメーター: `{"format":"html","operation":"pretty","summary":"depth","depth":1000}`
+  - Python: `{"value":{"invalid":false,"length":1017036}}`
+  - Rust: `{"error":"LimitExceeded"}`
 
 ### HTML/XMLの残る検証範囲
 
-- 全HTMLのlxml互換や、DTD全体の互換を保証するものではない。
-  - 未対応: DTDのパラメーターエンティティ。現在は不正XMLとして扱う。
-- 深い木とエンティティの展開にはRust側で上限を設けている。
-  - 現状: XMLは256要素、HTMLはルートを0とする深さ256、エンティティ再帰は32、展開文字列は1,000,000 UTF-8 bytesを上限として`LimitExceeded`を返す。Python側の制限との一致は未確定。
-  - 検証: 深い木と循環エンティティがスタック枯渇せずエラーになることをRustテストで確認する。
-- 外部エンティティは読み込まない。
-  - 検証: 外部参照fixtureはdictでnull、dumpで`Include invalid token`となりPythonと一致する。
+- 全HTMLのlxml互換やDTD全体の互換を保証するものではない。
+- XMLの一般エンティティ展開量は、本文と全属性で1つのカウンタを共有する。
+  - 判定: 消費入力と間接展開の合計が8MiBを超え、消費入力の100倍も超えた場合にエラーにする。
+  - 根拠: [Expatの増幅率と有効化閾値](https://libexpat.github.io/doc/api/latest/#XML_SetBillionLaughsAttackProtectionMaximumAmplification)。
+  - 精度: 消費入力はquick-xmlのイベント終端で計測する。Expatのバイト単位の境界判定まで同一とは保証しない。
+  - 検証: 7MB属性、9MB属性、属性と本文の合算、本文のみ、低増幅率の9MB属性をdictとdumpの10fixtureで比較する。
+  - dict本文: xmltodictに合わせて一般エンティティ展開を無効にする。この経路の本文は展開量に加算しない。
+  - 上限: エンティティ再帰は1000まで。循環はエラーとする。
+- 外部DTD・外部エンティティはネットワークやファイルから読み込まない。
+  - 互換: SYSTEM/PUBLIC付き外部DTDで未定義参照がある場合、dictは空にし、dumpはinvalid token文字列を返す。
+- DTD内のパラメーターエンティティ宣言は読み飛ばす。
+  - 境界: DTD全体やパラメーターエンティティの展開を実装したものではない。
 
 ### その他の未決
 

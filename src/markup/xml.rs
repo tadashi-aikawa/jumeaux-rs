@@ -63,31 +63,103 @@ impl Element {
 }
 
 // 外部エンティティはNone。どの経路でもネットワーク・ファイルを参照しない。
-type Entities = HashMap<String, Option<String>>;
+#[derive(Default)]
+struct Entities {
+    values: HashMap<String, Option<String>>,
+    external_dtd: bool,
+}
+
+#[derive(Default)]
+struct ExpansionBudget {
+    direct: usize,
+    indirect: usize,
+    active: std::collections::HashSet<String>,
+}
+
+impl ExpansionBudget {
+    fn charge(&mut self, bytes: usize) -> Result<(), Error> {
+        self.indirect = self.indirect.saturating_add(bytes);
+        let total = self.direct.saturating_add(self.indirect);
+        if total > 8 * 1024 * 1024 && total > self.direct.saturating_mul(100) {
+            return Err(Error::LimitExceeded);
+        }
+        Ok(())
+    }
+}
+
+// 宣言内の引用符に囲まれた>は終端ではない。
+fn declaration_end(input: &str) -> Result<usize, Error> {
+    let mut quote = None;
+    for (index, c) in input.char_indices() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => {}
+            None if matches!(c, '\'' | '"') => quote = Some(c),
+            None if c == '>' => return Ok(index),
+            _ => {}
+        }
+    }
+    Err(Error::InvalidXml)
+}
 
 fn entities_from_doctype(doctype: &str) -> Result<Entities, Error> {
-    let mut entities = Entities::new();
+    let mut entities = Entities::default();
+    let header = doctype.trim_start();
+    let name_end = header.find(char::is_whitespace).unwrap_or(header.len());
+    let external = header[name_end..].trim_start();
+    entities.external_dtd = ["SYSTEM", "PUBLIC"].iter().any(|keyword| {
+        external
+            .strip_prefix(keyword)
+            .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+    });
     let mut remaining = doctype;
-    while let Some(start) = remaining.find("<!ENTITY") {
-        remaining = &remaining[start + 8..];
-        let declaration = remaining.trim_start();
+    while !remaining.is_empty() {
+        if remaining.starts_with("<!--") {
+            let end = remaining.find("-->").ok_or(Error::InvalidXml)?;
+            remaining = &remaining[end + 3..];
+            continue;
+        }
+        if remaining.starts_with("<?") {
+            let end = remaining.find("?>").ok_or(Error::InvalidXml)?;
+            remaining = &remaining[end + 2..];
+            continue;
+        }
+        if remaining.starts_with(['\'', '"']) {
+            let quote = remaining.chars().next().unwrap();
+            let end = remaining[1..].find(quote).ok_or(Error::InvalidXml)? + 1;
+            remaining = &remaining[end + 1..];
+            continue;
+        }
+        if !remaining.starts_with("<!") {
+            remaining = &remaining[remaining.chars().next().unwrap().len_utf8()..];
+            continue;
+        }
+        let end = declaration_end(remaining)?;
+        let declaration = &remaining[2..end];
+        remaining = &remaining[end + 1..];
+        let Some(declaration) = declaration
+            .strip_prefix("ENTITY")
+            .filter(|s| s.starts_with(char::is_whitespace))
+        else {
+            continue;
+        };
+        let declaration = declaration.trim_start();
+        if declaration.starts_with('%') {
+            continue;
+        }
         let end = declaration
             .find(char::is_whitespace)
             .ok_or(Error::InvalidXml)?;
         let name = &declaration[..end];
         let value = declaration[end..].trim_start();
-        if name == "%" {
-            return Err(Error::InvalidXml);
-        }
         if let Some(quote) = value.chars().next().filter(|c| matches!(c, '\'' | '"')) {
             let end = value[1..].find(quote).ok_or(Error::InvalidXml)? + 1;
             entities
+                .values
                 .entry(name.into())
                 .or_insert_with(|| Some(value[1..end].into()));
-            remaining = &value[end + 1..];
         } else if value.starts_with("SYSTEM") || value.starts_with("PUBLIC") {
-            entities.entry(name.into()).or_insert(None);
-            remaining = value;
+            entities.values.entry(name.into()).or_insert(None);
         } else {
             return Err(Error::InvalidXml);
         }
@@ -95,8 +167,14 @@ fn entities_from_doctype(doctype: &str) -> Result<Entities, Error> {
     Ok(entities)
 }
 
-fn reference(name: &str, entities: &Entities, expand: bool, depth: usize) -> Result<String, Error> {
-    if depth > 32 {
+fn reference(
+    name: &str,
+    entities: &Entities,
+    expand: bool,
+    depth: usize,
+    budget: &mut ExpansionBudget,
+) -> Result<String, Error> {
+    if depth > MAX_DEPTH {
         return Err(Error::LimitExceeded);
     }
     if let Some(number) = name.strip_prefix('#') {
@@ -114,14 +192,28 @@ fn reference(name: &str, entities: &Entities, expand: bool, depth: usize) -> Res
     if let Some(value) = quick_xml::escape::resolve_xml_entity(name) {
         return Ok(value.into());
     }
-    match entities.get(name) {
+    match entities.values.get(name) {
         Some(_) if !expand => Ok(String::new()),
-        Some(Some(value)) => unescape(value, entities, depth + 1),
+        Some(Some(value)) => {
+            if !budget.active.insert(name.into()) {
+                return Err(Error::InvalidXml);
+            }
+            budget.charge(value.len())?;
+            let result = unescape(value, entities, depth + 1, budget);
+            budget.active.remove(name);
+            result
+        }
+        None if entities.external_dtd => Ok(String::new()),
         _ => Err(Error::InvalidXml),
     }
 }
 
-fn unescape(input: &str, entities: &Entities, depth: usize) -> Result<String, Error> {
+fn unescape(
+    input: &str,
+    entities: &Entities,
+    depth: usize,
+    budget: &mut ExpansionBudget,
+) -> Result<String, Error> {
     let mut remaining = input;
     let mut output = String::new();
     while let Some(start) = remaining.find('&') {
@@ -132,10 +224,8 @@ fn unescape(input: &str, entities: &Entities, depth: usize) -> Result<String, Er
             entities,
             true,
             depth,
+            budget,
         )?);
-        if output.len() > 1_000_000 {
-            return Err(Error::LimitExceeded);
-        }
         remaining = &remaining[end + 1..];
     }
     output.push_str(remaining);
@@ -155,6 +245,7 @@ fn valid_name(name: &str) -> bool {
 }
 
 fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input);
     if !input.chars().all(valid_char) {
         return Err(Error::InvalidXml);
     }
@@ -162,15 +253,17 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
     reader.config_mut().enable_all_checks(true);
     let mut stack: Vec<Element> = Vec::new();
     let mut root = None;
-    let mut entities = Entities::new();
+    let mut entities = Entities::default();
     let mut doctype_seen = false;
     let mut declaration_seen = false;
-    let mut expanded_bytes = 0;
+    let mut budget = ExpansionBudget::default();
     loop {
-        match reader.read_event().map_err(|_| Error::InvalidXml)? {
+        let start_position = reader.buffer_position();
+        let event = reader.read_event().map_err(|_| Error::InvalidXml)?;
+        budget.direct = reader.buffer_position() as usize;
+        let empty = matches!(event, Event::Empty(_));
+        match event {
             Event::Start(start) | Event::Empty(start) => {
-                // read_eventの直後の入力末尾で空要素を判定する。属性内の/>には影響されない。
-                let empty = input[..reader.buffer_position() as usize].ends_with("/>");
                 if stack.len() >= MAX_DEPTH {
                     return Err(Error::LimitExceeded);
                 }
@@ -196,7 +289,7 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
                         return Err(Error::InvalidXml);
                     }
                     let normalized = raw.replace("\r\n", " ").replace(['\r', '\n', '\t'], " ");
-                    let value = unescape(&normalized, &entities, 0)?;
+                    let value = unescape(&normalized, &entities, 0, &mut budget)?;
                     attrs.push((name.into(), value));
                 }
                 let element = Element {
@@ -233,11 +326,7 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
             }
             Event::GeneralRef(name) => {
                 let name = name.decode().map_err(|_| Error::InvalidXml)?;
-                let value = reference(&name, &entities, expand_entities, 0)?;
-                expanded_bytes += value.len();
-                if expanded_bytes > 1_000_000 {
-                    return Err(Error::LimitExceeded);
-                }
+                let value = reference(&name, &entities, expand_entities, 0, &mut budget)?;
                 stack.last_mut().ok_or(Error::InvalidXml)?.text(&value);
             }
             Event::DocType(text) => {
@@ -246,9 +335,12 @@ fn parse(input: &str, expand_entities: bool) -> Result<Element, Error> {
                 }
                 doctype_seen = true;
                 entities = entities_from_doctype(&text.decode().map_err(|_| Error::InvalidXml)?)?;
+                // xmltodictは外部DTD中の未定義参照を無視し、ElementTreeはエラーにする。
+                entities.external_dtd &= !expand_entities;
             }
             Event::Decl(decl) => {
-                if declaration_seen
+                if start_position != 0
+                    || declaration_seen
                     || doctype_seen
                     || root.is_some()
                     || !stack.is_empty()
@@ -285,7 +377,13 @@ fn attach(
 
 /// res2dict/xmlの辞書。DTDの一般エンティティは本文では展開しない。
 pub fn to_dict(input: &str) -> Result<Value, Error> {
-    let root = parse(input, false)?;
+    let root = parse(input, false).map_err(|error| {
+        if error == Error::LimitExceeded {
+            Error::InvalidXml
+        } else {
+            error
+        }
+    })?;
     let mut value = Map::new();
     value.insert(root.name.clone(), root.dict());
     Ok(Value::Object(value))
@@ -443,7 +541,7 @@ pub fn pretty(input: &str) -> Result<String, Error> {
         Ok(output)
     })();
     match result {
-        Err(Error::InvalidXml) => Ok(format!(
+        Err(Error::InvalidXml | Error::LimitExceeded) => Ok(format!(
             "Include invalid token\n\n        {input}\n        "
         )),
         result => result,

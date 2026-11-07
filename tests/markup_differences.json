@@ -2,50 +2,429 @@
   {
     "format": "html",
     "operation": "dict",
-    "name": "table-foster-parenting",
-    "reason": "HTML5はtable内のテキストをtableの前へ移す。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": {"html": {"body": {"##value": "beforeafter", "table": {"tr": {"td": {"##value": "x"}}}}}}}
+    "name": "head-template",
+    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "head": {
+            "template": {
+              "p": {
+                "##value": "x"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   {
     "format": "html",
     "operation": "dict",
-    "name": "misnested-formatting",
-    "reason": "HTML5のadoption agency algorithmがi要素を再構築する。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": {"html": {"body": {"p": {"b": {"##value": "bold", "i": {"##value": "both"}}, "i": {"##value": "italic"}}}}}}
+    "name": "image-alias",
+    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "after",
+            "img": {
+              "##value": "",
+              "#src": "x"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "isindex",
+    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "isindex": {
+              "##value": "after",
+              "#prompt": "x"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "nested-form",
+    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "y",
+            "form": {
+              "##value": "x",
+              "#id": "a"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "nested-headings",
+    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "c",
+            "h1": {
+              "##value": "a"
+            },
+            "h2": {
+              "##value": "b"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "nested-nobr",
+    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "c",
+            "nobr": [
+              {
+                "##value": "a"
+              },
+              {
+                "##value": "b"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "orphan-table-elements",
+    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "x"
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "plaintext",
+    "reason": "Pythonのdictは__parent__を残す循環参照になり、JSON保存でValueErrorになる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "plaintext": {
+              "##value": "a<b>b</b>"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "second-body",
+    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "##value": "ab",
+            "#class": "second",
+            "#id": "first"
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "table-form",
+    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "html": {
+          "body": {
+            "table": {
+              "form": {},
+              "input": {
+                "##value": "",
+                "#name": "x"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-comment-padding",
+    "reason": "dump/htmlでコメント前後の空白をtrimする。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <!--comment-->\n   b\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-empty-comment",
+    "reason": "dump/htmlで空コメントに空白を補わない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <p>\n   a\n   <!---->\n   b\n  </p>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-head-template",
+    "reason": "body開始前のtemplateをHTML5はheadへ配置する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <head>\n  <template>\n   <p>\n    x\n   </p>\n  </template>\n </head>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-image-alias",
+    "reason": "HTML5はimageをimgとして扱う。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <img src=\"x\"/>\n  after\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-isindex",
+    "reason": "isindexの空要素判定がlxmlと異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <isindex prompt=\"x\">\n   after\n  </isindex>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-mathml-case",
+    "reason": "HTML5はMathMLの属性名をキャメルケースへ補正する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <math definitionURL=\"x\">\n   <mi>\n    x\n   </mi>\n  </math>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-nested-form",
+    "reason": "HTML5は入れ子のform開始タグを無視する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <form id=\"a\">\n   x\n  </form>\n  y\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-nested-headings",
+    "reason": "HTML5はh2開始時にh1を閉じる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <h1>\n   a\n  </h1>\n  <h2>\n   b\n  </h2>\n  c\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-nested-nobr",
+    "reason": "HTML5はnobrの入れ子を解除する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <nobr>\n   a\n  </nobr>\n  <nobr>\n   b\n  </nobr>\n  c\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-orphan-table-elements",
+    "reason": "HTML5はtable外のtr・tdを無視する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  x\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-second-body",
+    "reason": "HTML5は2つ目のbodyの属性を最初のbodyへ合流する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body class=\"second\" id=\"first\">\n  ab\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-svg-case",
+    "reason": "HTML5はSVGの要素名・属性名をキャメルケースへ補正する。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <svg viewBox=\"0 0 10 10\">\n   <linearGradient>\n   </linearGradient>\n  </svg>\n </body>\n</html>\n"
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-table-form",
+    "reason": "HTML5はtable内のformを即座に閉じる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<html>\n <body>\n  <table>\n   <form>\n   </form>\n   <input name=\"x\"/>\n  </table>\n </body>\n</html>\n"
+    }
   },
   {
     "format": "xml",
     "operation": "dict",
     "name": "dtd-default-attribute",
-    "reason": "quick-xmlのイベントにはDTDの既定属性が反映されない。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": {"r": null}}
-  },
-  {
-    "format": "html",
-    "operation": "pretty",
-    "name": "dump-table-foster-parenting",
-    "reason": "HTML5はtable内のテキストをtableの前へ移す。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": "<html>\n <body>\n  beforeafter\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"}
-  },
-  {
-    "format": "html",
-    "operation": "pretty",
-    "name": "dump-misnested-formatting",
-    "reason": "HTML5のadoption agency algorithmがi要素を再構築する。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": "<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   <i>\n    italic\n   </i>\n  </p>\n </body>\n</html>\n"}
+    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
   },
   {
     "format": "xml",
-    "operation": "pretty",
-    "name": "dump-markup-entity",
-    "reason": "DTDの置換テキストを文字列として展開するため、置換内のタグは要素にならない。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": "<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"}
+    "operation": "dict",
+    "name": "dtd-fixed-attribute",
+    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "r": null
+      }
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "dict",
+    "name": "entity-amp-number",
+    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "r": {
+          "@a": "&amp;"
+        }
+      }
+    }
   },
   {
     "format": "xml",
     "operation": "pretty",
     "name": "dump-dtd-default-attribute",
-    "reason": "quick-xmlのイベントにはDTDの既定属性が反映されない。docs/compat-spec.mdの未決を参照。",
-    "expected": {"value": "<?xml version=\"1.0\" ?>\n<r/>\n"}
+    "reason": "DTDのATTLIST既定値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-dtd-fixed-attribute",
+    "reason": "DTDのATTLIST #FIXED値を補完しない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r/>\n"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-entity-amp-number",
+    "reason": "エンティティ宣言中の&#38;を展開後に再解釈する段階が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r a=\"&amp;amp;\">&amp;amp;</r>\n"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-markup-entity",
+    "reason": "エンティティ置換内のタグを要素として再パースしない。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-non-ascii-element",
+    "reason": "PythonのElementTree→minidom経路は非ASCII要素名でExpatErrorになる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": "<?xml version=\"1.0\" ?>\n<日本語>本文</日本語>\n"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "dict",
+    "name": "depth-1001",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "error": "ExpatError"
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "depth-1000",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "invalid": false,
+        "length": 4001027
+      }
+    }
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "depth-1001",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "value": {
+        "invalid": true,
+        "length": 7048
+      }
+    }
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "depth-1000",
+    "reason": "Rustの深さ上限とPythonの再帰上限が異なる。docs/compat-spec.mdの未決を参照。",
+    "expected": {
+      "error": "LimitExceeded"
+    }
   }
 ]

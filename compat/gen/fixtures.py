@@ -55,6 +55,14 @@ def outcome(function):
         return {"error": type(error).__name__}
 
 
+def serializable_html_to_dict(body):
+    value = html_to_dict(body)
+    # plaintextではHTMLToDictParserの__parent__が残り循環する。
+    # one-props保存時のエラーまで観測し、循環オブジェクトをfixtureへ流さない。
+    json.dumps(value)
+    return value
+
+
 def response(body=b"abc", encoding="utf-8", kind="plain", status=200):
     return Response.from_dict({
         "body": body, "encoding": encoding, "type": kind,
@@ -128,9 +136,40 @@ def main():
         ("unicode-whitespace", '<p>\u00a0</p><p>a\u0085</p>'),
         ("script-style-entities", '<script>var x="&amp;";</script><style>a>b { content: "&amp;"; }</style>'),
         ("quoted-attribute", '<p title="a &quot;quote&quot; and &apos;apostrophe&apos;">&notin; &#x1f600;</p>'),
+        ("noscript", '<noscript><p>fallback</p></noscript>'),
+        ("body-noscript", '<body><noscript><b>fallback</b></noscript></body>'),
+        ("head-noscript", '<head><noscript><p>fallback</p></noscript></head>'),
+        ("paragraph-block", '<p>a<div>b</div>c</p>'),
+        ("paragraph-list", '<p>a<ul><li>x</li></ul>b</p>'),
+        ("stray-p-end", '<div>a</p>b</div>'),
+        ("stray-br-end", '<div>a</br>b</div>'),
+        ("paragraph-table", '<!DOCTYPE html><p>a<table><tr><td>x</td></tr></table></p>'),
+        ("formatting-across-paragraphs", '<p><b>x</p><p>y</p>'),
+        ("after-body", '<html><body><p>a</p></body><div>b</div>tail</html>'),
+        ("after-html", '<html><body>a</body></html><p>discard</p>tail'),
+        ("self-closing-div", '<div/>after<p>x</p>'),
+        ("self-closing-script", '<script src="x" /><p>after</p>'),
+        ("body-template", '<body><template><p>x</p></template></body>'),
+        ("comment-padding", '<p>a<!--  comment  -->b</p>'),
+        ("empty-comment", '<p>a<!---->b</p>'),
+        ("svg-case", '<svg viewBox="0 0 10 10"><linearGradient/></svg>'),
+        ("mathml-case", '<math definitionURL="x"><mi>x</mi></math>'),
+        ("nested-headings", '<h1>a<h2>b</h2>c</h1>'),
+        ("nested-form", '<form id="a"><form id="b">x</form>y</form>'),
+        ("table-form", '<table><form><input name="x"></form></table>'),
+        ("orphan-table-elements", '<tr><td>x</td></tr>'),
+        ("image-alias", '<image src="x">after'),
+        ("isindex", '<isindex prompt="x">after'),
+        ("nested-nobr", '<nobr>a<nobr>b</nobr>c</nobr>'),
+        ("second-body", '<body id="first">a<body class="second">b</body>'),
+        ("plaintext", '<plaintext>a<b>b</b>'),
+        ("head-template", '<template><p>x</p></template>'),
     ]
     for name, body in html_cases:
-        add("markup", name, {"format": "html", "body": body}, lambda: html_to_dict(body))
+        data = {"format": "html", "body": body}
+        if name == "plaintext":
+            data["serialize"] = True
+        add("markup", name, data, lambda: serializable_html_to_dict(body))
     xml_cases = [
         ("mixed-text", '<r a="1">before<c/>after</r>'),
         ("namespace", '<r xmlns="urn:default" xmlns:p="urn:test"><p:c p:a="1">x</p:c></r>'),
@@ -161,6 +200,17 @@ def main():
         ("invalid-comment", '<r><!--a--b--></r>'),
         ("unclosed-root", '<r>'),
         ("carriage-return", '<r a="&#13;">a&#13;b\r\nc\rd</r>'),
+        ("bom-declaration", '\ufeff<?xml version="1.0"?><r/>'),
+        ("space-before-declaration", ' <?xml version="1.0"?><r/>'),
+        ("external-dtd", '<!DOCTYPE html SYSTEM "fixture.dtd"><html>&nbsp;</html>'),
+        ("public-dtd", '<!DOCTYPE html PUBLIC "fixture" "fixture.dtd"><html>&nbsp;</html>'),
+        ("parameter-declaration", '<!DOCTYPE r [<!ENTITY % p "unused">]><r/>'),
+        ("dtd-comment", '<!DOCTYPE r [<!-- <!ENTITY x "fake"> -->]><r>&x;</r>'),
+        ("dtd-pi", '<!DOCTYPE r [<?test <!ENTITY x "fake"> ?>]><r>&x;</r>'),
+        ("dtd-quoted", '<!DOCTYPE r [<!ATTLIST r a CDATA #IMPLIED><!ENTITY y \'<!ENTITY x "fake">\'>]><r>&x;</r>'),
+        ("dtd-fixed-attribute", '<!DOCTYPE r [<!ATTLIST r a CDATA #FIXED "fixed">]><r/>'),
+        ("non-ascii-element", '<日本語>本文</日本語>'),
+        ("entity-amp-number", '<!DOCTYPE r [<!ENTITY x "&#38;amp;">]><r a="&x;">&x;</r>'),
     ]
     for name, body in xml_cases:
         add("markup", name, {"format": "xml", "body": body}, lambda: XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get())
@@ -176,6 +226,39 @@ def main():
     for kind, cases, pretty in [("html", html_cases, pretty_html), ("xml", xml_cases, pretty_xml)]:
         for name, body in cases:
             add("markup", "dump-" + name, {"operation": "pretty", "format": kind, "body": body}, lambda: pretty(body))
+
+    # 大きな展開結果は長さで比較する。入力もパラメーター化してfixtureの肥大化を避ける。
+    for name, attrs, text, padding in [
+        ("below-threshold", 700, 0, 0),
+        ("attributes-over-threshold", 900, 0, 0),
+        ("mixed-over-threshold", 450, 450, 0),
+        ("text-over-threshold", 0, 900, 0),
+        ("large-low-amplification", 900, 0, 150000),
+    ]:
+        body = '<!DOCTYPE r [<!ENTITY x "' + 'x' * 10000 + '">]><!--' + 'p' * padding + '--><r>' + '<c a="&x;"/>' * attrs + '&x;' * text + '</r>'
+        for operation in ["dict", "pretty"]:
+            def expansion_summary():
+                if operation == "pretty":
+                    value = pretty_xml(body)
+                    return {"invalid": value.startswith("Include invalid token"), "length": len(value)}
+                value = XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get()["r"] or {}
+                return {"attribute_chars": sum(len(c["@a"]) for c in value.get("c", [])), "text_chars": len(value.get("#text", ""))}
+            add("markup", "expansion-" + name, {"format": "xml", "operation": operation, "summary": "expansion", "attributes": attrs, "text": text, "padding": padding}, expansion_summary)
+
+    for kind, operation, depth in [("xml", "dict", 1000), ("xml", "pretty", 1000), ("xml", "dict", 1001), ("xml", "pretty", 1001), ("html", "pretty", 1000)]:
+        tag = "r" if kind == "xml" else "div"
+        body = f"<{tag}>" * depth + "x" + f"</{tag}>" * depth
+        def depth_summary():
+            if operation == "pretty":
+                value = pretty_xml(body) if kind == "xml" else pretty_html(body)
+                return {"invalid": value.startswith("Include invalid token"), "length": len(value)}
+            value = XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get()
+            measured = 0
+            while isinstance(value, dict) and tag in value:
+                measured += 1
+                value = value[tag]
+            return {"depth": measured, "leaf": value}
+        add("markup", f"depth-{depth}", {"format": kind, "operation": operation, "summary": "depth", "depth": depth}, depth_summary)
 
     unit_utils = imported("tests/test_utils.py")
     for index, (_, expression) in enumerate(params(unit_utils.TestWhenFilter.test_normal)):
