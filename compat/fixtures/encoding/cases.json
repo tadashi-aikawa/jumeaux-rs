@@ -859,6 +859,20 @@
     }
   },
   {
+    "name": "url-mixed-sjis",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=%83A",
+      "candidates": [
+        "utf-8",
+        "sjis"
+      ]
+    },
+    "expected": {
+      "value": "sjis"
+    }
+  },
+  {
     "name": "dump-replacement-question-mark",
     "input": {
       "operation": "dump_html",

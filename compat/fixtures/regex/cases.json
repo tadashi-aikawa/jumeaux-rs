@@ -313,6 +313,18 @@
     }
   },
   {
+    "name": "zero-before-nonoctal",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\08\\09",
+      "target": "a"
+    },
+    "expected": {
+      "value": "\u00008\u00009"
+    }
+  },
+  {
     "name": "empty-match",
     "input": {
       "operation": "sub",

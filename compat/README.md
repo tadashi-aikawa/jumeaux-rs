@@ -83,6 +83,10 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - retryのヘッダ判定設定は保存形式が未決。
   - 条件: `original_config` は意味上の入力契約を示す。旧reportだけから復元できることは主張しない。
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
+- Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
+  - 件数: template 103、regex 35、encoding 79。既存ケースの期待値は保持し、不足した境界ケースを追加した。
+  - 差異: encodingの`detect-euc`は未決差異としてPython期待値とRust結果を両方assertする。
+  - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
   - 出力: `python-baseline/unit-tests.*`、版一覧、lock、README。
   - 再生成: `--output /tmp/jumeaux-new-baseline` を指定する。既存の環境情報があれば、既定先でも明示先でも上書きを拒否する。

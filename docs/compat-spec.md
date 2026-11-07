@@ -127,6 +127,16 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 未決
 
+- 文字コード推定器の差をどこまで許容するか。
+  - 実測: `encoding/detect-euc`はPython charset-normalizerが`euc_jis_2004`、Rust chardetngが`EUC-JP`を返す。元の期待値は変えず、Rustの差異をテスト内で明示する。
+  - 制限: chardetngはJIS X 0213のcodecを推定しない。同名への機械的な置換で一致扱いにはしない。
+  - 詳細: [文字コードの互換境界](encoding.md)
+- encoding_rsのencodeを直接使う場合の差異。
+  - 差異: 表現できない文字はPythonの`?`と異なり数値文字参照になる。UTF-16のencodeも提供しない。
+  - 現実装: 互換アダプターで`?`置換とUTF-16のendian・BOMを補い、fixtureでは一致する。ライブラリの差をそのまま許容する決定はしていない。
+- Python固有codecと、Encoding Standardの対応表の外側の扱い。
+  - 現実装: UTF-32・EUC-JIS-2004等はLookupError。主要codecの対応範囲・別名は[文字コード表](encoding.md#codecと別名)に固定する。
+  - 制限: 主要codecでも全Unicode対応表・全不正bytes列の網羅互換は未検証。
 - clapが追加する `help` サブコマンドを残すか。
 - clapの `-V` を残すか。
 - `--version` の出力形式。

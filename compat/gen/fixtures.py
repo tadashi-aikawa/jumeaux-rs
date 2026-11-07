@@ -188,6 +188,7 @@ def main():
         ("bad-group-no-match", r"(a)", r"\2", "z"),
         ("bad-escape", r"a", r"\q", "a"),
         ("octal-replacement", r"a", r"\101\0", "a"),
+        ("zero-before-nonoctal", r"a", r"\08\09", "a"),
         ("empty-match", r"x*", "-", "abxd"),
         ("empty-then-nonempty", r".*?", "-", "ab"),
         ("unsupported-variable-lookbehind", r"(?<=a+)b", "x", "aab"),
@@ -243,7 +244,7 @@ def main():
     ]:
         payload = DumpAddOnPayload.from_dict({"response": response(body, source), "body": body, "encoding": source})
         add("encoding", name, {"operation": "dump_encoding", "body_hex": body.hex(), "source": source, "destination": dest}, lambda: DumpEncoding({"encoding": dest}).exec(payload).body.hex())
-    for name, query, encodings in [("url-sjis", "q=%93%8c%8b%9e", ["utf-8", "sjis"]), ("url-fallback", "q=%ff", ["utf-8"]), ("url-order", "q=abc", ["euc-jp", "utf-8"]), ("url-blank-skipped", "%ff=", ["utf-8"]), ("url-unknown-codec", "q=%ff", ["no-such-codec"]), ("url-unescaped-unicode", "q=東京", ["ascii"])]:
+    for name, query, encodings in [("url-sjis", "q=%93%8c%8b%9e", ["utf-8", "sjis"]), ("url-fallback", "q=%ff", ["utf-8"]), ("url-order", "q=abc", ["euc-jp", "utf-8"]), ("url-blank-skipped", "%ff=", ["utf-8"]), ("url-unknown-codec", "q=%ff", ["no-such-codec"]), ("url-unescaped-unicode", "q=東京", ["ascii"]), ("url-mixed-sjis", "q=%83A", ["utf-8", "sjis"])]:
         add("encoding", name, {"operation": "guess_url_encoding", "query": query, "candidates": encodings}, lambda: guess_url_encoding(query, TList(encodings)).get())
     body = b"<p>\xff</p>"
     payload = DumpAddOnPayload.from_dict({"response": response(body, "ascii", "html"), "body": body, "encoding": "ascii"})
