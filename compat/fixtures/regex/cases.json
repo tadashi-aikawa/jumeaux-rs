@@ -99,6 +99,28 @@
     }
   },
   {
+    "name": "exact-trailing-newline",
+    "input": {
+      "operation": "exact_match",
+      "target": "123\n",
+      "pattern": "\\d+"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "reg-trailing-newline",
+    "input": {
+      "operation": "reg",
+      "target": "123\n",
+      "pattern": "\\d+"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
     "name": "path-custom",
     "input": {
       "operation": "sub",

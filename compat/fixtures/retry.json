@@ -46,7 +46,7 @@
             }
           ]
         },
-        "key": "d20ca7b966ad0d1324f6ac1ea9c11b08c82b730228c46612add9fdbdab3fa59e",
+        "key": "c30c839d1496d20dc942dc7ac2c05beb20a343a1decd3beca9780ba0526b1c91",
         "summary": {
           "concurrency": {
             "processes": 1,
@@ -74,8 +74,8 @@
           "tags": [],
           "time": {
             "elapsed_sec": 0,
-            "end": "2026-11-07T13:21:11.605150+09:00",
-            "start": "2026-11-07T13:21:11.592821+09:00"
+            "end": "2026-11-07T14:34:34.186868+09:00",
+            "start": "2026-11-07T14:34:34.176115+09:00"
           }
         },
         "title": "Post",
@@ -120,7 +120,7 @@
                 "q1-2"
               ]
             },
-            "request_time": "2026-11-07T13:21:11.593017+09:00",
+            "request_time": "2026-11-07T14:34:34.176303+09:00",
             "seq": 1,
             "status": "same",
             "tags": []
@@ -177,7 +177,7 @@
                 "q2-2"
               ]
             },
-            "request_time": "2026-11-07T13:21:11.599925+09:00",
+            "request_time": "2026-11-07T14:34:34.181205+09:00",
             "seq": 2,
             "status": "different",
             "tags": []
@@ -224,7 +224,7 @@
             "path": "/diff-1.json",
             "queries": {},
             "raw": "a=100&b=200",
-            "request_time": "2026-11-07T13:21:11.602770+09:00",
+            "request_time": "2026-11-07T14:34:34.184032+09:00",
             "seq": 3,
             "status": "different",
             "tags": []
@@ -241,22 +241,80 @@
     },
     "expected": {
       "value": {
-        "raw": "a=100&b=200",
-        "judge_response_header": true,
-        "ignore_response_header_keys": [
-          "X-Ignore"
-        ]
+        "trials": [
+          {
+            "name": "Post x-www-form-urlencoded diff",
+            "raw": null,
+            "form": {
+              "formparam": [
+                "p11",
+                "p12"
+              ]
+            },
+            "json": null
+          },
+          {
+            "name": "Post json diff",
+            "raw": null,
+            "form": null,
+            "json": {
+              "id": 1,
+              "name": "Ichiro"
+            }
+          },
+          {
+            "name": "Post raw diff",
+            "raw": "a=100&b=200",
+            "form": null,
+            "json": null
+          }
+        ],
+        "header_settings": {
+          "judge_response_header": true,
+          "ignore_response_header_keys": [
+            "X-Ignore"
+          ]
+        }
       }
     },
     "python_mismatch": true,
     "python_observed": {
       "value": {
-        "raw": null,
-        "judge_response_header": false,
-        "ignore_response_header_keys": [
-          "Content-Length",
-          "Date"
-        ]
+        "trials": [
+          {
+            "name": "Post x-www-form-urlencoded diff",
+            "raw": null,
+            "form": {
+              "formparam": [
+                "p11",
+                "p12"
+              ]
+            },
+            "json": null
+          },
+          {
+            "name": "Post json diff",
+            "raw": null,
+            "form": null,
+            "json": {
+              "id": 1,
+              "name": "Ichiro"
+            }
+          },
+          {
+            "name": "Post raw diff",
+            "raw": null,
+            "form": null,
+            "json": null
+          }
+        ],
+        "header_settings": {
+          "judge_response_header": false,
+          "ignore_response_header_keys": [
+            "Content-Length",
+            "Date"
+          ]
+        }
       }
     },
     "reason": "retryでrawとヘッダ判定設定が欠落する。設定の保存位置・旧reportへの補完方法は未決。期待値は再構築後の意味上の契約であり新reportのschemaは定めない。"

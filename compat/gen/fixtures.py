@@ -150,6 +150,8 @@ def main():
 
     for index, (_, target, pattern) in enumerate(params(unit_utils.TestExactMatch.test_normal)):
         add("regex", f"unit-exact-{index}", {"operation": "exact_match", "target": target, "pattern": pattern}, lambda: utils.exact_match(target, pattern))
+    add("regex", "exact-trailing-newline", {"operation": "exact_match", "target": "123\n", "pattern": r"\d+"}, lambda: utils.exact_match("123\n", r"\d+"))
+    add("regex", "reg-trailing-newline", {"operation": "reg", "target": "123\n", "pattern": r"\d+"}, lambda: utils.when_filter("value|reg(pattern)", {"value": "123\n", "pattern": r"\d+"}))
     for name, pattern, replacement, target in [
         ("path-custom", r"([^-]+)-(\d).json", r"\1/case-\2.json", "same-1.json"),
         ("named-group", r"(?P<name>\w+)", r"\g<name>/", "abc"),
@@ -208,12 +210,12 @@ def main():
     settings = {"judge_response_header": True, "ignore_response_header_keys": ["X-Ignore"]}
     captured = {}
     def capture(config, reqs, *_):
-        captured.update(raw=reqs[-1].raw.get(), judge_response_header=config.judge_response_header, ignore_response_header_keys=list(config.ignore_response_header_keys))
+        captured.update(trials=[{"name": req.name.get(), "raw": req.raw.get(), "form": req.form.get(), "json": req.json.get()} for req in reqs], header_settings={"judge_response_header": config.judge_response_header, "ignore_response_header_keys": list(config.ignore_response_header_keys)})
     with patch.object(executor, "__run", side_effect=capture):
         executor.retry(args=MergedArgs.from_dict({}), report=str(ROOT / "compat/python-baseline/post/report.json"))
     fixtures["retry"] = [{
         "name": "retry-reconstruction", "input": {"report": report, "original_config": settings},
-        "expected": {"value": {"raw": "a=100&b=200", **settings}},
+        "expected": {"value": {"trials": [{field: trial.get(field) for field in ("name", "raw", "form", "json")} for trial in report["trials"]], "header_settings": settings}},
         "python_mismatch": True, "python_observed": {"value": captured},
         "reason": "retryでrawとヘッダ判定設定が欠落する。設定の保存位置・旧reportへの補完方法は未決。期待値は再構築後の意味上の契約であり新reportのschemaは定めない。",
     }]
