@@ -26,6 +26,8 @@ from requests.utils import get_encoding_from_headers  # noqa: E402
 from jumeaux import executor, utils  # noqa: E402
 from jumeaux.addons.dump.encoding import Executor as DumpEncoding  # noqa: E402
 from jumeaux.addons.dump.html import Executor as DumpHTML  # noqa: E402
+from jumeaux.addons.dump.html import pretty as pretty_html  # noqa: E402
+from jumeaux.addons.dump.xml import pretty as pretty_xml  # noqa: E402
 from jumeaux.addons.log2reqs.plain import Executor as Plain, guess_url_encoding  # noqa: E402
 from jumeaux.addons.res2dict.html import html_to_dict  # noqa: E402
 from jumeaux.addons.res2dict.xml import Executor as XML  # noqa: E402
@@ -108,6 +110,24 @@ def main():
         ("script", "<script>if (1 < 2) x = '&';</script>"),
         ("table-completion", "<table><tr><td>a</td></tr></table>"),
         ("unit-html", imported("tests/addons/res2dict/test_html.py").NORMAL_BODY),
+        ("attributes", '<DIV Z="  z  " class="a   b" title="&quot;x&quot; &amp; y" empty="" blank="  ">x&nbsp;&lt;&gt;</DIV>'),
+        ("pre-textarea", '<pre>  a\n b <b>x</b></pre><textarea>  a\n b &amp; c</textarea>'),
+        ("comments", '<!--outside--><p>a<!--inside-->b</p>'),
+        ("whitespace", '<p> \n a   b\t c \r\n </p><div></div><p> </p>'),
+        ("explicit-empty", '<html><head></head><body></body></html>'),
+        ("explicit-tbody", '<table><tbody><tr><td>x</td></tr></tbody></table>'),
+        ("implicit-paragraph", '<p>first<p>second'),
+        ("plain-text", 'hello &amp; world'),
+        ("empty", ''),
+        ("comment-only", '<!--alone-->'),
+        ("table-foster-parenting", '<table>before<tr><td>x</td></tr>after</table>'),
+        ("misnested-formatting", '<p><b>bold<i>both</b>italic</i></p>'),
+        ("tables-with-and-without-tbody", '<table><tbody><tr><td>a</td></tr></tbody></table><table><tr><td>b</td></tr></table>'),
+        ("head-and-body", '<title>Title</title><p>Body</p>'),
+        ("pre-leading-newline", '<pre>\n  a\n</pre>'),
+        ("unicode-whitespace", '<p>\u00a0</p><p>a\u0085</p>'),
+        ("script-style-entities", '<script>var x="&amp;";</script><style>a>b { content: "&amp;"; }</style>'),
+        ("quoted-attribute", '<p title="a &quot;quote&quot; and &apos;apostrophe&apos;">&notin; &#x1f600;</p>'),
     ]
     for name, body in html_cases:
         add("markup", name, {"format": "html", "body": body}, lambda: html_to_dict(body))
@@ -119,6 +139,28 @@ def main():
         ("internal-entity", '<!DOCTYPE r [<!ENTITY x "hello">]><r>&x;</r>'),
         ("empty-repeat", '<r><c/><c a="1"/></r>'),
         ("unit-xml", imported("tests/addons/res2dict/test_xml.py").NORMAL_BODY),
+        ("whitespace", '<r> \n <c>  a   b\t c  </c> \n </r>'),
+        ("comments-pi", '<?test x?><r>a<!--comment-->b<?test y?>c</r>'),
+        ("cdata-mixed", '<r>a<![CDATA[<b>]]>c<d/>e</r>'),
+        ("attribute-entities", '<r a="&quot;&apos;&lt;&gt;&amp;&#10;&#9;" b="a\n b\t c"/>'),
+        ("namespace-rebinding", '<r xmlns:p="urn:a"><p:c/><c xmlns:p="urn:b" p:a="1"/><p:d/></r>'),
+        ("xml-space", '<r xml:space="preserve">  a  </r>'),
+        ("empty", ''),
+        ("unclosed", '<r><c></r>'),
+        ("duplicate-attribute", '<r a="1" a="2"/>'),
+        ("undefined-entity", '<r>&missing;</r>'),
+        ("multiple-roots", '<a/><b/>'),
+        ("external-entity", '<!DOCTYPE r [<!ENTITY x SYSTEM "file:///jumeaux-fixture-must-not-read">]><r>&x;</r>'),
+        ("nested-entity", '<!DOCTYPE r [<!ENTITY a "A"><!ENTITY b "&a;&amp;B">]><r>&b;</r>'),
+        ("attribute-internal-entity", '<!DOCTYPE r [<!ENTITY x "hello">]><r a="&x;">&x;</r>'),
+        ("markup-entity", '<!DOCTYPE r [<!ENTITY x "<c>hello</c>">]><r>&x;</r>'),
+        ("dtd-default-attribute", '<!DOCTYPE r [<!ATTLIST r a CDATA "default">]><r/>'),
+        ("unbound-prefix", '<p:r/>'),
+        ("invalid-name", '<1root/>'),
+        ("invalid-character", '<r>\u0001</r>'),
+        ("invalid-comment", '<r><!--a--b--></r>'),
+        ("unclosed-root", '<r>'),
+        ("carriage-return", '<r a="&#13;">a&#13;b\r\nc\rd</r>'),
     ]
     for name, body in xml_cases:
         add("markup", name, {"format": "xml", "body": body}, lambda: XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get())
@@ -130,6 +172,10 @@ def main():
             result = html_to_dict(body) if kind == "html" else XML({}).exec(Res2DictAddOnPayload.from_dict({"response": response(body.encode(), kind="xml")})).result.get()
             return {"dict": result, "condition": utils.when_filter(expression, {"dict_one": result})}
         add("markup", kind + "-condition", {"format": kind, "body": body, "when": expression}, converted_condition)
+
+    for kind, cases, pretty in [("html", html_cases, pretty_html), ("xml", xml_cases, pretty_xml)]:
+        for name, body in cases:
+            add("markup", "dump-" + name, {"operation": "pretty", "format": kind, "body": body}, lambda: pretty(body))
 
     unit_utils = imported("tests/test_utils.py")
     for index, (_, expression) in enumerate(params(unit_utils.TestWhenFilter.test_normal)):

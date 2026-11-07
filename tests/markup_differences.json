@@ -1,0 +1,51 @@
+[
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "table-foster-parenting",
+    "reason": "HTML5はtable内のテキストをtableの前へ移す。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": {"html": {"body": {"##value": "beforeafter", "table": {"tr": {"td": {"##value": "x"}}}}}}}
+  },
+  {
+    "format": "html",
+    "operation": "dict",
+    "name": "misnested-formatting",
+    "reason": "HTML5のadoption agency algorithmがi要素を再構築する。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": {"html": {"body": {"p": {"b": {"##value": "bold", "i": {"##value": "both"}}, "i": {"##value": "italic"}}}}}}
+  },
+  {
+    "format": "xml",
+    "operation": "dict",
+    "name": "dtd-default-attribute",
+    "reason": "quick-xmlのイベントにはDTDの既定属性が反映されない。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": {"r": null}}
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-table-foster-parenting",
+    "reason": "HTML5はtable内のテキストをtableの前へ移す。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": "<html>\n <body>\n  beforeafter\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"}
+  },
+  {
+    "format": "html",
+    "operation": "pretty",
+    "name": "dump-misnested-formatting",
+    "reason": "HTML5のadoption agency algorithmがi要素を再構築する。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": "<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   <i>\n    italic\n   </i>\n  </p>\n </body>\n</html>\n"}
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-markup-entity",
+    "reason": "DTDの置換テキストを文字列として展開するため、置換内のタグは要素にならない。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": "<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"}
+  },
+  {
+    "format": "xml",
+    "operation": "pretty",
+    "name": "dump-dtd-default-attribute",
+    "reason": "quick-xmlのイベントにはDTDの既定属性が反映されない。docs/compat-spec.mdの未決を参照。",
+    "expected": {"value": "<?xml version=\"1.0\" ?>\n<r/>\n"}
+  }
+]

@@ -127,6 +127,124 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 未決
 
+- HTML/XMLの先行実装で確認した差異。
+  - 状態: 許容を決定したものではない。以下の4種類・7fixtureを`tests/markup_differences.json`でRustの現出力として固定し、Python期待値との不一致も検証する。
+  - 検証範囲: markupの110fixture中103件はPythonと完全一致。既存16件の期待値は変更していない。
+  - 実装: `markup::html::{to_dict, pretty}`、`markup::xml::{to_dict, pretty}`。デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
+  - 境界: encoding、force、レスポンス種別による適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照先と比較結果を検証し、テンプレートエンジン自体の統合はまだ行わない。
+
+### HTMLのtable内テキスト移動
+
+- 入力: `<table>before<tr><td>x</td></tr>after</table>`
+- 理由: html5everのHTML5 foster parentingはtable内の不正なテキストをtableの前へ移す。lxmlはtable内に残す。補完済みDOMから元の位置を復元できないため、個別入力への書き換えは行わない。
+- fixture: `html/table-foster-parenting`、`html/dump-table-foster-parenting`。
+
+dictのPython出力:
+
+```json
+{"html":{"body":{"table":{"##value":"before\n   \n   after","tr":{"td":{"##value":"x"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"html":{"body":{"##value":"beforeafter","table":{"tr":{"td":{"##value":"x"}}}}}}
+```
+
+dumpのPython出力をJSON文字列で表現:
+
+```json
+"<html>\n <body>\n  <table>\n   before\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n   after\n  </table>\n </body>\n</html>\n"
+```
+
+dumpのRust出力をJSON文字列で表現:
+
+```json
+"<html>\n <body>\n  beforeafter\n  <table>\n   <tr>\n    <td>\n     x\n    </td>\n   </tr>\n  </table>\n </body>\n</html>\n"
+```
+
+### HTMLの不正なインラインタグの回復
+
+- 入力: `<p><b>bold<i>both</b>italic</i></p>`
+- 理由: html5everのHTML5 adoption agency algorithmは閉じたbの後でiを再構築する。lxmlはitalicをp直下のテキストにする。この回復アルゴリズムの置き換えは先行実装の対象に含めていない。
+- fixture: `html/misnested-formatting`、`html/dump-misnested-formatting`。
+
+dictのPython出力:
+
+```json
+{"html":{"body":{"p":{"##value":"italic","b":{"##value":"bold","i":{"##value":"both"}}}}}}
+```
+
+dictのRust出力:
+
+```json
+{"html":{"body":{"p":{"b":{"##value":"bold","i":{"##value":"both"}},"i":{"##value":"italic"}}}}}
+```
+
+dumpのPython出力をJSON文字列で表現:
+
+```json
+"<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   italic\n  </p>\n </body>\n</html>\n"
+```
+
+dumpのRust出力をJSON文字列で表現:
+
+```json
+"<html>\n <body>\n  <p>\n   <b>\n    bold\n    <i>\n     both\n    </i>\n   </b>\n   <i>\n    italic\n   </i>\n  </p>\n </body>\n</html>\n"
+```
+
+### XMLのDTD既定属性
+
+- 入力: `<!DOCTYPE r [<!ATTLIST r a CDATA "default">]><r/>`
+- 理由: quick-xmlはDTDをDocTypeイベントとして渡す。属性宣言を解釈して既定値を補う機能は今回のイベント処理に含めていない。一般エンティティ宣言の読み取りと、DTDの属性型・既定値の解釈は別の処理になる。
+- fixture: `xml/dtd-default-attribute`、`xml/dump-dtd-default-attribute`。
+- dictのPython出力: `{"r":{"@a":"default"}}`
+- dictのRust出力: `{"r":null}`
+
+dumpのPython出力をJSON文字列で表現:
+
+```json
+"<?xml version=\"1.0\" ?>\n<r a=\"default\"/>\n"
+```
+
+dumpのRust出力をJSON文字列で表現:
+
+```json
+"<?xml version=\"1.0\" ?>\n<r/>\n"
+```
+
+### XMLのタグを含むDTDエンティティ
+
+- 入力: `<!DOCTYPE r [<!ENTITY x "<c>hello</c>">]><r>&x;</r>`
+- 理由: dumpは内部エンティティを文字列として展開する。ElementTreeのように展開先をXMLイベントとして再パースして要素にする処理は含めていない。文字列だけの内部エンティティと入れ子の参照は一致する。
+- fixture: `xml/dump-markup-entity`。
+- dict出力は両方とも`{"r":null}`で一致する。
+  - 理由: xmltodictは本文の一般エンティティ展開を無効にしている。
+
+dumpのPython出力をJSON文字列で表現:
+
+```json
+"<?xml version=\"1.0\" ?>\n<r>\n    <c>hello</c>\n</r>\n"
+```
+
+dumpのRust出力をJSON文字列で表現:
+
+```json
+"<?xml version=\"1.0\" ?>\n<r>&lt;c&gt;hello&lt;/c&gt;</r>\n"
+```
+
+### HTML/XMLの残る検証範囲
+
+- 全HTMLのlxml互換や、DTD全体の互換を保証するものではない。
+  - 未対応: DTDのパラメーターエンティティ。現在は不正XMLとして扱う。
+- 深い木とエンティティの展開にはRust側で上限を設けている。
+  - 現状: XMLは256要素、HTMLはルートを0とする深さ256、エンティティ再帰は32、展開文字列は1,000,000 UTF-8 bytesを上限として`LimitExceeded`を返す。Python側の制限との一致は未確定。
+  - 検証: 深い木と循環エンティティがスタック枯渇せずエラーになることをRustテストで確認する。
+- 外部エンティティは読み込まない。
+  - 検証: 外部参照fixtureはdictでnull、dumpで`Include invalid token`となりPythonと一致する。
+
+### その他の未決
+
 - clapが追加する `help` サブコマンドを残すか。
 - clapの `-V` を残すか。
 - `--version` の出力形式。
