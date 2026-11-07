@@ -5,4 +5,5 @@ pub mod config;
 pub mod diff;
 pub mod markup;
 pub mod models;
+pub mod notification;
 pub mod output;

@@ -70,13 +70,60 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 順序: 各レイヤーは設定配列の先頭からreduceし、戻り値を次へ渡す。エラーで停止する。
   - 設定: 各Config型は `addons/<layer>/<name>.rs` に置く。名前・設定型・生成は1つの登録表から選ぶ。`serde_path_to_error` で必須キー・型・未知キーを検証する。
   - 生成: FactoryへAddon全体を渡す。スケルトンは登録表から生成した型付きConfigを保持する。保存用のAddonではNoneと空configを区別する。
-  - 残件: 本体は副作用のないスケルトン。条件式のコンパイルなど、実行上の検証は本体実装時に接続する。
+  - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
+  - 残件: その他のレイヤーの本体は別タスクで接続する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
   - ハンドル: `write_text(&self)`・`flush(&self)` の内部だけでロックする。同じスレッドでの再取得と別encodingの併用を受理する。
   - 変換: compatのstrictエンコーダーを使う。BOMは最大1回。Python同様、seek不能なパイプへのUTF-16・UTF-32出力はBOMなし、UTF-8-SIGはBOM付きとなる。
   - JSON: キーを再帰的にソートし、Pythonの区切り文字に合わせる。CLIへの接続とfinal/jsonのindent指定は後続タスク。
+
+### 入力ファイルとreqs2reqs
+
+- `addons::log2reqs::read`はバイト列、`InputFactory`はファイルを受け取る。
+  - 接続: `addons::log2reqs::prepare(config, context)`がinput_filesを指定順に連結してからreqs2reqsを実行する。
+  - codec: 全形式で`compat::encoding::decode_input`を使う。BOMの扱いと改行の正規化もこの境界で行う。
+- plainは改行だけの空行を除外し、空白だけの行は末尾空白を除いてpathが空のRequestとして残す。
+  - query: 最初の`?`の直後だけを解析する。`keep_blank`はquery値に適用する。
+  - URL encoding: queryが存在する場合だけ候補を先頭からstrictで試す。候補が通らなければutf-8にする。
+- csvは固定5列のname・method・path・qs・headersを読む。
+  - dialect: excelとunixはカンマ、excel-tabはタブ。reader側のquote処理は3種とも同じ。
+  - queryとheaders: UTF-8のparse_qs互換。重複ヘッダは最初の値を使う。欠落列のqsとheadersは空辞書にする。
+  - 境界: 空行は除外する。引用符内改行・二重引用符・閉じない引用符はPythonのstrict=Falseと同じく受理する。余分な列はValueError、path欠落はRequiredError。
+  - 上限: Pythonの既定値と同じく、fieldは131072文字までとする。
+- JSONとYAMLはRequestの配列を読む。空のオブジェクトはPython同様に空配列となる。
+  - 未知フィールド: Pythonの入口に合わせてJSONは無視、YAMLはUnknownPropertiesErrorとする。
+  - 空ファイル: JSONはJSONDecodeError、YAMLはValueError。pathの欠落・nullはRequiredError。
+  - BOM: utf8指定のJSONはBOMを拒否し、YAMLは受理する。utf-8-sig指定なら両方とも除去する。
+  - YAML: アンカーとマージキーはconfigと同じ展開処理を再利用する。
+- reqs2reqsは設定順に実行する。filter・replace・renameのwhenはRequest.to_dict相当をルートへ渡す。
+  - 条件: 未設定のnameなどは未定義値になる。テンプレート描画後のliteral_eval相当の値をtruthinessで判定する。
+  - head: 負数もPythonのslice終端として扱う。
+  - repeat: 0と負数は空配列になる。
+  - add: 既定はhead。tailは末尾へ連結する。
+  - replace: 条件に合う全itemを順に適用する。後続条件は置換後のRequestを見る。queriesの値だけで$DATETIMEを展開し、headersでは展開しない。
+  - rename: 最初に一致した条件だけを適用し、nameをテンプレート描画する。空文字のnameはNoneとして省略する。
+  - shuffle: seed未指定時はランダムに並べ替える。比較用APIの`Config::apply(requests, Some(seed))`はu64整数seedのCPython random.shuffleと同じ順序を返す。設定ファイルにseedキーは追加しない。
+- empty_guardは空配列を検出したら通知して終了コード1で止める。
+  - 戻り値: Pipeline::execはrequests・notifications・warnings・exit_codeを返す。後続アドオンは実行しない。
+  - テンプレート: config.to_dict(ignore_none=False)相当を渡す。入れ子の未設定フィールドもnullで公開する。
+  - CLI: runの入力段階から接続し、警告と通知エラーをstderrへ出す。通常のrun・retry・initの全体実行は後続のCLI統合タスクで接続する。
+
+### 通知基盤
+
+- `notification::{payload, notify}`はSlack v1・v2を扱う。
+  - v1: channel・username・icon_emoji・icon_urlを送る。icon_emojiの前後にコロンを付ける。
+  - v2: use_blocks=falseはtext、trueはmessageをJSON配列として解析してblocksへ渡す。SLACK_THREAD_TSが非空ならthread_tsを送る。
+  - 共通: link_namesは1。Noneと任意JSON内のnullは再帰的に除外する。
+- 通知のHTTP送信は専用関数へ閉じる。
+  - 本文: Python同様にキーを再帰ソートし、UTF-8のJSON bytesを送る。Content-Typeは自動付与しない。
+  - 結果: HTTP 200だけを成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
+- SLACK_INCOMING_WEBHOOKS_URLが無い場合は送信をスキップし、3件の警告をOutcome.warningsへ返す。
+  - 差異: Python v1はKeyErrorとなる。Rustは発注の指定に合わせてv1もv2と同じスキップにする。
+  - ログ: ライブラリは直接出力しない。表示とプロセス終了はCLI側の責務とする。
+- 関数比較基準は`compat/gen/inputs.py`でPython実装を実行して採取する。
+  - 検証: `compat/fixtures/inputs.json`の入力変換・reqs2reqs・ローカル通知を`tests/inputs.rs`で比較する。通知はpayloadだけでなく本文bytesとContent-Typeも照合する。
 
 ### reportの省略・空値・null
 
@@ -959,6 +1006,11 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 理由: filter/test検査が`unstable_machinery_serde`のAST形式に依存する。
 
 ## 未決
+
+- addのwhen設定とshuffleのseed設定。
+  - 相違: 発注文に記載があるが、基準Python版のaddにはwhen、shuffleにはseedという設定キーが存在しない。
+  - 現実装: 互換設定を維持する。shuffleのseedは比較用APIからだけ指定できる。
+  - 案: 追加仕様として採用する場合は、addのwhenが入力全体と追加対象のどちらを評価するか、seedの型と乱数状態の寿命を先に決める。
 
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
