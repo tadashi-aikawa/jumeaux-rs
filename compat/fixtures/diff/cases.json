@@ -302,6 +302,798 @@
     }
   },
   {
+    "name": "insert-middle",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3
+      ],
+      "other": [
+        1,
+        0,
+        2,
+        3
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<1>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "delete-duplicates",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        1,
+        2,
+        1
+      ],
+      "other": [
+        1,
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": [
+          "root<0>",
+          "root<3>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "reorder",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3
+      ],
+      "other": [
+        3,
+        1,
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0>"
+        ],
+        "removed": [
+          "root<2>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "replace-and-insert",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3
+      ],
+      "other": [
+        1,
+        4,
+        5,
+        3
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<1>"
+        ],
+        "added": [
+          "root<2>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "shifted-replacement",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "other": [
+        0,
+        1,
+        2,
+        8,
+        9,
+        4,
+        5
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<2>"
+        ],
+        "added": [
+          "root<0>",
+          "root<4>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "dict-array-delete",
+    "input": {
+      "operation": "diff",
+      "one": [
+        {
+          "id": 1
+        },
+        {
+          "id": 2
+        }
+      ],
+      "other": [
+        {
+          "id": 2
+        }
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0><'id'>"
+        ],
+        "added": [],
+        "removed": [
+          "root<1>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "nested-array-insert",
+    "input": {
+      "operation": "diff",
+      "one": [
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "other": [
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0><0>",
+          "root<1><0>"
+        ],
+        "added": [
+          "root<2>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "mixed-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        {
+          "a": 1
+        },
+        2
+      ],
+      "other": [
+        0,
+        1,
+        {
+          "a": 1
+        },
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>",
+          "root<1>",
+          "root<2>"
+        ],
+        "added": [
+          "root<3>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "array-int-float",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1,
+        2
+      ],
+      "other": [
+        1.0,
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "array-bool-int",
+    "input": {
+      "operation": "diff",
+      "one": [
+        true,
+        2
+      ],
+      "other": [
+        1,
+        2
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "array-null",
+    "input": {
+      "operation": "diff",
+      "one": [
+        null,
+        1
+      ],
+      "other": [
+        0,
+        null,
+        1
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<0>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "dict-sparse-overlap",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1,
+        "b": 2
+      },
+      "other": {
+        "a": 1,
+        "c": 3,
+        "d": 4
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "dict-threshold",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1,
+        "b": 2
+      },
+      "other": {
+        "a": 1,
+        "c": 3
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<'c'>"
+        ],
+        "removed": [
+          "root<'b'>"
+        ]
+      }
+    }
+  },
+  {
+    "name": "empty-dict-one-key",
+    "input": {
+      "operation": "diff",
+      "one": {},
+      "other": {
+        "a": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [
+          "root<'a'>"
+        ],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "empty-dict-two-keys",
+    "input": {
+      "operation": "diff",
+      "one": {},
+      "other": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "remove-dict-two-keys",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1,
+        "b": 2
+      },
+      "other": {}
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "private-key",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "__meta": 1,
+        "a": 1
+      },
+      "other": {
+        "__meta": 2,
+        "a": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "nested-path",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "items": [
+          {
+            "id": 1
+          }
+        ]
+      },
+      "other": {
+        "items": [
+          {
+            "id": 2
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'items'><0><'id'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "sorted-paths",
+    "input": {
+      "operation": "diff",
+      "one": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "other": [
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>",
+          "root<10>",
+          "root<11>",
+          "root<1>",
+          "root<2>",
+          "root<3>",
+          "root<4>",
+          "root<5>",
+          "root<6>",
+          "root<7>",
+          "root<8>",
+          "root<9>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "root-type",
+    "input": {
+      "operation": "diff",
+      "one": 1,
+      "other": "1"
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "root-float",
+    "input": {
+      "operation": "diff",
+      "one": 1,
+      "other": 1.0
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "null-type",
+    "input": {
+      "operation": "diff",
+      "one": null,
+      "other": {}
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "large-integers",
+    "input": {
+      "operation": "diff",
+      "one": [
+        9007199254740992
+      ],
+      "other": [
+        9007199254740993
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "large-int-float",
+    "input": {
+      "operation": "diff",
+      "one": [
+        9007199254740993
+      ],
+      "other": [
+        9007199254740992.0
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "float-negative-zero",
+    "input": {
+      "operation": "diff",
+      "one": -0.0,
+      "other": 0.0
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "beyond-u64-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        18446744073709551616
+      ],
+      "other": [
+        18446744073709551617
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "beyond-u64-dict",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1180591620717411303424
+      },
+      "other": {
+        "a": 1180591620717411303425
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "below-i64-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        -9223372036854775809
+      ],
+      "other": [
+        -9223372036854775810
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bigint-float-equal-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1606938044258990275541962092341162602522202993782792835301376
+      ],
+      "other": [
+        1.6069380442589903e+60
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bigint-float-neighbor-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        1606938044258990275541962092341162602522202993782792835301377
+      ],
+      "other": [
+        1.6069380442589903e+60
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bigint-float-type-dict",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a": 1606938044258990275541962092341162602522202993782792835301376
+      },
+      "other": {
+        "a": 1.6069380442589903e+60
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bigint-negative-float-array",
+    "input": {
+      "operation": "diff",
+      "one": [
+        -1606938044258990275541962092341162602522202993782792835301376
+      ],
+      "other": [
+        -1.6069380442589903e+60
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "bigint-beyond-f64",
+    "input": {
+      "operation": "diff",
+      "one": [
+        10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+      ],
+      "other": [
+        10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
+      ]
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<0>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
     "name": "lookup-root",
     "input": {
       "operation": "get_by_diff_key",
@@ -442,6 +1234,291 @@
     },
     "expected": {
       "value": 7
+    }
+  },
+  {
+    "name": "lookup-missing",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a": 1
+      },
+      "path": "root<'missing'>"
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-out-of-bounds",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a": []
+      },
+      "path": "root<'a'><0>"
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-null",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "a": null
+      },
+      "path": "root<'a'>"
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "lookup-numeric-key",
+    "input": {
+      "operation": "get_by_diff_key",
+      "dict": {
+        "0": 42
+      },
+      "path": "root<'0'>"
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "path-root",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "root": 1
+      },
+      "other": {
+        "root": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'root'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-myroot",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "myroot": 1
+      },
+      "other": {
+        "myroot": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'myroot'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-a[0]",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a[0]": 1
+      },
+      "other": {
+        "a[0]": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a[0]'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "python_mismatch": true,
+    "reason": "パス生成でもキー内部のブラケットを保持する。値取得と往復可能にする。",
+    "python_observed": {
+      "value": {
+        "changed": [
+          "root<'a<0>'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-a.b",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a.b": 1
+      },
+      "other": {
+        "a.b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a.b'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-a'b",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a'b": 1
+      },
+      "other": {
+        "a'b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<\"a'b\">"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-a<b>",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a<b>": 1
+      },
+      "other": {
+        "a<b>": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a<b>'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-both-quotes",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a'\"b": 1
+      },
+      "other": {
+        "a'\"b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<\"a'\\\"b\">"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "python_mismatch": true,
+    "reason": "キーの引用符・バックスラッシュ・制御文字をエスケープし、パス生成と値取得を往復可能にする。",
+    "python_observed": {
+      "value": {
+        "changed": [
+          "root<\"a'\"b\">"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-backslash",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a\\b": 1
+      },
+      "other": {
+        "a\\b": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a\\\\b'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "python_mismatch": true,
+    "reason": "キーの引用符・バックスラッシュ・制御文字をエスケープし、パス生成と値取得を往復可能にする。",
+    "python_observed": {
+      "value": {
+        "changed": [
+          "root<'a\\b'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  {
+    "name": "path-newline",
+    "input": {
+      "operation": "diff",
+      "one": {
+        "a\nb": 1
+      },
+      "other": {
+        "a\nb": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root<'a\\nb'>"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "python_mismatch": true,
+    "reason": "キーの引用符・バックスラッシュ・制御文字をエスケープし、パス生成と値取得を往復可能にする。",
+    "python_observed": {
+      "value": {
+        "changed": [
+          "root<'a\nb'>"
+        ],
+        "added": [],
+        "removed": []
+      }
     }
   }
 ]
