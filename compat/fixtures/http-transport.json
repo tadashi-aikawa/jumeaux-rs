@@ -249,6 +249,87 @@
     }
   },
   {
+    "name": "deflate",
+    "input": {
+      "method": "GET",
+      "path": "/deflate",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/deflate",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/deflate",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "raw-deflate",
+    "input": {
+      "method": "GET",
+      "path": "/raw-deflate",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/raw-deflate",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/raw-deflate",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty-gzip",
+    "input": {
+      "method": "GET",
+      "path": "/empty-gzip",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "",
+      "path": "/empty-gzip",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/empty-gzip",
+          "headers": [
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
     "name": "status-503",
     "input": {
       "method": "GET",

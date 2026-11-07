@@ -73,22 +73,34 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
-### HTTP転送の先行実測
+### HTTP転送の受入
 
 ```sh
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py > /tmp/jumeaux-http-transport.json
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --encoding > /tmp/jumeaux-http-encoding.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --prepare > /tmp/jumeaux-http-request.json
 diff compat/fixtures/http-transport.json /tmp/jumeaux-http-transport.json
 diff compat/fixtures/encoding/http.json /tmp/jumeaux-http-encoding.json
-cargo test --test http_encoding -- --nocapture
+diff compat/fixtures/http-request.json /tmp/jumeaux-http-request.json
+cargo test --test http --test http_encoding -- --nocapture
+cargo build --example http_probe
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/harness/http_acceptance.py
 ```
 
-- 転送fixtureは46件のPython実測。動的ポートのループバック受信先だけを使う。
+- 転送fixtureは49件のPython実測。動的ポートのループバック受信先だけを使う。
   - 対象: 本文bytes、redirect、Cookie、gzip、retry、通信失敗とchallengeの捕捉。
   - 注入: DNS失敗・接続拒否・connect timeoutはソケット入口で注入し、外部へ通信しない。
-  - 制限: Rust転送との比較は未接続。timeoutの0.2秒は実測用であり、製品の設定ではない。
+  - 比較: Rustの送信・受信結果と保存済みPython観測値を照合する。timeoutの0.2秒は実測用であり、製品の設定ではない。
+- リクエスト組み立ては17件すべてRustとPython期待値を比較する。
+  - 対象: path・query・ヘッダのマージ、URL文字コード、本文の優先順位・JSON・formの表記。
 - encodingは23件すべてRustでPython期待値と比較する。
   - 対象: 決定順、空本文、charsetの引用符・重複・空値、MIME typeとパラメータの区別。
+- `http_acceptance.py`は既存31ケースのapi.jsonlの124リクエストも比較する。
+  - 入力: 基準Pythonの入力アドオンで生成したRequest。転送はRustのone/other並行送信。
+  - ヘッダ: 同じURLでもリクエストごとの明示設定を識別する。自動User-Agentのバージョンの差を明示値の差に混ぜない。
+  - proxy・TLS: 18ケース。OpenSSLで一時CAとserverAuth付き証明書を生成する。外部のDNS失敗はresolver注入で検証し、外部へ通信しない。
+  - 実行: `--phase transport|baseline|connection`で対象を限定できる。Python版の.venvとopensslコマンドが必要。
+  - 制限: 製品CLIを通した保存成果物・アドオンのE2Eは全体統合の対象。
 
 ### 既存の関数fixture
 

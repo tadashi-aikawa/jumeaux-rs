@@ -8,14 +8,18 @@ encodingだけ: 同じコマンドに --encoding を付ける。
 import gzip
 import json
 import os
+import re
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 import warnings
+import zlib
+from urllib.parse import parse_qs, urlsplit
 
 SOURCE = Path(os.environ.get(
     "JUMEAUX_PYTHON_ROOT",
@@ -25,7 +29,7 @@ sys.path.insert(0, str(SOURCE))
 sys.dont_write_bytecode = True
 import jumeaux.addons  # noqa: E402,F401
 from jumeaux import executor  # noqa: E402
-from jumeaux.models import Request, Response  # noqa: E402
+from jumeaux.models import Request, Response, QueryCustomization  # noqa: E402
 from owlmixin import TDict, TOption  # noqa: E402
 import requests  # noqa: E402
 from requests.adapters import HTTPAdapter  # noqa: E402
@@ -74,6 +78,49 @@ def encodings():
     return cases
 
 
+def prepared():
+    cases = []
+    for name, endpoint, req in [
+        ("empty-query", {}, {"path": "/"}),
+        ("unicode-path", {}, {"path": "/日本 語"}),
+        ("unreserved-percent", {}, {"path": "/%7E%41%2F%zz"}),
+        ("valid-percent", {}, {"path": "/%7E%41%2F"}),
+        ("path-backreference", {"path": {"before": r"/old/(\w+)", "after": r"/new/\1/\1"}}, {"path": "/old/api"}),
+        ("query-cp932", {}, {"path": "/", "qs": {"key": ["日本", "", "+ &"]}, "url_encoding": "cp932"}),
+        ("query-first-case", {"query": {"overwrite": {"key/i": ["new"]}, "remove": ["DROP/i"]}}, {"path": "/", "qs": {"Key": ["1"], "KEY": ["2"], "drop": ["x"]}}),
+        ("query-original-keys", {"query": {"overwrite": {"NEW": ["a"], "new/i": ["b"]}, "remove": ["new/i"]}}, {"path": "/"}),
+        ("query-datetime", {"query": {"overwrite": {"time": ["$DATETIME(fixed)(3600)"]}}}, {"path": "/"}),
+        ("query-datetime-error", {"query": {"overwrite": {"time": ["$DATETIME(fixed)(invalid)"]}}}, {"path": "/"}),
+        ("header-case-order", {"headers": {"X-Key": "one", "x-key": "two"}}, {"path": "/", "headers": {"X-Key": "request"}}),
+        ("header-overwrite", {"headers": {"X-Key": "one", "User-Agent": "custom"}}, {"path": "/", "headers": {"X-Key": "request"}}),
+        ("form-nested", {}, {"path": "/", "method": "POST", "form": {"dict": {"a": 1}, "list": [["x", "y"], None], "bool": False}}),
+        ("json-ascii", {}, {"path": "/", "method": "POST", "json": {"text": "日本😀\u007f", "integer": 18446744073709551617, "float": 1e20, "small": 1e-7}}),
+        ("body-priority", {}, {"path": "/", "method": "POST", "raw": "raw", "form": {"x": 1}, "json": {"y": 2}}),
+        ("get-ignores-body", {}, {"path": "/", "method": "GET", "raw": "raw", "json": {"x": 1}}),
+        ("content-length", {}, {"path": "/", "method": "POST", "raw": "日本", "headers": {"Content-Length": "100"}}),
+    ]:
+        endpoint = {"name": "one", "host": "http://localhost/base", **endpoint}
+        request = Request.from_dict(req)
+        try:
+            path = re.sub(endpoint["path"]["before"], endpoint["path"]["after"], request.path) if "path" in endpoint else request.path
+            custom = QueryCustomization.from_dict(endpoint["query"]) if "query" in endpoint else None
+            query = executor.create_query_string(request.qs, TOption(custom), request.url_encoding)
+            url = endpoint["host"] + path + "?" + query
+            headers = executor.merge_headers(TDict(endpoint.get("headers", {})), request.headers)
+            kwargs = {"data": request.raw.get() or request.form.get(), "json": request.json.get()} if request.method.value == "POST" else {}
+            ready = requests.Request(request.method.value, url, headers=headers, **kwargs).prepare()
+            body = ready.body.encode() if isinstance(ready.body, str) else ready.body or b""
+            selected = {k.lower() for k in headers} | {"content-type"}
+            actual_headers = {k.lower(): v for k, v in ready.headers.items() if k.lower() in selected}
+            if actual_headers.get("user-agent", "").startswith("jumeaux/"):
+                actual_headers["user-agent"] = "jumeaux/<version>"
+            expected = {"value": {"original_url": url, "url": ready.url, "headers": actual_headers, "body_hex": body.hex()}}
+        except Exception as error:
+            expected = {"error": type(error).__name__}
+        cases.append({"name": name, "input": {"endpoint": endpoint, "request": req}, "expected": expected})
+    return cases
+
+
 def failure_trial(error, method):
     """実際に観測した例外をchallenge境界へ渡して捕捉の有無を確かめる。"""
     arg = {
@@ -92,7 +139,22 @@ def failure_trial(error, method):
     return {"value": trial}
 
 
-def transport():
+def rust_probe(binary, one, reqs, retries=2, timeout=3, **kwargs):
+    result = subprocess.run([binary], input=json.dumps({"one": one, "requests": reqs,
+                            "max_retries": retries, "timeout": timeout, **kwargs}),
+                            text=True, capture_output=True, timeout=30)
+    if result.returncode:
+        raise AssertionError(result.stderr)
+    return json.loads(result.stdout)
+
+
+def assert_records(actual, expected, name):
+    def normalized(records):
+        return [{**r, "headers": sorted(h for h in r["headers"] if h[0] != "user-agent")} for r in records]
+    assert normalized(actual) == normalized(expected), (name, normalized(actual), normalized(expected))
+
+
+def transport(rust=None):
     records = []
 
     class Receiver(BaseHTTPRequestHandler):
@@ -134,6 +196,13 @@ def transport():
             if self.path == "/gzip":
                 body = gzip.compress(b"expanded", mtime=0)
                 headers["Content-Encoding"] = "gzip"
+            if self.path in {"/deflate", "/raw-deflate"}:
+                body = zlib.compress(b"expanded")
+                if self.path == "/raw-deflate":
+                    body = body[2:-4]
+                headers["Content-Encoding"] = "deflate"
+            if self.path == "/empty-gzip":
+                body, headers = b"", {"Content-Encoding": "gzip"}
             self.send_response(status)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(body) + (5 if self.path == "/truncated" else 0)))
@@ -163,6 +232,9 @@ def transport():
                 ("empty-data-json", "POST", "/probe", 2, {"data": {}, "json": {"x": 1}}),
                 ("empty-post", "POST", "/probe", 2, {}),
                 ("gzip", "GET", "/gzip", 2, {}),
+                ("deflate", "GET", "/deflate", 2, {}),
+                ("raw-deflate", "GET", "/raw-deflate", 2, {}),
+                ("empty-gzip", "GET", "/empty-gzip", 2, {}),
                 ("status-503", "GET", "/status-503", 2, {}),
                 ("retry-after-get", "GET", "/retry-after", 2, {}),
                 ("retry-after-post", "POST", "/retry-after", 2, {}),
@@ -199,6 +271,26 @@ def transport():
                 cases.append({"name": name, "input": {"method": method, "path": path,
                               "max_retries": retries, "timeout": timeout, **kwargs},
                               "expected": {**expected, "records": captured}})
+                if rust:
+                    records.clear()
+                    url = urlsplit(path)
+                    req = {"method": method, "path": url.path, "headers": {"X-Test": "request"}}
+                    if url.query:
+                        req.update(qs=parse_qs(url.query, keep_blank_values=True, encoding="cp932"), url_encoding="cp932")
+                    if "data" in kwargs:
+                        req["raw" if isinstance(kwargs["data"], str) else "form"] = kwargs["data"]
+                    if "json" in kwargs:
+                        req["json"] = kwargs["json"]
+                    steps = [{"path": "/cookie/set"}, req] if name == "cookie-shared" else [req]
+                    endpoint = {"name": "one", "host": base, "headers": {"X-Test": "endpoint"}}
+                    if name == "cookie-shared":
+                        endpoint["headers"] = {}
+                    actual = rust_probe(rust, endpoint, steps, retries, timeout)["results"][-1]
+                    comparable = {"error": actual["error"]} if "error" in actual else {
+                        "status_code": actual["status_code"], "body_hex": actual["body_hex"],
+                        "path": actual["url"].removeprefix(base)}
+                    assert comparable == {k: v for k, v in expected.items() if k != "challenge"}, (name, actual, expected)
+                    assert_records(records, captured, name)
 
             # DNSとconnect timeoutはローカルのソケット入口で注入。外部DNSにも送らない。
             for name, error in [("dns", socket.gaierror(-2, "fixture")),
@@ -219,11 +311,25 @@ def transport():
                             cases.append({"name": f"{name}-{method.lower()}-{retries}",
                                           "input": {"method": method, "max_retries": retries, "injected": name},
                                           "expected": expected})
+                            if rust:
+                                actual = rust_probe(rust, {"name": "one", "host": "http://fixture.invalid"},
+                                                    [{"path": "/probe", "method": method}], retries, 0.2, injected=name)
+                                assert actual["results"][0]["error"] == expected["error"], (name, actual, expected)
+                                assert actual["attempts"] == expected["attempts"], (name, actual, expected)
         finally:
             server.shutdown()
             thread.join()
+    if rust:
+        golden = json.loads((Path(__file__).resolve().parents[1] / "fixtures/http-transport.json").read_text())
+        assert cases == golden, "Python観測値が保存済みHTTP fixtureと異なる"
     return cases
 
 
 if __name__ == "__main__":
-    print(json.dumps(encodings() if "--encoding" in sys.argv else transport(), ensure_ascii=False, indent=2))
+    if "--rust" in sys.argv:
+        binary = str(Path(sys.argv[sys.argv.index("--rust") + 1]).resolve())
+        cases = transport(binary)
+        print(f"HTTP transport: {len(cases)}/{len(cases)} Python一致")
+    else:
+        cases = prepared() if "--prepare" in sys.argv else encodings() if "--encoding" in sys.argv else transport()
+        print(json.dumps(cases, ensure_ascii=False, indent=2))
