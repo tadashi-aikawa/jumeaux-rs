@@ -356,7 +356,7 @@ fn retry_fixture_restores_raw_and_requires_explicit_header_settings() {
     for case in cases.as_array().unwrap() {
         let report: Report = serde_json::from_value(case["input"]["report"].clone()).unwrap();
         let headers = serde_json::from_value(case["input"]["original_config"].clone()).unwrap();
-        let config = Config::from_report(&report, headers).unwrap();
+        let config = Config::from_report_with_headers(&report, headers).unwrap();
         let trials: Vec<_> = report
             .trials
             .iter()
@@ -539,7 +539,17 @@ fn check_layer<const N: usize>() {
     let entries: Vec<_> = names
         .iter()
         .rev()
-        .map(|name| json!({"name":name,"config":{},"tags":["metadata"]}))
+        .filter(|name| !(layer == Layer::Res2Res && **name == "json"))
+        .map(|name| {
+            let cases = fixture("compat/fixtures/review-fixes.json");
+            let case = cases
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|c| c["name"] == format!("addon-valid-{}/{name}", layer.name()))
+                .unwrap();
+            json!({"name":name,"config":case["input"]["config"],"tags":["metadata"]})
+        })
         .collect();
     value[layer.name()] = if layer == Layer::Log2Reqs {
         entries[0].clone()

@@ -1,14 +1,22 @@
 //! 組み込みアドオンの静的登録。現段階のexecutorは副作用を持たない骨組み。
+pub mod did_challenge;
+pub mod dump;
+pub mod r#final;
+pub mod judgement;
 pub mod log2reqs;
 pub mod payload;
-mod schema;
+mod registry;
+pub mod reqs2reqs;
+pub mod res2dict;
+pub mod res2res;
+pub mod store_criterion;
 use crate::{
     compat::Result,
     config::{Config, invalid},
     models::*,
 };
 use payload::*;
-pub use schema::validate_addon;
+pub use registry::{AddonConfig, parse_config, validate_addon};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,28 +59,6 @@ impl Layer {
     }
     pub fn from_name(name: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|layer| layer.name() == name)
-    }
-    pub fn names(self) -> &'static [&'static str] {
-        match self {
-            Self::Log2Reqs => &["plain", "csv", "json", "yaml"],
-            Self::Reqs2Reqs => &[
-                "add",
-                "empty_guard",
-                "filter",
-                "head",
-                "rename",
-                "repeat",
-                "replace",
-                "shuffle",
-            ],
-            Self::Res2Res => &["json", "json_sort", "type"],
-            Self::Res2Dict => &["block", "html", "json", "xml"],
-            Self::Judgement => &["ignore", "same"],
-            Self::StoreCriterion => &["free"],
-            Self::Dump => &["encoding", "html", "json", "xml"],
-            Self::DidChallenge => &["sleep", "tag"],
-            Self::Final => &["csv", "json", "miroir", "notify", "summary", "viewer"],
-        }
     }
     pub fn configured(self, addons: &Addons) -> &[Addon] {
         match self {
@@ -124,7 +110,7 @@ pub trait Factory<S: Stage> {
 }
 pub struct SkeletonFactory;
 struct Skeleton<S: Stage> {
-    _addon: Addon,
+    _config: AddonConfig,
     stage: PhantomData<S>,
 }
 impl<S: Stage> AddonExecutor<S> for Skeleton<S> {
@@ -135,7 +121,7 @@ impl<S: Stage> AddonExecutor<S> for Skeleton<S> {
 impl<S: Stage> Factory<S> for SkeletonFactory {
     fn create(&self, addon: &Addon) -> Result<Box<dyn AddonExecutor<S>>> {
         Ok(Box::new(Skeleton::<S> {
-            _addon: addon.clone(),
+            _config: parse_config(S::LAYER, addon, &format!("addons.{}", S::LAYER.name()))?,
             stage: PhantomData,
         }))
     }

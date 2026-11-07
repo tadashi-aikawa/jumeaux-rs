@@ -1,4 +1,5 @@
-//! output.encodingをレポート・summary・標準出力/標準エラーへ適用する境界。
+//! output.encodingをレポート・summary・stdout・stderrへの直接書き込みに適用する。
+//! ログは元のstderrへUTF-8で書き、このwriterを経由しない。
 use crate::{
     compat::{
         Error, Result,
@@ -6,7 +7,50 @@ use crate::{
     },
     models::{OutputSummary, Report},
 };
-use std::io::Write;
+use std::io::{Seek, Write};
+use std::sync::{Mutex, MutexGuard, OnceLock};
+
+static STDOUT: OnceLock<Mutex<EncodedWriter<std::io::Stdout>>> = OnceLock::new();
+static STDERR: OnceLock<Mutex<EncodedWriter<std::io::Stderr>>> = OnceLock::new();
+
+fn process_writer<W: Write>(
+    slot: &'static OnceLock<Mutex<EncodedWriter<W>>>,
+    writer: W,
+    output: &OutputSummary,
+    position: Option<u64>,
+) -> Result<MutexGuard<'static, EncodedWriter<W>>> {
+    let mut initial = EncodedWriter::new(writer, output)?;
+    // TextIOWrapperはseek不能なpipe/TTYでUTF-16/32のBOMを書かない。
+    // UTF-8-SIGはpipeでも書く。seek可能な出力先では位置0のときだけ書く。
+    let bom = encoding::encode("", &output.encoding, Errors::Strict)?;
+    initial.started = match position {
+        Some(position) => position != 0,
+        None => !bom.is_empty() && bom != [0xef, 0xbb, 0xbf],
+    };
+    let guard = slot
+        .get_or_init(|| Mutex::new(initial))
+        .lock()
+        .map_err(|_| Error::new("IOError", "output stream lock poisoned"))?;
+    if guard.encoding != output.encoding {
+        return Err(Error::new(
+            "ConfigError",
+            "process output encoding is already initialized",
+        ));
+    }
+    Ok(guard)
+}
+
+#[cfg(unix)]
+fn stream_position(stream: &impl std::os::fd::AsFd) -> Option<u64> {
+    let fd = stream.as_fd().try_clone_to_owned().ok()?;
+    std::fs::File::from(fd).stream_position().ok()
+}
+
+#[cfg(windows)]
+fn stream_position(stream: &impl std::os::windows::io::AsHandle) -> Option<u64> {
+    let handle = stream.as_handle().try_clone_to_owned().ok()?;
+    std::fs::File::from(handle).stream_position().ok()
+}
 
 /// ストリームごとに1つ持ち、BOMを先頭の1回だけ書く。
 pub struct EncodedWriter<W> {
@@ -77,11 +121,21 @@ impl OutputSummary {
     pub fn writer<W: Write>(&self, writer: W) -> Result<EncodedWriter<W>> {
         EncodedWriter::new(writer, self)
     }
-    pub fn stdout(&self) -> Result<EncodedWriter<std::io::Stdout>> {
-        self.writer(std::io::stdout())
+    pub fn stdout(&self) -> Result<MutexGuard<'static, EncodedWriter<std::io::Stdout>>> {
+        process_writer(
+            &STDOUT,
+            std::io::stdout(),
+            self,
+            stream_position(&std::io::stdout()),
+        )
     }
-    pub fn stderr(&self) -> Result<EncodedWriter<std::io::Stderr>> {
-        self.writer(std::io::stderr())
+    pub fn stderr(&self) -> Result<MutexGuard<'static, EncodedWriter<std::io::Stderr>>> {
+        process_writer(
+            &STDERR,
+            std::io::stderr(),
+            self,
+            stream_position(&std::io::stderr()),
+        )
     }
     pub fn write_summary<W: Write>(&self, writer: W, text: &str) -> Result<()> {
         let mut output = self.writer(writer)?;

@@ -14,6 +14,7 @@ compat/
 │   ├── encoding/        決定順、別名、BOM、変換失敗、入力、URL
 │   ├── config/          マージ・includeの入力YAML
 │   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
+│   ├── review-fixes.json null・YAMLマージ・report読込・34アドオン設定の回帰fixture
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
 ├── gen/                 Python版からのfixture・環境情報生成
 └── harness/             バイナリ差し替え、記録用受信先、比較規則
@@ -85,8 +86,9 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - `python_mismatch: true` のケースはPython観測値と修正後のexpectedを分ける。
 - `rust_expected`があるケースはPythonの`expected`を保持し、Rust側の既知差異を別に固定する。
   - 規則: `difference`に互換仕様への参照と差異の説明を書く。生成時に両者の不一致を確認し、Rustテストは`rust_expected`との一致を検証する。
-- retryのヘッダ判定設定は保存形式が未決。
-  - 条件: `original_config` は意味上の入力契約を示す。旧reportだけから復元できることは主張しない。
+- retryのヘッダ判定設定は `summary.comparison` に保存する。
+  - 旧report: キーがなければ警告し、Pythonの既定値 `false`・`["Content-Length", "Date"]` を補う。
+  - fixture: `original_config` は元設定を明示するAPIの入力契約を示す。保存済みcomparisonと旧reportの補完は `tests/review_fixes.rs` で別途検証する。
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
   - 件数: template 216、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
@@ -130,16 +132,22 @@ CONFIG_MODEL_FIXTURE="$(mktemp)"
 diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
 ```
 
-- 新規fixtureは32件。
+- `config-models.json` は32件。
   - Python一致: 設定6件、モデル12件、TextIOWrapperの出力12件。
-  - 未決の差異: RequestとReportの数値表記2件。Python期待値を残し、Rustの現出力との差を明示検証する。
+  - 許容した差異: RequestとReportの数値表記2件。serde_jsonで正規化した表記を使い、Python期待値との差を明示検証する。
 - 基準report31件はJSON値とbytesの往復を検証する。
   - 対象: テンプレート15種と追加ケース。可変値も除外しない。
   - 例外: encoding_hellは終了コード1とreport不存在を確認する。既存基準を作り直さない。
 - 基準config31件の読み込みと登録を検証する。
   - 例外: encoding_hellは廃止済みの`addons.res2res[0].config.items[0].conditions`をエラーにする。
 - 既存retry fixtureはrawの復元とヘッダ判定設定の明示的な受け渡しを検証する。
-  - 制限: ヘッダ判定設定は`original_config`から供給する。reportの保存形式や旧reportの補完方針は決定しない。
+  - 入力: ヘッダ判定設定は`original_config`から供給する。
+- `review-fixes.json` は186件。
+  - Python一致: 180件。null既定値・YAMLマージキー・後続レイヤーの上書き・report未知キー・Request本文の型・34アドオンの型付き設定・プロセス出力を検証する。
+  - 意図的な差異: 6件。設定の旧logger拒否、reportの旧logger破棄、Python transformer拒否2件、shuffle・viewerの未知設定拒否。
+  - エラー: Python例外とRustのデシリアライズエラーを必須欠落・型違反・未知キーで対応付ける。
+  - 実行: `cargo test --test review_fixes -- --nocapture`。
+  - 再採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/review_fixes.py` を一時ファイルへ出力して比較する。
 - CLIのrun/retryは引き続きスケルトン。
   - 残件: HTTP・各アドオン本体・CLI接続後にE2Eハーネスを実行する。
 

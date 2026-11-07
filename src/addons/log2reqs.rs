@@ -1,4 +1,8 @@
 //! plain入力を正式Requestへ変換する。codecとquery解釈はcompatの責務。
+pub mod csv;
+pub mod json;
+pub mod plain;
+pub mod yaml;
 use crate::{
     compat::{
         Result,

@@ -24,9 +24,13 @@
 - `dump_html` fixtureはHTML整形の前後にある文字コード境界を検証する。
   - 入力: Pythonの実関数から採取した`decoded_text`と`formatted_text`。
   - 残件: Rust側のHTML整形・保存アドオンとの接続は、markupとchallengeの統合時に検証する。
-- `OutputSummary`はreport・summary・stdout・stderr用のwriterを生成する。
-  - ストリーム: UTFのBOMとISO-2022-JPの状態をwrite・flush間で保持する。同じ出力先には1つのwriterを使う。
-  - 検証: `config-models.json`の12件で、Python TextIOWrapperの各flush後のbytesとエラー分類を比較する。
+- `output.encoding` はreport・stdout・`summary.txt`・stderrへの直接書き込みに適用する。
+  - Pythonのログ: ロガーが起動時に保持した元のstderrへUTF-8で出力する。差し替えたwrapperを通るのは直接書き込みとtraceback。
+  - Rustのログ: UTF-8のstderrを使い、encoding writerを通さない。
+- `OutputSummary::stdout()`・`stderr()` はプロセスで1つのwriterを共有する。
+  - ストリーム: UTFのBOMとISO-2022-JPの状態を取得し直した後も保持する。プロセスの途中でencodingを変える指定はエラーとする。
+  - BOM: ファイル出力では位置0でのみ付ける。seek不能なパイプではPython同様UTF-16・UTF-32は付けず、UTF-8-SIGは付ける。
+  - 検証: `config-models.json` のTextIOWrapper 12件と、`review-fixes.json` のプロセス出力2件でbytesを比較する。
 
 ## HTTP応答の決定順
 

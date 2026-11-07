@@ -1,0 +1,3607 @@
+[
+  {
+    "name": "explicit-null-defaults",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "null-defaults.yml"
+      ]
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {}
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 1,
+        "max_retries": 3,
+        "notifiers": {
+          "slack": {
+            "type": "slack",
+            "version": 1,
+            "username": "jumeaux",
+            "use_blocks": false
+          }
+        },
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "config": {}
+          },
+          "reqs2reqs": [],
+          "res2res": [],
+          "res2dict": [],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "yaml-merge-key",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "merge-keys.yml"
+      ]
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost",
+          "headers": {
+            "X-Shared": "value"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost",
+          "headers": {
+            "X-Shared": "value"
+          }
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 1,
+        "max_retries": 3,
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor"
+          },
+          "reqs2reqs": [],
+          "res2res": [],
+          "res2dict": [],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": []
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "replaced-invalid-layer",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml",
+        "replaced-invalid.yml",
+        "replacement.yml"
+      ]
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {}
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 4,
+        "processes": 2,
+        "max_retries": 5,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "base"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 3
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "missing-addon-name",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml",
+        "missing-addon-name.yml"
+      ]
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "obsolete-logger",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml",
+        "obsolete-logger.yml"
+      ]
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8",
+          "logger": {}
+        },
+        "threads": 4,
+        "processes": 2,
+        "max_retries": 5,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "base"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ConfigError"
+    },
+    "difference": "docs/compat-spec.md: 設定ファイルのoutput.loggerは空辞書でも拒否する"
+  },
+  {
+    "name": "request-null-defaults",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "qs": null,
+      "headers": null,
+      "method": null,
+      "url_encoding": null
+    },
+    "expected": {
+      "value": {
+        "method": "GET",
+        "path": "/",
+        "qs": {},
+        "headers": {},
+        "url_encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "status-counts-null",
+    "operation": "StatusCounts",
+    "input": {
+      "same": null,
+      "different": null,
+      "failure": null
+    },
+    "expected": {
+      "value": {
+        "same": 0,
+        "different": 0,
+        "failure": 0
+      }
+    }
+  },
+  {
+    "name": "notifier-null",
+    "operation": "Notifier",
+    "input": {
+      "type": "slack",
+      "username": null,
+      "version": null,
+      "use_blocks": null
+    },
+    "expected": {
+      "value": {
+        "type": "slack",
+        "version": 1,
+        "username": "jumeaux",
+        "use_blocks": false
+      }
+    }
+  },
+  {
+    "name": "request-json-list",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "json": [
+        1
+      ]
+    },
+    "expected": {
+      "error": "InvalidTypeError"
+    }
+  },
+  {
+    "name": "request-json-scalar",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "json": 1
+    },
+    "expected": {
+      "error": "InvalidTypeError"
+    }
+  },
+  {
+    "name": "request-form-list",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "form": [
+        "x"
+      ]
+    },
+    "expected": {
+      "error": "InvalidTypeError"
+    }
+  },
+  {
+    "name": "request-form-scalar",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "form": "x"
+    },
+    "expected": {
+      "error": "InvalidTypeError"
+    }
+  },
+  {
+    "name": "report-unknown",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one",
+          "future": 1
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out",
+          "future": 1
+        },
+        "future": 1
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown",
+            "future": 1
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure",
+          "future": 1,
+          "json": {
+            "future": 1
+          }
+        }
+      ],
+      "addons": {
+        "log2reqs": {
+          "name": "plain",
+          "future": 1
+        }
+      },
+      "future": 1
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "json": {
+              "future": 1
+            },
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor"
+          },
+          "reqs2reqs": [],
+          "res2res": [],
+          "res2dict": [],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": []
+        }
+      }
+    }
+  },
+  {
+    "name": "report-logger",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one"
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out",
+          "logger": {}
+        }
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure"
+        }
+      ],
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8",
+            "logger": {}
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor"
+          },
+          "reqs2reqs": [],
+          "res2res": [],
+          "res2dict": [],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": []
+        }
+      }
+    },
+    "rust_expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor"
+          },
+          "reqs2reqs": [],
+          "res2res": [],
+          "res2dict": [],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": []
+        }
+      }
+    },
+    "difference": "docs/compat-spec.md: report側のoutput.loggerは警告して捨てる"
+  },
+  {
+    "name": "addon-valid-log2reqs/plain",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "plain",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "candidate_for_url_encodings": []
+      }
+    }
+  },
+  {
+    "name": "addon-empty-log2reqs/plain",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "plain",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "candidate_for_url_encodings": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-log2reqs/plain",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "plain",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "candidate_for_url_encodings": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-log2reqs/plain",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "plain",
+      "config": {
+        "encoding": null,
+        "keep_blank": null,
+        "candidate_for_url_encodings": null
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "candidate_for_url_encodings": []
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-log2reqs/plain",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "plain",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-log2reqs/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "csv",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "dialect": "excel"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-log2reqs/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "csv",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "dialect": "excel"
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-log2reqs/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "csv",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "dialect": "excel"
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-log2reqs/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "csv",
+      "config": {
+        "encoding": null,
+        "keep_blank": null,
+        "dialect": null
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8",
+        "keep_blank": false,
+        "dialect": "excel"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-log2reqs/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "csv",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-log2reqs/json",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-log2reqs/json",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-log2reqs/json",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-log2reqs/json",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "json",
+      "config": {
+        "encoding": null
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-log2reqs/json",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "json",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-log2reqs/yaml",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "yaml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-log2reqs/yaml",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "yaml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-log2reqs/yaml",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "yaml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-log2reqs/yaml",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "yaml",
+      "config": {
+        "encoding": null
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-log2reqs/yaml",
+    "operation": "addon",
+    "input": {
+      "layer": "log2reqs",
+      "name": "yaml",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/add",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "add",
+      "config": {
+        "reqs": [
+          {
+            "path": "/"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "location": "head",
+        "reqs": [
+          {
+            "method": "GET",
+            "path": "/",
+            "qs": {},
+            "headers": {},
+            "url_encoding": "utf-8"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/add",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "add",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/add",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "add",
+      "config": {
+        "reqs": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/add",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "add",
+      "config": {
+        "reqs": [
+          {
+            "path": "/"
+          }
+        ],
+        "location": null
+      }
+    },
+    "expected": {
+      "value": {
+        "location": "head",
+        "reqs": [
+          {
+            "method": "GET",
+            "path": "/",
+            "qs": {},
+            "headers": {},
+            "url_encoding": "utf-8"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/add",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "add",
+      "config": {
+        "reqs": [
+          {
+            "path": "/"
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/empty_guard",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "empty_guard",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/empty_guard",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "empty_guard",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/empty_guard",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "empty_guard",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/empty_guard",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "empty_guard",
+      "config": {
+        "notifies": null
+      }
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/empty_guard",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "empty_guard",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/filter",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "filter",
+      "config": {
+        "when": "true"
+      }
+    },
+    "expected": {
+      "value": {
+        "when": "true"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/filter",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "filter",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/filter",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "filter",
+      "config": {
+        "when": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/filter",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "filter",
+      "config": {
+        "when": "true"
+      }
+    },
+    "expected": {
+      "value": {
+        "when": "true"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/filter",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "filter",
+      "config": {
+        "when": "true",
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/head",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "head",
+      "config": {
+        "size": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "size": 1
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/head",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "head",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/head",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "head",
+      "config": {
+        "size": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/head",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "head",
+      "config": {
+        "size": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "size": 1
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/head",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "head",
+      "config": {
+        "size": 1,
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/rename",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "rename",
+      "config": {
+        "conditions": [
+          {
+            "name": "new"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "name": "new"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/rename",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "rename",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/rename",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "rename",
+      "config": {
+        "conditions": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/rename",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "rename",
+      "config": {
+        "conditions": [
+          {
+            "name": "new"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "name": "new"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/rename",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "rename",
+      "config": {
+        "conditions": [
+          {
+            "name": "new"
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/repeat",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "repeat",
+      "config": {
+        "times": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "times": 2
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/repeat",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "repeat",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/repeat",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "repeat",
+      "config": {
+        "times": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/repeat",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "repeat",
+      "config": {
+        "times": 2
+      }
+    },
+    "expected": {
+      "value": {
+        "times": 2
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/repeat",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "repeat",
+      "config": {
+        "times": 2,
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/replace",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "replace",
+      "config": {
+        "items": [
+          {
+            "queries": {
+              "q": [
+                "x"
+              ]
+            },
+            "headers": {
+              "X": "y"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "items": [
+          {
+            "queries": {
+              "q": [
+                "x"
+              ]
+            },
+            "headers": {
+              "X": "y"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/replace",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "replace",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/replace",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "replace",
+      "config": {
+        "items": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/replace",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "replace",
+      "config": {
+        "items": [
+          {
+            "queries": {
+              "q": [
+                "x"
+              ]
+            },
+            "headers": {
+              "X": "y"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "items": [
+          {
+            "queries": {
+              "q": [
+                "x"
+              ]
+            },
+            "headers": {
+              "X": "y"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/replace",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "replace",
+      "config": {
+        "items": [
+          {
+            "queries": {
+              "q": [
+                "x"
+              ]
+            },
+            "headers": {
+              "X": "y"
+            }
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-reqs2reqs/shuffle",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "shuffle",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-empty-reqs2reqs/shuffle",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "shuffle",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-fields-reqs2reqs/shuffle",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "shuffle",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-defaults-reqs2reqs/shuffle",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "shuffle",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-unknown-reqs2reqs/shuffle",
+    "operation": "addon",
+    "input": {
+      "layer": "reqs2reqs",
+      "name": "shuffle",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "value": {}
+    },
+    "rust_expected": {
+      "error": "UnknownPropertiesError"
+    },
+    "difference": "docs/compat-spec.md: Python transformerと解釈しない設定は拒否する"
+  },
+  {
+    "name": "addon-valid-res2res/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json",
+      "config": {
+        "transformer": {
+          "module": "unused"
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "transformer": {
+          "module": "unused",
+          "function": "transform"
+        },
+        "default_encoding": "utf8"
+      }
+    },
+    "rust_expected": {
+      "error": "ConfigError"
+    },
+    "difference": "docs/compat-spec.md: Python transformerと解釈しない設定は拒否する"
+  },
+  {
+    "name": "addon-empty-res2res/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-res2res/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json",
+      "config": {
+        "transformer": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2res/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json",
+      "config": {
+        "transformer": {
+          "module": "unused"
+        },
+        "default_encoding": null
+      }
+    },
+    "expected": {
+      "value": {
+        "transformer": {
+          "module": "unused",
+          "function": "transform"
+        },
+        "default_encoding": "utf8"
+      }
+    },
+    "rust_expected": {
+      "error": "ConfigError"
+    },
+    "difference": "docs/compat-spec.md: Python transformerと解釈しない設定は拒否する"
+  },
+  {
+    "name": "addon-unknown-res2res/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json",
+      "config": {
+        "transformer": {
+          "module": "unused"
+        },
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2res/json_sort",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "true",
+            "targets": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "items": [
+          {
+            "when": "true",
+            "targets": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2res/json_sort",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json_sort",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-res2res/json_sort",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json_sort",
+      "config": {
+        "items": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2res/json_sort",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "true",
+            "targets": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "items": [
+          {
+            "when": "true",
+            "targets": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2res/json_sort",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "true",
+            "targets": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2res/type",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "type",
+      "config": {
+        "conditions": [
+          {
+            "type": "json"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "type": "json"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2res/type",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "type",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-res2res/type",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "type",
+      "config": {
+        "conditions": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2res/type",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "type",
+      "config": {
+        "conditions": [
+          {
+            "type": "json"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "type": "json"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2res/type",
+    "operation": "addon",
+    "input": {
+      "layer": "res2res",
+      "name": "type",
+      "config": {
+        "conditions": [
+          {
+            "type": "json"
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2dict/block",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "block",
+      "config": {
+        "header_regexp": "(.*)",
+        "record_regexp": "(.*)"
+      }
+    },
+    "expected": {
+      "value": {
+        "force": false,
+        "header_regexp": "(.*)",
+        "record_regexp": "(.*)"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2dict/block",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "block",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-res2dict/block",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "block",
+      "config": {
+        "header_regexp": null,
+        "record_regexp": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2dict/block",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "block",
+      "config": {
+        "header_regexp": "(.*)",
+        "record_regexp": "(.*)",
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "force": false,
+        "header_regexp": "(.*)",
+        "record_regexp": "(.*)"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2dict/block",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "block",
+      "config": {
+        "header_regexp": "(.*)",
+        "record_regexp": "(.*)",
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2dict/html",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2dict/html",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-res2dict/html",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2dict/html",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "html",
+      "config": {
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2dict/html",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "html",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2dict/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2dict/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-res2dict/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2dict/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "json",
+      "config": {
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2dict/json",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "json",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-res2dict/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-res2dict/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-res2dict/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-res2dict/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "xml",
+      "config": {
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-res2dict/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "res2dict",
+      "name": "xml",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-judgement/ignore",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "test",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": "/"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "ignores": [
+          {
+            "title": "test",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": "/"
+                  }
+                ],
+                "removed": [],
+                "changed": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-judgement/ignore",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "ignore",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-judgement/ignore",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "ignore",
+      "config": {
+        "ignores": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-judgement/ignore",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "test",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": "/"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "ignores": [
+          {
+            "title": "test",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": "/"
+                  }
+                ],
+                "removed": [],
+                "changed": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-judgement/ignore",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "test",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": "/"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-judgement/same",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "same",
+      "config": {
+        "when_any": [
+          "true"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "when_any": [
+          "true"
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-judgement/same",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "same",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-judgement/same",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "same",
+      "config": {
+        "when_any": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-judgement/same",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "same",
+      "config": {
+        "when_any": [
+          "true"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "when_any": [
+          "true"
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-judgement/same",
+    "operation": "addon",
+    "input": {
+      "layer": "judgement",
+      "name": "same",
+      "config": {
+        "when_any": [
+          "true"
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-store_criterion/free",
+    "operation": "addon",
+    "input": {
+      "layer": "store_criterion",
+      "name": "free",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-empty-store_criterion/free",
+    "operation": "addon",
+    "input": {
+      "layer": "store_criterion",
+      "name": "free",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-fields-store_criterion/free",
+    "operation": "addon",
+    "input": {
+      "layer": "store_criterion",
+      "name": "free",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-defaults-store_criterion/free",
+    "operation": "addon",
+    "input": {
+      "layer": "store_criterion",
+      "name": "free",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-unknown-store_criterion/free",
+    "operation": "addon",
+    "input": {
+      "layer": "store_criterion",
+      "name": "free",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-dump/encoding",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "encoding",
+      "config": {
+        "encoding": "utf8"
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-empty-dump/encoding",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "encoding",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-dump/encoding",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "encoding",
+      "config": {
+        "encoding": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-dump/encoding",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "encoding",
+      "config": {
+        "encoding": "utf8"
+      }
+    },
+    "expected": {
+      "value": {
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-dump/encoding",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "encoding",
+      "config": {
+        "encoding": "utf8",
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-dump/html",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-dump/html",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-dump/html",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "html",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-dump/html",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "html",
+      "config": {
+        "default_encoding": null,
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-dump/html",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "html",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-dump/json",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-dump/json",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-dump/json",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-dump/json",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "json",
+      "config": {
+        "default_encoding": null,
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-dump/json",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "json",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-dump/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-dump/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-dump/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "xml",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-dump/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "xml",
+      "config": {
+        "default_encoding": null,
+        "force": null
+      }
+    },
+    "expected": {
+      "value": {
+        "default_encoding": "utf8",
+        "force": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-dump/xml",
+    "operation": "addon",
+    "input": {
+      "layer": "dump",
+      "name": "xml",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-did_challenge/sleep",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "sleep",
+      "config": {
+        "min": 1.0,
+        "max": 2.0
+      }
+    },
+    "expected": {
+      "value": {
+        "max": 2.0,
+        "min": 1.0
+      }
+    }
+  },
+  {
+    "name": "addon-empty-did_challenge/sleep",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "sleep",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-did_challenge/sleep",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "sleep",
+      "config": {
+        "min": null,
+        "max": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-did_challenge/sleep",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "sleep",
+      "config": {
+        "min": 1.0,
+        "max": 2.0
+      }
+    },
+    "expected": {
+      "value": {
+        "max": 2.0,
+        "min": 1.0
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-did_challenge/sleep",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "sleep",
+      "config": {
+        "min": 1.0,
+        "max": 2.0,
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-did_challenge/tag",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "tag"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "tag": "tag"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-empty-did_challenge/tag",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "tag",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-did_challenge/tag",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "tag",
+      "config": {
+        "conditions": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-did_challenge/tag",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "tag"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "conditions": [
+          {
+            "tag": "tag"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-did_challenge/tag",
+    "operation": "addon",
+    "input": {
+      "layer": "did_challenge",
+      "name": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "tag"
+          }
+        ],
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "csv",
+      "config": {
+        "column_names": [
+          "name"
+        ],
+        "output_path": "out.csv"
+      }
+    },
+    "expected": {
+      "value": {
+        "column_names": [
+          "name"
+        ],
+        "output_path": "out.csv",
+        "with_header": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-final/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "csv",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-final/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "csv",
+      "config": {
+        "column_names": null,
+        "output_path": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "csv",
+      "config": {
+        "column_names": [
+          "name"
+        ],
+        "output_path": "out.csv",
+        "with_header": null
+      }
+    },
+    "expected": {
+      "value": {
+        "column_names": [
+          "name"
+        ],
+        "output_path": "out.csv",
+        "with_header": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-final/csv",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "csv",
+      "config": {
+        "column_names": [
+          "name"
+        ],
+        "output_path": "out.csv",
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/json",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-final/json",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-final/json",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "json",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/json",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "json",
+      "config": {
+        "sysout": null
+      }
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-final/json",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "json",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/miroir",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "miroir",
+      "config": {
+        "table": "table",
+        "bucket": "bucket"
+      }
+    },
+    "expected": {
+      "value": {
+        "table": "table",
+        "bucket": "bucket",
+        "cache_max_age": 0,
+        "with_zip": true,
+        "when": []
+      }
+    }
+  },
+  {
+    "name": "addon-empty-final/miroir",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "miroir",
+      "config": {}
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-fields-final/miroir",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "miroir",
+      "config": {
+        "table": null,
+        "bucket": null
+      }
+    },
+    "expected": {
+      "error": "RequiredError"
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/miroir",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "miroir",
+      "config": {
+        "table": "table",
+        "bucket": "bucket",
+        "cache_max_age": null,
+        "with_zip": null,
+        "when": null
+      }
+    },
+    "expected": {
+      "value": {
+        "table": "table",
+        "bucket": "bucket",
+        "cache_max_age": 0,
+        "with_zip": true,
+        "when": []
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-final/miroir",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "miroir",
+      "config": {
+        "table": "table",
+        "bucket": "bucket",
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/notify",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "notify",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-empty-final/notify",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "notify",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-final/notify",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "notify",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/notify",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "notify",
+      "config": {
+        "notifies": null
+      }
+    },
+    "expected": {
+      "value": {
+        "notifies": []
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-final/notify",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "notify",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/summary",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "summary",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-empty-final/summary",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "summary",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-fields-final/summary",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "summary",
+      "config": {}
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/summary",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "summary",
+      "config": {
+        "sysout": null
+      }
+    },
+    "expected": {
+      "value": {
+        "sysout": false
+      }
+    }
+  },
+  {
+    "name": "addon-unknown-final/summary",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "summary",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "error": "UnknownPropertiesError"
+    }
+  },
+  {
+    "name": "addon-valid-final/viewer",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "viewer",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-empty-final/viewer",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "viewer",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-fields-final/viewer",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "viewer",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-null-defaults-final/viewer",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "viewer",
+      "config": {}
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "addon-unknown-final/viewer",
+    "operation": "addon",
+    "input": {
+      "layer": "final",
+      "name": "viewer",
+      "config": {
+        "typo": 1
+      }
+    },
+    "expected": {
+      "value": {}
+    },
+    "rust_expected": {
+      "error": "UnknownPropertiesError"
+    },
+    "difference": "docs/compat-spec.md: Python transformerと解釈しない設定は拒否する"
+  },
+  {
+    "name": "process-output-utf-16",
+    "operation": "process-output",
+    "input": {
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "value": {
+        "stdout_hex": "e5652c679e8a0a00",
+        "stderr_hex": "e5652c679e8a0a00e383ade382b00a"
+      }
+    }
+  },
+  {
+    "name": "process-output-utf-8-sig",
+    "operation": "process-output",
+    "input": {
+      "encoding": "utf-8-sig"
+    },
+    "expected": {
+      "value": {
+        "stdout_hex": "efbbbfe697a5e69cace8aa9e0a",
+        "stderr_hex": "efbbbfe697a5e69cace8aa9e0ae383ade382b00a"
+      }
+    }
+  }
+]

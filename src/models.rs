@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::sync::Arc;
 
+pub(crate) mod defaults;
 pub use crate::diff::DiffKeys;
+use defaults::{null_default, null_default_with};
 pub type Object = Map<String, Value>;
 pub type Headers = IndexMap<String, String>;
 pub type Queries = IndexMap<String, Vec<String>>;
@@ -34,10 +36,10 @@ pub struct Request {
         skip_serializing_if = "Option::is_none"
     )]
     pub name: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub method: HttpMethod,
     pub path: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub qs: Queries,
     #[serde(
         default,
@@ -47,13 +49,13 @@ pub struct Request {
     pub raw: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "owl_option")]
-    pub form: Option<Value>,
+    pub form: Option<Object>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "owl_option")]
-    pub json: Option<Value>,
-    #[serde(default)]
+    pub json: Option<Object>,
+    #[serde(default, deserialize_with = "null_default")]
     pub headers: Headers,
-    #[serde(default = "url_encoding")]
+    #[serde(default = "url_encoding", deserialize_with = "null_url_encoding")]
     pub url_encoding: String,
 }
 
@@ -72,6 +74,12 @@ fn executor_class() -> String {
 fn notifier_username() -> String {
     "jumeaux".into()
 }
+
+null_default_with!(null_url_encoding, String, url_encoding());
+null_default_with!(null_utf8, String, utf8());
+null_default_with!(null_one, i64, one());
+null_default_with!(null_executor_class, String, executor_class());
+null_default_with!(null_notifier_username, String, notifier_username());
 
 impl Default for Request {
     fn default() -> Self {
@@ -155,7 +163,7 @@ pub struct AccessPoint {
         skip_serializing_if = "Option::is_none"
     )]
     pub default_response_encoding: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub headers: Headers,
 }
 
@@ -163,7 +171,7 @@ pub struct AccessPoint {
 #[serde(deny_unknown_fields)]
 pub struct OutputSummary {
     pub response_dir: String,
-    #[serde(default = "utf8")]
+    #[serde(default = "utf8", deserialize_with = "null_utf8")]
     pub encoding: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logger: Option<Value>,
@@ -187,7 +195,7 @@ pub enum NotifierType {
 pub struct Notifier {
     #[serde(rename = "type")]
     pub notifier_type: NotifierType,
-    #[serde(default = "one")]
+    #[serde(default = "one", deserialize_with = "null_one")]
     pub version: i64,
     #[serde(
         default,
@@ -195,7 +203,10 @@ pub struct Notifier {
         skip_serializing_if = "Option::is_none"
     )]
     pub channel: Option<String>,
-    #[serde(default = "notifier_username")]
+    #[serde(
+        default = "notifier_username",
+        deserialize_with = "null_notifier_username"
+    )]
     pub username: String,
     #[serde(
         default,
@@ -209,7 +220,7 @@ pub struct Notifier {
         skip_serializing_if = "Option::is_none"
     )]
     pub icon_url: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub use_blocks: bool,
 }
 
@@ -217,7 +228,7 @@ pub struct Notifier {
 #[serde(deny_unknown_fields)]
 pub struct Addon {
     pub name: String,
-    #[serde(default = "executor_class")]
+    #[serde(default = "executor_class", deserialize_with = "null_executor_class")]
     pub cls_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "owl_option")]
@@ -236,21 +247,21 @@ pub struct Addon {
 #[serde(deny_unknown_fields)]
 pub struct Addons {
     pub log2reqs: Addon,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub reqs2reqs: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub res2res: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub res2dict: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub judgement: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub store_criterion: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub dump: Vec<Addon>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub did_challenge: Vec<Addon>,
-    #[serde(default, rename = "final")]
+    #[serde(default, deserialize_with = "null_default", rename = "final")]
     pub final_addons: Vec<Addon>,
 }
 
@@ -265,8 +276,11 @@ pub enum Status {
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct StatusCounts {
+    #[serde(deserialize_with = "null_default")]
     pub same: u64,
+    #[serde(deserialize_with = "null_default")]
     pub different: u64,
+    #[serde(deserialize_with = "null_default")]
     pub failure: u64,
 }
 
@@ -288,6 +302,8 @@ pub struct Summary {
     pub time: Time,
     pub concurrency: Concurrency,
     pub output: OutputSummary,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comparison: Option<crate::config::HeaderJudgementSettings>,
     #[serde(
         default,
         deserialize_with = "optional_string",
@@ -384,16 +400,27 @@ impl Trial {
             qs: self.queries.clone(),
             headers: self.headers.clone(),
             raw: self.raw.clone(),
-            form: self.form.clone().map(Value::Object),
-            json: self.json.clone().map(Value::Object),
+            form: self.form.clone(),
+            json: self.json.clone(),
             ..Request::default()
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Report {
+// 同じフィールド定義から公開モデルと厳格な読込用モデルを作る。
+macro_rules! report_model {
+    ($($(#[$attr:meta])* pub $field:ident: $ty:ty,)+) => {
+        #[derive(Debug, Clone, Serialize)]
+        pub struct Report { $($(#[$attr])* pub $field: $ty,)+ }
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct ReportFields { $($(#[$attr])* $field: $ty,)+ }
+        impl From<ReportFields> for Report {
+            fn from(fields: ReportFields) -> Self { Self { $($field: fields.$field,)+ } }
+        }
+    };
+}
+report_model! {
     pub version: String,
     pub key: String,
     pub title: String,
@@ -415,6 +442,67 @@ pub struct Report {
         skip_serializing_if = "Option::is_none"
     )]
     pub retry_hash: Option<String>,
+}
+
+impl Report {
+    /// report由来の未知キーは捨て、呼出元が検証できるパス付き警告を返す。
+    pub fn from_value_with_warnings(
+        mut value: Value,
+    ) -> crate::compat::Result<(Self, Vec<String>)> {
+        let mut warnings = Vec::new();
+        if let Some(output) = value
+            .pointer_mut("/summary/output")
+            .and_then(Value::as_object_mut)
+            && output.remove("logger").is_some()
+        {
+            warnings.push("report.summary.output.logger: ignored obsolete setting".into());
+        }
+        loop {
+            match serde_path_to_error::deserialize::<_, ReportFields>(&value) {
+                Ok(report) => return Ok((report.into(), warnings)),
+                Err(error) => {
+                    // 型・必須キーのエラーは緩めない。未知キーだけをモデルの定義から判定する。
+                    if !error.inner().to_string().starts_with("unknown field `") {
+                        return Err(crate::config::invalid(
+                            &crate::config::error_path("report", &error.path().to_string()),
+                            error.inner(),
+                        ));
+                    }
+                    let segments: Vec<_> = error.path().iter().collect();
+                    let mut parent = &mut value;
+                    for segment in &segments[..segments.len().saturating_sub(1)] {
+                        parent = match segment {
+                            serde_path_to_error::Segment::Map { key } => &mut parent[key],
+                            serde_path_to_error::Segment::Seq { index } => &mut parent[*index],
+                            _ => return Err(crate::config::invalid("report", error.inner())),
+                        };
+                    }
+                    let removed = match (parent.as_object_mut(), segments.last()) {
+                        (Some(map), Some(serde_path_to_error::Segment::Map { key })) => {
+                            map.remove(key).is_some()
+                        }
+                        _ => false,
+                    };
+                    if !removed {
+                        return Err(crate::config::invalid("report", error.inner()));
+                    }
+                    warnings.push(format!("report.{}: ignored unknown key", error.path()));
+                }
+            }
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Report {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = Value::deserialize(deserializer)?;
+        let (report, warnings) =
+            Self::from_value_with_warnings(value).map_err(serde::de::Error::custom)?;
+        for warning in warnings {
+            eprintln!("warning: {warning}");
+        }
+        Ok(report)
+    }
 }
 
 /// OwlMixinは任意のdict/list内でもNoneを除外する。入力オブジェクトは変更しない。

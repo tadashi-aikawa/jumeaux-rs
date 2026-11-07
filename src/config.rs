@@ -1,4 +1,5 @@
 //! YAMLの読み込み、レイヤー単位のマージ、CLI上書き。
+use crate::models::defaults::{null_default, null_default_with};
 use crate::{
     addons::{Layer, validate_addon},
     cli::{ReportArgs, RunArgs},
@@ -16,11 +17,11 @@ pub struct Config {
     pub one: AccessPoint,
     pub other: AccessPoint,
     pub output: OutputSummary,
-    #[serde(default = "crate::models::one")]
+    #[serde(default = "crate::models::one", deserialize_with = "null_one")]
     pub threads: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub processes: Option<i64>,
-    #[serde(default = "max_retries")]
+    #[serde(default = "max_retries", deserialize_with = "null_max_retries")]
     pub max_retries: i64,
     #[serde(
         default,
@@ -41,11 +42,15 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notifiers: Option<IndexMap<String, Notifier>>,
     pub addons: Addons,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_default")]
     pub judge_response_header: bool,
-    #[serde(default = "ignored_headers")]
+    #[serde(default = "ignored_headers", deserialize_with = "null_ignored_headers")]
     pub ignore_response_header_keys: Vec<String>,
 }
+null_default_with!(null_one, i64, one());
+null_default_with!(null_max_retries, i64, max_retries());
+null_default_with!(null_ignored_headers, Vec<String>, ignored_headers());
+
 fn max_retries() -> i64 {
     3
 }
@@ -65,12 +70,22 @@ pub struct MergedArgs {
     pub max_retries: Option<i64>,
 }
 
-/// 保存場所を決める型ではない。retry呼出元が元設定などから明示的に供給する。
-#[derive(Debug, Clone, Deserialize)]
+/// reportのsummary.comparisonに保存するヘッダ判定設定。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct HeaderJudgementSettings {
+    #[serde(default, deserialize_with = "null_default")]
     pub judge_response_header: bool,
+    #[serde(default = "ignored_headers", deserialize_with = "null_ignored_headers")]
     pub ignore_response_header_keys: Vec<String>,
+}
+impl Default for HeaderJudgementSettings {
+    fn default() -> Self {
+        Self {
+            judge_response_header: false,
+            ignore_response_header_keys: ignored_headers(),
+        }
+    }
 }
 impl MergedArgs {
     pub fn from_cli(args: &ReportArgs) -> Self {
@@ -94,9 +109,31 @@ impl MergedArgs {
 }
 
 impl Config {
-    /// 旧reportだけではヘッダ判定設定を復元できないため、必須引数にする。
-    pub fn from_report(report: &Report, headers: HeaderJudgementSettings) -> Result<Self> {
-        validate_output(&report.summary.output)?;
+    pub fn comparison(&self) -> HeaderJudgementSettings {
+        HeaderJudgementSettings {
+            judge_response_header: self.judge_response_header,
+            ignore_response_header_keys: self.ignore_response_header_keys.clone(),
+        }
+    }
+
+    pub fn from_report(report: &Report) -> Result<Self> {
+        let headers = report.summary.comparison.clone().unwrap_or_else(|| {
+            eprintln!("warning: report.summary.comparison: missing; using Python defaults (false, Content-Length/Date)");
+            HeaderJudgementSettings::default()
+        });
+        Self::from_report_with_headers(report, headers)
+    }
+
+    /// 元configを明示指定する呼出元向け。通常のretryは保存済みcomparisonを使う。
+    pub fn from_report_with_headers(
+        report: &Report,
+        headers: HeaderJudgementSettings,
+    ) -> Result<Self> {
+        let mut output = report.summary.output.clone();
+        if output.logger.take().is_some() {
+            eprintln!("warning: report.summary.output.logger: ignored obsolete setting");
+        }
+        validate_output(&output)?;
         let addons = report
             .addons
             .clone()
@@ -113,7 +150,7 @@ impl Config {
         Ok(Self {
             one: report.summary.one.clone(),
             other: report.summary.other.clone(),
-            output: report.summary.output.clone(),
+            output,
             threads: 1,
             processes: None,
             max_retries: max_retries(),
@@ -193,185 +230,149 @@ pub(crate) fn invalid(path: &str, message: impl std::fmt::Display) -> Error {
     Error::new("ConfigError", format!("{path}: {message}"))
 }
 
-pub(crate) fn check_keys<'a>(
-    value: &'a Value,
-    keys: &[&str],
-    path: &str,
-) -> Result<&'a Map<String, Value>> {
-    let object = value
-        .as_object()
-        .ok_or_else(|| invalid(path, "expected mapping"))?;
-    for key in object.keys() {
-        if !keys.contains(&key.as_str()) {
-            return Err(invalid(&format!("{path}.{key}"), "unknown key"));
-        }
-    }
-    Ok(object)
-}
-
 fn read_yaml(path: &Path) -> Result<Value> {
     let text = fs::read_to_string(path).map_err(|e| invalid(&path.display().to_string(), e))?;
-    // YAMLから直接JSON Valueへ読む。JSON ValueをYAML serializerへ渡すと
-    // arbitrary_precisionの内部map表現が漏れるため、往復させない。
-    serde_yaml_ng::from_str(&text).map_err(|e| invalid(&path.display().to_string(), e))
+    let mut yaml: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(&text).map_err(|e| invalid(&path.display().to_string(), e))?;
+    yaml.apply_merge()
+        .map_err(|e| invalid(&path.display().to_string(), e))?;
+    // JSONからYAMLへの直列化を経由しないためarbitrary_precisionの内部mapは漏れない。
+    Value::deserialize(yaml).map_err(|e| invalid(&path.display().to_string(), e))
 }
 
-fn validate_top(value: &Value, path: &str) -> Result<()> {
-    let object = check_keys(
-        value,
-        &[
-            "one",
-            "other",
-            "output",
-            "threads",
-            "processes",
-            "max_retries",
-            "title",
-            "description",
-            "tags",
-            "input_files",
-            "notifiers",
-            "addons",
-            "judge_response_header",
-            "ignore_response_header_keys",
-        ],
-        path,
-    )?;
-    for endpoint in ["one", "other"] {
-        if let Some(v) = object.get(endpoint) {
-            let p = format!("{path}.{endpoint}");
-            let e = check_keys(
-                v,
-                &[
-                    "name",
-                    "host",
-                    "path",
-                    "query",
-                    "proxy",
-                    "default_response_encoding",
-                    "headers",
-                ],
-                &p,
-            )?;
-            for (key, keys) in [
-                ("path", &["before", "after"][..]),
-                ("query", &["overwrite", "remove"][..]),
-            ] {
-                if let Some(v) = e.get(key).filter(|v| !v.is_null()) {
-                    check_keys(v, keys, &format!("{p}.{key}"))?;
-                }
-            }
-        }
-    }
-    if let Some(v) = object.get("output") {
-        check_keys(
-            v,
-            &["response_dir", "encoding", "logger"],
-            &format!("{path}.output"),
-        )?;
-    }
-    if let Some(v) = object.get("notifiers").filter(|v| !v.is_null()) {
-        let notifiers = v
-            .as_object()
-            .ok_or_else(|| invalid("notifiers", "expected mapping"))?;
-        for (name, notifier) in notifiers {
-            check_keys(
-                notifier,
-                &[
-                    "type",
-                    "version",
-                    "channel",
-                    "username",
-                    "icon_emoji",
-                    "icon_url",
-                    "use_blocks",
-                ],
-                &format!("{path}.notifiers.{name}"),
-            )?;
-        }
-    }
-    Ok(())
-}
-
-/// Python同様、タグ判定はinclude元だけを見る。includeは1段で全体を置き換える。
-fn resolve_addon(value: &Value, file: &Path, path: &str, layer: Layer) -> Result<Value> {
-    let object = check_keys(
-        value,
-        &["name", "cls_name", "config", "include", "tags"],
-        path,
-    )?;
-    let resolved = if let Some(include) = object.get("include") {
-        let include = include
-            .as_str()
-            .ok_or_else(|| invalid(&format!("{path}.include"), "expected path string"))?;
-        read_yaml(&file.parent().unwrap_or(Path::new(".")).join(include))
-            .map_err(|e| invalid(&format!("{path}.include"), e))?
+/// includeだけをファイル単位で解決する。キー・名前・型の検証はマージ後。
+fn resolve_addon(value: &Value, file: &Path, path: &str) -> Result<(Value, String)> {
+    if let Some(include) = value.get("include").filter(|v| !v.is_null()) {
+        let include = include.as_str().ok_or_else(|| {
+            invalid(
+                &format!("{}.{}.include", file.display(), path),
+                "expected path string",
+            )
+        })?;
+        let source = file.parent().unwrap_or(Path::new(".")).join(include);
+        Ok((read_yaml(&source)?, source.display().to_string()))
     } else {
-        value.clone()
-    };
-    let addon: Addon = deserialize(&resolved, path)?;
-    validate_addon(layer, &addon, path)?;
-    Ok(resolved)
+        Ok((value.clone(), file.display().to_string()))
+    }
+}
+
+pub(crate) fn error_path(path: &str, child: &str) -> String {
+    match child {
+        "" | "." => path.to_string(),
+        _ if path.is_empty() => child.to_string(),
+        _ if child.starts_with('[') => format!("{path}{child}"),
+        _ => format!("{path}.{child}"),
+    }
 }
 
 pub(crate) fn deserialize<T: serde::de::DeserializeOwned>(value: &Value, path: &str) -> Result<T> {
     serde_path_to_error::deserialize(value)
-        .map_err(|e| invalid(&format!("{path}.{}", e.path()), e.inner()))
+        .map_err(|e| invalid(&error_path(path, &e.path().to_string()), e.inner()))
 }
 
 pub fn load<P: AsRef<Path>>(paths: &[P], skip_tags: &[String]) -> Result<Config> {
     let mut merged = Map::new();
     let mut merged_addons = Map::new();
+    let mut sources = IndexMap::<String, String>::new();
     for file in paths {
         let file = file.as_ref();
         let mut document = read_yaml(file)?;
-        validate_top(&document, &file.display().to_string())?;
-        let object = document.as_object_mut().expect("validated mapping");
+        let object = document
+            .as_object_mut()
+            .ok_or_else(|| invalid(&file.display().to_string(), "expected mapping"))?;
         if let Some(addons) = object.remove("addons") {
-            let layers = check_keys(&addons, &Layer::NAMES, "addons")?;
+            let layers = addons.as_object().ok_or_else(|| {
+                invalid(&format!("{}.addons", file.display()), "expected mapping")
+            })?;
             for (name, value) in layers {
-                let layer = Layer::from_name(name).expect("validated layer");
                 let path = format!("addons.{name}");
-                if layer == Layer::Log2Reqs {
+                let layer = Layer::from_name(name);
+                if layer == Some(Layer::Log2Reqs) {
                     if !value.is_null() {
-                        merged_addons
-                            .insert(name.clone(), resolve_addon(value, file, &path, layer)?);
+                        let (resolved, source) = resolve_addon(value, file, &path)?;
+                        sources.insert(path, source);
+                        merged_addons.insert(name.clone(), resolved);
                     }
-                } else {
-                    let list = value
-                        .as_array()
-                        .ok_or_else(|| invalid(&path, "expected list"))?;
+                } else if layer.is_some() && value.is_array() {
                     let mut resolved = Vec::new();
-                    for (i, value) in list.iter().enumerate() {
-                        let p = format!("{path}[{i}]");
-                        let object = check_keys(
-                            value,
-                            &["name", "cls_name", "config", "include", "tags"],
-                            &p,
-                        )?;
-                        let tags = object
+                    let mut origins = Vec::new();
+                    for value in value.as_array().expect("array") {
+                        let p = format!("{path}[{}]", resolved.len());
+                        let tags = value
                             .get("tags")
-                            .map(|v| deserialize::<Vec<String>>(v, &format!("{p}.tags")))
+                            .filter(|v| !v.is_null())
+                            .map(|v| {
+                                deserialize::<Vec<String>>(
+                                    v,
+                                    &format!("{}.{}.tags", file.display(), p),
+                                )
+                            })
                             .transpose()?
                             .unwrap_or_default();
                         if tags.iter().any(|tag| skip_tags.contains(tag)) {
                             continue;
                         }
-                        resolved.push(resolve_addon(value, file, &p, layer)?);
+                        let (value, source) = resolve_addon(value, file, &p)?;
+                        origins.push((p, source));
+                        resolved.push(value);
                     }
-                    // Python create_configのif vに一致。空/全件skipは前レイヤーを消さない。
+                    // Python互換: 空/全件skipは前レイヤーを維持する。
                     if !resolved.is_empty() {
+                        sources.retain(|key, _| !key.starts_with(&format!("{path}[")));
+                        sources.extend(origins);
                         merged_addons.insert(name.clone(), Value::Array(resolved));
                     }
+                } else if !value.is_null() || layer.is_none() {
+                    sources.insert(path, file.display().to_string());
+                    merged_addons.insert(name.clone(), value.clone());
                 }
             }
         }
-        merged.extend(object.clone());
+        for (key, value) in object {
+            sources.insert(key.clone(), file.display().to_string());
+            merged.insert(key.clone(), value.clone());
+        }
     }
     merged.insert("addons".into(), Value::Object(merged_addons));
-    let config: Config = deserialize(&Value::Object(merged), "config")?;
-    validate_output(&config.output)?;
-    Ok(config)
+    let result = (|| {
+        if merged
+            .get("output")
+            .and_then(Value::as_object)
+            .is_some_and(|o| o.contains_key("logger"))
+        {
+            return Err(invalid(
+                "output.logger",
+                "obsolete Python setting; remove this key",
+            ));
+        }
+        let config: Config = deserialize(&Value::Object(merged), "")?;
+        validate_output(&config.output)?;
+        for layer in Layer::ALL {
+            for (i, addon) in layer.configured(&config.addons).iter().enumerate() {
+                let path = if layer == Layer::Log2Reqs {
+                    "addons.log2reqs".into()
+                } else {
+                    format!("addons.{}[{i}]", layer.name())
+                };
+                validate_addon(layer, addon, &path)?;
+            }
+        }
+        Ok(config)
+    })();
+    result.map_err(|mut error: Error| {
+        if let Some((_, source)) = sources
+            .iter()
+            .filter(|(path, _)| {
+                error.message.starts_with(&format!("{path}:"))
+                    || error.message.starts_with(&format!("{path}."))
+                    || error.message.starts_with(&format!("{path}["))
+            })
+            .max_by_key(|(path, _)| path.len())
+        {
+            error.message = format!("{source}: {}", error.message);
+        }
+        error
+    })
 }
 
 fn validate_output(output: &OutputSummary) -> Result<()> {

@@ -1,0 +1,4 @@
+one: {name: One, host: http://localhost/one}
+addons:
+  reqs2reqs: [{name: head, config: {size: 3}}]
+  final: [{name: json}]

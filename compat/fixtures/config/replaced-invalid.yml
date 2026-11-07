@@ -1,0 +1,5 @@
+one: {foo: ignored}
+addons:
+  reqs2reqs:
+    - {name: head, foo: invalid, config: {size: 2}}
+  final: [{name: mypkg.custom}]

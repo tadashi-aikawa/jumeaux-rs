@@ -1,0 +1,12 @@
+one: {name: One, host: http://localhost/one, headers: null}
+other: {name: Other, host: http://localhost/other, headers: null}
+output: {response_dir: responses, encoding: null}
+threads: null
+max_retries: null
+judge_response_header: null
+ignore_response_header_keys: null
+notifiers:
+  slack: {type: slack, version: null, username: null, use_blocks: null}
+addons:
+  log2reqs: {name: plain, cls_name: null, tags: null, config: {encoding: null}}
+  final: [{name: json, tags: null}]
