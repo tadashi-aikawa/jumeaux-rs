@@ -1,13 +1,20 @@
-mod cli;
-
 use std::process::ExitCode;
 
-use clap::Parser;
+use clap::{Parser, error::ErrorKind};
 
-use cli::{Cli, Command};
+use jumeaux::cli::{Cli, Command};
 
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => match error.kind() {
+            ErrorKind::DisplayHelp | ErrorKind::DisplayVersion => error.exit(),
+            _ => {
+                eprint!("{error}");
+                return ExitCode::FAILURE;
+            }
+        },
+    };
     let command = match cli.command {
         Command::Run(_) => "run",
         Command::Retry(_) => "retry",

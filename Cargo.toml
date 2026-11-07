@@ -2,8 +2,10 @@
 name = "jumeaux"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.99"
 license = "MIT"
 description = "Check difference between two responses of API."
+repository = "https://github.com/tadashi-aikawa/jumeaux-rs"
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }

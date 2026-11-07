@@ -1,7 +1,7 @@
 use clap::{ArgAction, Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "jumeaux", version, about)]
+#[command(name = "jumeaux", version, about, infer_long_args = true)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -42,6 +42,7 @@ pub struct RunArgs {
 #[derive(Debug, Args)]
 pub struct RetryArgs {
     /// Report for retry
+    #[arg(value_name = "report")]
     pub report: String,
 
     #[command(flatten)]
@@ -51,27 +52,27 @@ pub struct RetryArgs {
 #[derive(Debug, Args)]
 pub struct ReportArgs {
     /// The title of report
-    #[arg(long)]
+    #[arg(long, value_name = "title")]
     pub title: Option<String>,
 
     /// The description of report
-    #[arg(long)]
+    #[arg(long, value_name = "description")]
     pub description: Option<String>,
 
     /// Tags
-    #[arg(long)]
+    #[arg(long, value_name = "tag")]
     pub tag: Vec<String>,
 
     /// The number of threads in challenge
-    #[arg(long, allow_negative_numbers = true)]
+    #[arg(long, value_name = "threads", allow_negative_numbers = true)]
     pub threads: Option<i64>,
 
     /// The number of processes in challenge
-    #[arg(long, allow_negative_numbers = true)]
+    #[arg(long, value_name = "processes", allow_negative_numbers = true)]
     pub processes: Option<i64>,
 
     /// The max number of retries which accesses to API
-    #[arg(long, allow_negative_numbers = true)]
+    #[arg(long, value_name = "max_retries", allow_negative_numbers = true)]
     pub max_retries: Option<i64>,
 
     #[command(flatten)]
@@ -81,20 +82,26 @@ pub struct ReportArgs {
 #[derive(Debug, Args)]
 pub struct LoggingArgs {
     /// Logger level (-v, -vv, or -vvv)
-    #[arg(short = 'v', action = ArgAction::Count)]
+    #[arg(short = 'v', action = ArgAction::Count, value_parser = clap::value_parser!(u8).range(0..=3))]
     pub v: u8,
 }
 
 #[derive(Debug, Args)]
 pub struct InitArgs {
     /// Initialize template name
+    #[arg(value_name = "name")]
     pub name: Option<String>,
 }
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
     /// Running port
-    #[arg(long, default_value_t = 8000, allow_negative_numbers = true)]
+    #[arg(
+        long,
+        value_name = "port",
+        default_value_t = 8000,
+        allow_negative_numbers = true
+    )]
     pub port: i64,
 
     #[command(flatten)]
@@ -104,11 +111,16 @@ pub struct ServerArgs {
 #[derive(Debug, Args)]
 pub struct ViewerArgs {
     /// Running port
-    #[arg(long, default_value_t = 5500, allow_negative_numbers = true)]
+    #[arg(
+        long,
+        value_name = "port",
+        default_value_t = 5500,
+        allow_negative_numbers = true
+    )]
     pub port: i64,
 
     /// Directory which has responses
-    #[arg(long, default_value = "responses")]
+    #[arg(long, value_name = "responses_dir", default_value = "responses")]
     pub responses_dir: String,
 }
 
@@ -299,6 +311,85 @@ mod tests {
             let error = Cli::try_parse_from(["jumeaux", command, "--port", "invalid"]).unwrap_err();
             assert_eq!(error.kind(), ErrorKind::ValueValidation);
         }
+    }
+
+    #[test]
+    fn verbosity_accepts_zero_through_three_occurrences() {
+        for command in ["run", "retry", "server"] {
+            for count in 0..=3 {
+                let mut argv = vec!["jumeaux", command];
+                if command != "server" {
+                    argv.push("input");
+                }
+                argv.extend(std::iter::repeat_n("-v", count));
+                let cli = Cli::try_parse_from(argv).unwrap();
+                let v = match cli.command {
+                    Command::Run(args) => args.options.logging.v,
+                    Command::Retry(args) => args.options.logging.v,
+                    Command::Server(args) => args.logging.v,
+                    _ => panic!("expected run, retry, or server"),
+                };
+                assert_eq!(usize::from(v), count);
+            }
+        }
+    }
+
+    #[test]
+    fn verbosity_rejects_more_than_three_occurrences() {
+        for command in ["run", "retry", "server"] {
+            for flags in [vec!["-vvvv"], vec!["-vv", "-vv"], vec!["-v"; 5]] {
+                let mut argv = vec!["jumeaux", command];
+                if command != "server" {
+                    argv.push("input");
+                }
+                argv.extend(flags);
+                let error = Cli::try_parse_from(argv).unwrap_err();
+                assert_eq!(error.kind(), ErrorKind::ValueValidation);
+            }
+        }
+    }
+
+    #[test]
+    fn subcommands_accept_unambiguous_long_option_prefixes() {
+        let cli = Cli::try_parse_from(["jumeaux", "retry", "r", "--desc=x", "--thr=1"]).unwrap();
+        let Command::Retry(args) = cli.command else {
+            panic!("expected retry");
+        };
+        assert_eq!(args.options.description.as_deref(), Some("x"));
+        assert_eq!(args.options.threads, Some(1));
+
+        let cli = Cli::try_parse_from(["jumeaux", "run", "r", "--conf=c.yml"]).unwrap();
+        let Command::Run(args) = cli.command else {
+            panic!("expected run");
+        };
+        assert_eq!(args.config, ["c.yml"]);
+
+        let cli = Cli::try_parse_from(["jumeaux", "server", "--po=8080"]).unwrap();
+        let Command::Server(args) = cli.command else {
+            panic!("expected server");
+        };
+        assert_eq!(args.port, 8080);
+
+        let cli = Cli::try_parse_from(["jumeaux", "viewer", "--res=custom"]).unwrap();
+        let Command::Viewer(args) = cli.command else {
+            panic!("expected viewer");
+        };
+        assert_eq!(args.responses_dir, "custom");
+    }
+
+    #[test]
+    fn ambiguous_long_option_prefixes_are_rejected() {
+        let error = Cli::try_parse_from(["jumeaux", "retry", "r", "--t=1"]).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn negative_integer_values_are_preserved() {
+        let cli = Cli::try_parse_from(["jumeaux", "retry", "r", "--threads", "-1"]).unwrap();
+        let Command::Retry(args) = cli.command else {
+            panic!("expected retry");
+        };
+        assert_eq!(args.options.threads, Some(-1));
     }
 
     #[test]
