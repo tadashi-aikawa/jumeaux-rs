@@ -14,7 +14,8 @@ use std::collections::{HashMap, HashSet};
 use scalar::{ScalarKey, number_equal};
 
 /// ソート済みの差分パス。indexの基準はDeepDiffのopcodeに従う。
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DiffKeys {
     pub added: Vec<String>,
     pub changed: Vec<String>,

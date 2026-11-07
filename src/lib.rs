@@ -1,4 +1,8 @@
+pub mod addons;
 pub mod cli;
 pub mod compat;
+pub mod config;
 pub mod diff;
 pub mod markup;
+pub mod models;
+pub mod output;

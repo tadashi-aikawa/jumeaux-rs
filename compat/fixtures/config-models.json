@@ -1,0 +1,1654 @@
+[
+  {
+    "name": "defaults",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {}
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 4,
+        "processes": 2,
+        "max_retries": 5,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "base"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "replace-and-include",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml",
+        "override.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {}
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "Replaced",
+          "host": "http://localhost/new",
+          "headers": {}
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "replaced",
+          "encoding": "utf8"
+        },
+        "threads": 4,
+        "processes": 2,
+        "max_retries": 5,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "replacement"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 3
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "summary",
+              "cls_name": "Executor",
+              "config": {
+                "sysout": true
+              },
+              "tags": [
+                "skip"
+              ]
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "empty-and-skipped-layers",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml",
+        "empty.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {}
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 4,
+        "processes": 2,
+        "max_retries": 5,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "base"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "empty-cli",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {
+        "title": "",
+        "description": "",
+        "tag": [],
+        "files": [],
+        "threads": 0,
+        "processes": 0,
+        "max_retries": 0
+      }
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 0,
+        "processes": 2,
+        "max_retries": 0,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [],
+        "input_files": [],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "override-cli",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {
+        "title": "CLI",
+        "description": "CLI description",
+        "tag": [
+          "cli"
+        ],
+        "files": [
+          "new.txt"
+        ],
+        "threads": 8,
+        "processes": 3,
+        "max_retries": 1
+      }
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": 8,
+        "processes": 3,
+        "max_retries": 1,
+        "title": "CLI",
+        "description": "CLI description",
+        "tags": [
+          "cli"
+        ],
+        "input_files": [
+          "new.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "negative-cli",
+    "operation": "config",
+    "input": {
+      "paths": [
+        "base.yml"
+      ],
+      "skip_tags": [
+        "skip"
+      ],
+      "args": {
+        "threads": -1,
+        "processes": -2,
+        "max_retries": -3
+      }
+    },
+    "expected": {
+      "value": {
+        "one": {
+          "name": "One",
+          "host": "http://localhost/one",
+          "headers": {
+            "X-Base": "base"
+          }
+        },
+        "other": {
+          "name": "Other",
+          "host": "http://localhost/other",
+          "headers": {}
+        },
+        "output": {
+          "response_dir": "responses",
+          "encoding": "utf8"
+        },
+        "threads": -1,
+        "processes": -2,
+        "max_retries": -3,
+        "title": "Base",
+        "description": "Base description",
+        "tags": [
+          "base"
+        ],
+        "input_files": [
+          "old.txt"
+        ],
+        "addons": {
+          "log2reqs": {
+            "name": "plain",
+            "cls_name": "Executor",
+            "tags": [
+              "skip"
+            ]
+          },
+          "reqs2reqs": [
+            {
+              "name": "head",
+              "cls_name": "Executor",
+              "config": {
+                "size": 5
+              }
+            },
+            {
+              "name": "repeat",
+              "cls_name": "Executor",
+              "config": {
+                "times": 2
+              }
+            }
+          ],
+          "res2res": [],
+          "res2dict": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            }
+          ],
+          "judgement": [],
+          "store_criterion": [],
+          "dump": [],
+          "did_challenge": [],
+          "final": [
+            {
+              "name": "json",
+              "cls_name": "Executor"
+            },
+            {
+              "name": "viewer",
+              "cls_name": "Executor"
+            }
+          ]
+        },
+        "judge_response_header": false,
+        "ignore_response_header_keys": [
+          "Content-Length",
+          "Date"
+        ]
+      }
+    }
+  },
+  {
+    "name": "request-defaults",
+    "operation": "Request",
+    "input": {
+      "path": ""
+    },
+    "expected": {
+      "value": {
+        "method": "GET",
+        "path": "",
+        "qs": {},
+        "headers": {},
+        "url_encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "request-null",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "name": null,
+      "raw": null,
+      "form": null,
+      "json": null
+    },
+    "expected": {
+      "value": {
+        "method": "GET",
+        "path": "/",
+        "qs": {},
+        "headers": {},
+        "url_encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "request-empty",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "name": "",
+      "raw": "",
+      "form": {},
+      "json": {}
+    },
+    "expected": {
+      "value": {
+        "method": "GET",
+        "path": "/",
+        "qs": {},
+        "form": {},
+        "json": {},
+        "headers": {},
+        "url_encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "request-nested-null",
+    "operation": "Request",
+    "input": {
+      "path": "/",
+      "json": {
+        "none": null,
+        "list": [
+          null,
+          {},
+          false,
+          0,
+          "",
+          {
+            "gone": null
+          }
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "method": "GET",
+        "path": "/",
+        "qs": {},
+        "json": {
+          "list": [
+            {},
+            false,
+            0,
+            "",
+            {}
+          ]
+        },
+        "headers": {},
+        "url_encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "trial-missing",
+    "operation": "Trial",
+    "input": {
+      "seq": 1,
+      "name": "",
+      "tags": [],
+      "headers": {},
+      "queries": {},
+      "one": {
+        "url": "one",
+        "type": "unknown"
+      },
+      "other": {
+        "url": "other",
+        "type": "unknown"
+      },
+      "method": "GET",
+      "path": "",
+      "request_time": "time",
+      "status": "failure"
+    },
+    "expected": {
+      "value": {
+        "seq": 1,
+        "name": "",
+        "tags": [],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "one",
+          "type": "unknown"
+        },
+        "other": {
+          "url": "other",
+          "type": "unknown"
+        },
+        "method": "GET",
+        "path": "",
+        "request_time": "time",
+        "status": "failure"
+      }
+    }
+  },
+  {
+    "name": "trial-null",
+    "operation": "Trial",
+    "input": {
+      "seq": 1,
+      "name": "",
+      "tags": [],
+      "headers": {},
+      "queries": {},
+      "one": {
+        "url": "one",
+        "type": "unknown"
+      },
+      "other": {
+        "url": "other",
+        "type": "unknown"
+      },
+      "method": "GET",
+      "path": "",
+      "request_time": "time",
+      "status": "failure",
+      "diffs_by_cognition": null,
+      "raw": null
+    },
+    "expected": {
+      "value": {
+        "seq": 1,
+        "name": "",
+        "tags": [],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "one",
+          "type": "unknown"
+        },
+        "other": {
+          "url": "other",
+          "type": "unknown"
+        },
+        "method": "GET",
+        "path": "",
+        "request_time": "time",
+        "status": "failure"
+      }
+    }
+  },
+  {
+    "name": "trial-empty",
+    "operation": "Trial",
+    "input": {
+      "seq": 1,
+      "name": "",
+      "tags": [],
+      "headers": {},
+      "queries": {},
+      "one": {
+        "url": "one",
+        "type": "unknown"
+      },
+      "other": {
+        "url": "other",
+        "type": "unknown"
+      },
+      "method": "GET",
+      "path": "",
+      "request_time": "time",
+      "status": "failure",
+      "diffs_by_cognition": {},
+      "raw": "",
+      "form": {},
+      "json": {}
+    },
+    "expected": {
+      "value": {
+        "seq": 1,
+        "name": "",
+        "tags": [],
+        "headers": {},
+        "queries": {},
+        "form": {},
+        "json": {},
+        "one": {
+          "url": "one",
+          "type": "unknown"
+        },
+        "other": {
+          "url": "other",
+          "type": "unknown"
+        },
+        "method": "GET",
+        "path": "",
+        "request_time": "time",
+        "status": "failure",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "trial-diffs",
+    "operation": "Trial",
+    "input": {
+      "seq": 1,
+      "name": "",
+      "tags": [],
+      "headers": {},
+      "queries": {},
+      "one": {
+        "url": "one",
+        "type": "unknown"
+      },
+      "other": {
+        "url": "other",
+        "type": "unknown"
+      },
+      "method": "GET",
+      "path": "",
+      "request_time": "time",
+      "status": "failure",
+      "diffs_by_cognition": {
+        "unknown": {
+          "added": [],
+          "changed": [
+            "root<'a'>"
+          ],
+          "removed": []
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "seq": 1,
+        "name": "",
+        "tags": [],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "one",
+          "type": "unknown"
+        },
+        "other": {
+          "url": "other",
+          "type": "unknown"
+        },
+        "method": "GET",
+        "path": "",
+        "request_time": "time",
+        "status": "failure",
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": []
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "number-spelling",
+    "operation": "number-spelling",
+    "input": "{\"path\":\"/\",\"json\":{\"decimal\":1.2300,\"exponent\":1e2,\"big\":18446744073709551617}}",
+    "expected": {
+      "value": "{\"headers\": {},\"json\": {\"big\": 18446744073709551617,\"decimal\": 1.23,\"exponent\": 100.0},\"method\": \"GET\",\"path\": \"/\",\"qs\": {},\"url_encoding\": \"utf-8\"}"
+    }
+  },
+  {
+    "name": "report-missing",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one"
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out"
+        }
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure"
+        }
+      ]
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "report-null",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one"
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out"
+        }
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure"
+        }
+      ],
+      "description": null,
+      "notifiers": null,
+      "addons": null,
+      "retry_hash": null
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "report-empty",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one"
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out"
+        }
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure"
+        }
+      ],
+      "description": "",
+      "notifiers": {},
+      "retry_hash": ""
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "notifiers": {},
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "report-notifier",
+    "operation": "Report",
+    "input": {
+      "version": "7.0.0",
+      "key": "key",
+      "title": "",
+      "summary": {
+        "one": {
+          "name": "one",
+          "host": "one"
+        },
+        "other": {
+          "name": "other",
+          "host": "other"
+        },
+        "status": {},
+        "tags": [],
+        "time": {
+          "start": "start",
+          "end": "end",
+          "elapsed_sec": 0
+        },
+        "concurrency": {
+          "threads": 1,
+          "processes": 1
+        },
+        "output": {
+          "response_dir": "out"
+        }
+      },
+      "trials": [
+        {
+          "seq": 1,
+          "name": "",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "one",
+            "type": "unknown"
+          },
+          "other": {
+            "url": "other",
+            "type": "unknown"
+          },
+          "method": "GET",
+          "path": "",
+          "request_time": "time",
+          "status": "failure"
+        }
+      ],
+      "notifiers": {
+        "test": {
+          "type": "slack",
+          "channel": ""
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "version": "7.0.0",
+        "key": "key",
+        "title": "",
+        "notifiers": {
+          "test": {
+            "type": "slack",
+            "version": 1,
+            "username": "jumeaux",
+            "use_blocks": false
+          }
+        },
+        "summary": {
+          "one": {
+            "name": "one",
+            "host": "one",
+            "headers": {}
+          },
+          "other": {
+            "name": "other",
+            "host": "other",
+            "headers": {}
+          },
+          "status": {
+            "same": 0,
+            "different": 0,
+            "failure": 0
+          },
+          "tags": [],
+          "time": {
+            "start": "start",
+            "end": "end",
+            "elapsed_sec": 0
+          },
+          "concurrency": {
+            "threads": 1,
+            "processes": 1
+          },
+          "output": {
+            "response_dir": "out",
+            "encoding": "utf8"
+          }
+        },
+        "trials": [
+          {
+            "seq": 1,
+            "name": "",
+            "tags": [],
+            "headers": {},
+            "queries": {},
+            "one": {
+              "url": "one",
+              "type": "unknown"
+            },
+            "other": {
+              "url": "other",
+              "type": "unknown"
+            },
+            "method": "GET",
+            "path": "",
+            "request_time": "time",
+            "status": "failure"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "report-number-spelling",
+    "operation": "report-number-spelling",
+    "input": "{\"version\": \"7.0.0\", \"key\": \"key\", \"title\": \"\", \"summary\": {\"one\": {\"name\": \"one\", \"host\": \"one\"}, \"other\": {\"name\": \"other\", \"host\": \"other\"}, \"status\": {}, \"tags\": [], \"time\": {\"start\": \"start\", \"end\": \"end\", \"elapsed_sec\": 0}, \"concurrency\": {\"threads\": 1, \"processes\": 1}, \"output\": {\"response_dir\": \"out\"}}, \"trials\": [{\"seq\": 1, \"name\": \"\", \"tags\": [], \"headers\": {}, \"queries\": {}, \"one\": {\"url\": \"one\", \"type\": \"unknown\"}, \"other\": {\"url\": \"other\", \"type\": \"unknown\"}, \"method\": \"GET\", \"path\": \"\", \"request_time\": \"time\", \"status\": \"failure\", \"json\": {\"decimal\":1.2300,\"exponent\":1e2,\"big\":18446744073709551617}}]}",
+    "expected": {
+      "value": "{\"key\": \"key\",\"summary\": {\"concurrency\": {\"processes\": 1,\"threads\": 1},\"one\": {\"headers\": {},\"host\": \"one\",\"name\": \"one\"},\"other\": {\"headers\": {},\"host\": \"other\",\"name\": \"other\"},\"output\": {\"encoding\": \"utf8\",\"response_dir\": \"out\"},\"status\": {\"different\": 0,\"failure\": 0,\"same\": 0},\"tags\": [],\"time\": {\"elapsed_sec\": 0,\"end\": \"end\",\"start\": \"start\"}},\"title\": \"\",\"trials\": [{\"headers\": {},\"json\": {\"big\": 18446744073709551617,\"decimal\": 1.23,\"exponent\": 100.0},\"method\": \"GET\",\"name\": \"\",\"one\": {\"type\": \"unknown\",\"url\": \"one\"},\"other\": {\"type\": \"unknown\",\"url\": \"other\"},\"path\": \"\",\"queries\": {},\"request_time\": \"time\",\"seq\": 1,\"status\": \"failure\",\"tags\": []}],\"version\": \"7.0.0\"}"
+    }
+  },
+  {
+    "name": "output-utf8-2",
+    "operation": "output",
+    "input": {
+      "encoding": "utf8",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "e697a5e69cac",
+        "e697a5e69cace8aa9e0a"
+      ]
+    }
+  },
+  {
+    "name": "output-utf8-9",
+    "operation": "output",
+    "input": {
+      "encoding": "utf8",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "value": [
+        "",
+        "e697a5",
+        "e697a5",
+        "e697a5e69cac",
+        "e697a5e69cac4153434949",
+        "e697a5e69cac4153434949e8aa9e",
+        "e697a5e69cac4153434949e8aa9e0a",
+        "e697a5e69cac4153434949e8aa9e0ac2a5",
+        "e697a5e69cac4153434949e8aa9e0ac2a5e280be"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-8-sig-2",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-8-sig",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "efbbbfe697a5e69cac",
+        "efbbbfe697a5e69cace8aa9e0a"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-8-sig-9",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-8-sig",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "value": [
+        "efbbbf",
+        "efbbbfe697a5",
+        "efbbbfe697a5",
+        "efbbbfe697a5e69cac",
+        "efbbbfe697a5e69cac4153434949",
+        "efbbbfe697a5e69cac4153434949e8aa9e",
+        "efbbbfe697a5e69cac4153434949e8aa9e0a",
+        "efbbbfe697a5e69cac4153434949e8aa9e0ac2a5",
+        "efbbbfe697a5e69cac4153434949e8aa9e0ac2a5e280be"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-16-2",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-16",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "fffee5652c67",
+        "fffee5652c679e8a0a00"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-16-9",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-16",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "value": [
+        "fffe",
+        "fffee565",
+        "fffee565",
+        "fffee5652c67",
+        "fffee5652c6741005300430049004900",
+        "fffee5652c67410053004300490049009e8a",
+        "fffee5652c67410053004300490049009e8a0a00",
+        "fffee5652c67410053004300490049009e8a0a00a500",
+        "fffee5652c67410053004300490049009e8a0a00a5003e20"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-32-2",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-32",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "fffe0000e56500002c670000",
+        "fffe0000e56500002c6700009e8a00000a000000"
+      ]
+    }
+  },
+  {
+    "name": "output-utf-32-9",
+    "operation": "output",
+    "input": {
+      "encoding": "utf-32",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "value": [
+        "fffe0000",
+        "fffe0000e5650000",
+        "fffe0000e5650000",
+        "fffe0000e56500002c670000",
+        "fffe0000e56500002c6700004100000053000000430000004900000049000000",
+        "fffe0000e56500002c67000041000000530000004300000049000000490000009e8a0000",
+        "fffe0000e56500002c67000041000000530000004300000049000000490000009e8a00000a000000",
+        "fffe0000e56500002c67000041000000530000004300000049000000490000009e8a00000a000000a5000000",
+        "fffe0000e56500002c67000041000000530000004300000049000000490000009e8a00000a000000a50000003e200000"
+      ]
+    }
+  },
+  {
+    "name": "output-cp932-2",
+    "operation": "output",
+    "input": {
+      "encoding": "cp932",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "93fa967b",
+        "93fa967b8cea0a"
+      ]
+    }
+  },
+  {
+    "name": "output-cp932-9",
+    "operation": "output",
+    "input": {
+      "encoding": "cp932",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "output-iso2022_jp-2",
+    "operation": "output",
+    "input": {
+      "encoding": "iso2022_jp",
+      "chunks": [
+        "日本",
+        "語\n"
+      ]
+    },
+    "expected": {
+      "value": [
+        "1b2442467c4b5c",
+        "1b2442467c4b5c386c1b28420a"
+      ]
+    }
+  },
+  {
+    "name": "output-iso2022_jp-9",
+    "operation": "output",
+    "input": {
+      "encoding": "iso2022_jp",
+      "chunks": [
+        "",
+        "日",
+        "",
+        "本",
+        "ASCII",
+        "語",
+        "\n",
+        "¥",
+        "‾"
+      ]
+    },
+    "expected": {
+      "value": [
+        "",
+        "1b2442467c",
+        "1b2442467c",
+        "1b2442467c4b5c",
+        "1b2442467c4b5c1b28424153434949",
+        "1b2442467c4b5c1b284241534349491b2442386c",
+        "1b2442467c4b5c1b284241534349491b2442386c1b28420a",
+        "1b2442467c4b5c1b284241534349491b2442386c1b28420a1b284a5c",
+        "1b2442467c4b5c1b284241534349491b2442386c1b28420a1b284a5c7e"
+      ]
+    }
+  }
+]

@@ -3,7 +3,8 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use indexmap::IndexMap;
 
-use super::{Error, Result, values::Request};
+use super::{Error, Result};
+pub use crate::addons::log2reqs::plain_requests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Errors {
@@ -992,31 +993,4 @@ pub fn quote_plus(text: &str, encoding: &str) -> Result<String> {
         }
     }
     Ok(result)
-}
-
-pub fn plain_requests(
-    body: &[u8],
-    encoding: &str,
-    candidates: &[String],
-    keep_blank: bool,
-) -> Result<Vec<Request>> {
-    let text = decode_input(body, encoding)?;
-    text.split_terminator('\n')
-        .filter(|line| !line.is_empty())
-        .map(|line| {
-            let line = line.trim_end();
-            let mut pieces = line.split('?');
-            let path = pieces.next().unwrap_or("").to_string();
-            let query = pieces.next().unwrap_or("");
-            let url_encoding =
-                guess_url_encoding(query, candidates)?.unwrap_or_else(|| "utf-8".into());
-            let qs = parse_query(query, &url_encoding, keep_blank, Errors::Replace)?;
-            Ok(Request {
-                path,
-                qs,
-                url_encoding,
-                ..Request::default()
-            })
-        })
-        .collect()
 }

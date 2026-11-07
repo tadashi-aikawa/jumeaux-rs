@@ -20,6 +20,8 @@ regex = "1.13.1"
 rustpython-parser = { version = "0.4.0", default-features = false, features = ["num-bigint"] }
 serde = { version = "1.0.229", features = ["derive", "rc"] }
 serde_json = { version = "1.0.154", features = ["preserve_order", "arbitrary_precision"] }
+serde_yaml_ng = "0.10.0"
+serde_path_to_error = "0.1.20"
 num-bigint = "0.4.8"
 num-traits = "0.2.19"
 quick-xml = "0.38.4"

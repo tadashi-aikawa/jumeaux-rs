@@ -1,0 +1,20 @@
+one:
+  name: One
+  host: http://localhost/one
+  headers: {X-Base: base}
+other: {name: Other, host: http://localhost/other}
+output: {response_dir: responses, encoding: utf8}
+threads: 4
+processes: 2
+max_retries: 5
+title: Base
+description: Base description
+tags: [base]
+input_files: [old.txt]
+addons:
+  log2reqs: {name: plain, tags: [skip]}
+  reqs2reqs:
+    - {name: head, config: {size: 5}}
+    - {name: repeat, config: {times: 2}}
+  res2dict: [{name: json}]
+  final: [{name: json}, {name: viewer}]

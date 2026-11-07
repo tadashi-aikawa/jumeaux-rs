@@ -15,7 +15,7 @@
 | URL生成 | `quote_plus` | Requestの`url_encoding` | 指定codecの規則 | strict。空白は`+`、非ASCII bytesは大文字の`%HH` |
 | `dump/encoding` | `transcode` | payloadのsource → 設定のdestination | 両codecの規則 | decode・encodeともstrict |
 | 本文整形後の保存 | `encode(..., Errors::Replace)` | payloadのencoding | 指定codecの規則 | Pythonと同じ`?` |
-| `output.encoding` | `encode(..., Errors::Strict)` | output設定、既定UTF-8 | 指定codecの規則 | PythonのTextIOWrapperと同じstrict。実ストリームへの接続はCLI統合で行う |
+| `output.encoding` | `output::EncodedWriter` → `encode(..., Errors::Strict)` | output設定、既定UTF-8 | ストリーム先頭の1回だけ | PythonのTextIOWrapperと同じstrict。CLIからの呼出はCLI統合で行う |
 
 - URL候補判定は、`keep_blank_values=False` の`urllib.parse.parse_qs`に対応する。
   - 規則: 空値のpairはdecode前に除外する。生のUnicodeを候補codecで再エンコードしない。
@@ -24,6 +24,9 @@
 - `dump_html` fixtureはHTML整形の前後にある文字コード境界を検証する。
   - 入力: Pythonの実関数から採取した`decoded_text`と`formatted_text`。
   - 残件: Rust側のHTML整形・保存アドオンとの接続は、markupとchallengeの統合時に検証する。
+- `OutputSummary`はreport・summary・stdout・stderr用のwriterを生成する。
+  - ストリーム: UTFのBOMとISO-2022-JPの状態をwrite・flush間で保持する。同じ出力先には1つのwriterを使う。
+  - 検証: `config-models.json`の12件で、Python TextIOWrapperの各flush後のbytesとエラー分類を比較する。
 
 ## HTTP応答の決定順
 

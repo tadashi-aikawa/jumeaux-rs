@@ -1,0 +1,9 @@
+one: {name: Replaced, host: http://localhost/new}
+output: {response_dir: replaced}
+tags: [replacement]
+addons:
+  reqs2reqs: [{name: repeat, config: {times: 3}}]
+  final:
+    - include: included.yml
+    - include: does-not-exist.yml
+      tags: [skip]

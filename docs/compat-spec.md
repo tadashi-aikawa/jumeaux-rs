@@ -33,10 +33,54 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - output: `response_dir`、`encoding`、旧 `logger`。
 - 複数configは後のトップレベル値を優先する。addonsはレイヤーごとに更新し、リストは連結しない。
 - CLI指定はPython版 `merge_args2config` と同じ条件で上書きする。
+  - `threads`・`max_retries`: 未指定以外を上書きする。0も含む。
+  - `processes`: 0と未指定は元設定を維持する。
+  - `title`・`description`: 空文字と未指定は元設定を維持する。
+  - `tag`・`files`: `TOption.any()`は値の有無だけを判定する。明示した空配列も上書きする。
+  - コマンド境界: runはタグ未指定をNoneへ、retryは空配列へ変換する。retryのタグ未指定は元のタグを消す。
+- Pythonの設定マージには、空のレイヤーを上書きしない例外がある。
+  - 実測: `reqs2reqs: []`やタグ除外で全件消えたレイヤーは、前のconfigのレイヤーを維持する。
+  - 現実装: Pythonの挙動を保持する。空配列による明示クリアは未決とする。
+- タグ除外は各configのinclude解決より前に行う。
+  - 対象: log2reqs以外の8レイヤー。Pythonは単体のlog2reqsをタグ除外しない。
+  - include: 宣言したconfigのディレクトリを基準に1段だけ解決し、アドオン指定全体を置き換える。include先のタグは再判定しない。
+  - エラー: 未解決の再includeはキーを示して停止する。
 - `--processes` は受理し、並列数として扱う。
   - 規則: 有効なprocesses指定があれば `concurrency.threads = 1`、`concurrency.processes = 指定値`。
   - 規則: processesがなければ `concurrency.threads = threads`、`concurrency.processes = 1`。threads既定値は1。
   - 例: `--threads 4 --processes 2` は並列数2、レポートは `{"threads":1,"processes":2}`。
+  - 検証: 実際に使う並列数が正でなければ、そのキーを示して停止する。processesを使う場合はthreadsの値を使わない。
+
+### 設定・モデル・アドオンの実装境界
+
+- `config`: serde_yaml_ngによる読み込み、CLI上書き、concurrency生成。
+  - 検証: トップレベル、endpoint、output、notifier、9レイヤー、各組み込みアドオンのネストした設定キーを検査する。任意のJSON本文・ヘッダ名・query名は未知キー検査の対象外。
+  - エラー: 未知名、Pythonモジュール名、`cls_name`のExecutor以外、Python transformerは設定パスを示して停止する。
+  - `output.logger`: モデルの読込・往復では保持する。設定として非null値を指定した場合は廃止済みキーとして停止する。
+- `models`: Request、Response、HttpMethod、Trial、Report、Summary、ResponseSummary、Addons、設定の値オブジェクト。
+  - 共有: DiffKeysは`diff`の型を再利用する。式入力用アダプターは`compat::values`に残す。
+  - 移動: `plain_requests`は`addons::log2reqs`へ移す。既存のcompat入口は再exportしてfixtureを維持する。
+- `addons`: 9レイヤー・34名の静的登録と、型付きStage・AddonExecutor・Factory・Chain。
+  - 順序: 各レイヤーは設定配列の先頭からreduceし、戻り値を次へ渡す。エラーで停止する。
+  - 設定: FactoryへAddon全体を渡す。Noneと空configを区別して保持する。
+  - 残件: 本体は副作用のないスケルトン。必須設定・条件式のコンパイルなど、各アドオンの実行上の検証は本体実装時に接続する。
+- `output`: report、summary、stdout、stderrへ同じencoding writerを提供する。
+  - 変換: compatのstrictエンコーダーを使う。BOMはストリームごとに1回。ISO-2022-JPの状態はwrite・flushをまたいで保持する。
+  - JSON: キーを再帰的にソートし、Pythonの区切り文字に合わせる。CLIへの接続とfinal/jsonのindent指定は後続タスク。
+
+### reportの省略・空値・null
+
+- TOptionのNoneはキーを省略する。
+  - 読込: 文字列のTOptionは空文字もNoneになる。必須の文字列は空文字を保持する。
+  - 空値: 空辞書と空配列は保持する。`diffs_by_cognition`の未設定・nullは省略、空辞書は`{}`となる。
+- OwlMixinは任意JSON内のnullも再帰的に除外する。
+  - 対象: dictのnull値とlist内のnull要素。Request・Trialのform/json、Addon.config、response_headerの保存にも適用する。
+  - 保持: false、0、空文字、空辞書、空配列は任意JSON内では残る。メモリ上の入力は変更しない。
+- 基準report31件は、モデルの読込・再出力がJSON値とbytesの両方で一致する。
+  - 比較: 可変値を除外せず、UTF-16のoutput_encodingも含めて固定する。
+  - テンプレート: 15種がreportを生成する。16番目のencoding_hellはPython側の失敗とreport不存在を検証する。
+- `Trial::to_request`はretry用にrawも復元する。
+  - 設定: `Config::from_report`はヘッダ判定設定を必須引数で受け取る。保存位置や旧reportの補完値を暗黙に決めない。
 
 ### 関数とHTTPの契約
 
@@ -51,7 +95,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - JSONの整数は桁を落とさず保持し、多倍長整数として比較する。小数・指数表記はPythonと同じくf64として比較する。
   - 例: `18446744073709551616` と `18446744073709551617` はchanged、`1e2` と `100.0` は同値。
   - 実装: serde_jsonの `arbitrary_precision` を有効にする。通常の `Value` の等値比較は数値リテラルの表記に依存するため、差分判定には使わない。
-  - 保存への影響: 大きな整数はJSON numberのまま往復できる。小数の末尾ゼロや指数表記も保持されるため、reportの再出力はPythonのfloat再シリアライズとbyte単位では異なる場合がある。reportの統合時に検証する。
+  - 保存への影響: 大きな整数はJSON numberのまま往復できる。report内の任意JSONで`1.2300`はRustで`1.2300`、Pythonで`1.23`となる。`1e2`はRustで`1e+2`、Pythonで`100.0`となる。専用fixtureで差異を固定し、表記の変更は未決として残す。
 - HTMLはBeautifulSoup+lxmlの補完とprettify後のdictを基準にする。
   - 内容: 属性 `#attr`、本文 `##value`、同名タグのリスト、空タグ、script、混在テキストの空白。
 - XMLはxmltodictのdictを基準にする。
@@ -878,15 +922,26 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## 未決
 
-- `rustpython-parser`への依存と暫定モデルの配置。
+- `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
-  - 後続: `plain_requests`は「設定・モデル」タスクでlog2reqsへ移す。入力ファイル・query fixtureは移動後も維持する。
+- 空のアドオンレイヤーによる明示クリア。
+  - 論点: 「レイヤー単位で差し替え」を空配列にも適用すると、Pythonの空レイヤーを無視する挙動と異なる。
+  - 案: Python同様に空配列と全件skipを無視する。もう1案は、明示空配列だけクリアとして扱い、タグ除外とは区別する。
+  - 現実装: Python互換を維持したfixtureを置く。仕様変更は決定しない。
+- report内の小数・指数表記の再出力。
+  - 実測: `report-number-spelling`で`1.2300`と`1e2`のbyte差を確認する。大きな整数`18446744073709551617`は両者で一致する。
+  - 案: JSON numberの表記を保持して差異を許容する。もう1案は小数・指数だけPythonのfloat出力へ寄せる。
+  - 現実装: 表記変更は行わない。差異を承認済みとして扱わない。
 
 ### その他の未決
 
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
 - retry用ヘッダ判定設定のreport内の保存位置と、その情報を持たない旧reportの扱い。
   - 根拠: Python版Reportには `judge_response_header` と `ignore_response_header_keys` がなく、旧reportだけから元の値を復元できない。保存形式の追加は本タスクで決定しない。
+  - 案A: reportトップレベルに`retry_config: {judge_response_header, ignore_response_header_keys}`を追加する。再実行に必要な設定をまとめる。
+  - 案B: summaryに`comparison: {judge_response_header, ignore_response_header_keys}`を追加する。実行結果と同じ場所に判定条件を置く。
+  - 旧report: どちらの案でも、情報がなければ元configの明示指定を要求する方式を候補とする。Python既定値への補完は明示的な選択に限定する案もある。
+  - 現実装: 新フィールドは追加しない。呼出元からHeaderJudgementSettingsを渡すAPIだけを用意する。
 - Python固有のtracebackをRust版のstderrでどこまで一致させるか。
   - 実測: Python版のencoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存する。
 

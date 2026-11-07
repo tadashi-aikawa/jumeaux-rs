@@ -12,6 +12,8 @@ compat/
 │   ├── template/        条件式、文字列描画、日時、Responseプロパティ
 │   ├── regex/           完全一致、置換、後方参照、lookahead
 │   ├── encoding/        決定順、別名、BOM、変換失敗、入力、URL
+│   ├── config/          マージ・includeの入力YAML
+│   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
 ├── gen/                 Python版からのfixture・環境情報生成
 └── harness/             バイナリ差し替え、記録用受信先、比較規則
@@ -117,6 +119,29 @@ cargo test --test markup -- --nocapture
   - 対象: plaintextの循環オブジェクトによるValueErrorを記録する。
 
 ## ハーネスの自己検証
+
+### 設定・モデル・出力の先行検証
+
+```sh
+cargo test --test config_models -- --nocapture
+# Python版から期待値を再採取する。既存fixtureと比較する場合は一時ファイルを使う。
+CONFIG_MODEL_FIXTURE="$(mktemp)"
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/config_models.py > "$CONFIG_MODEL_FIXTURE"
+diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
+```
+
+- 新規fixtureは32件。
+  - Python一致: 設定6件、モデル12件、TextIOWrapperの出力12件。
+  - 未決の差異: RequestとReportの数値表記2件。Python期待値を残し、Rustの現出力との差を明示検証する。
+- 基準report31件はJSON値とbytesの往復を検証する。
+  - 対象: テンプレート15種と追加ケース。可変値も除外しない。
+  - 例外: encoding_hellは終了コード1とreport不存在を確認する。既存基準を作り直さない。
+- 基準config31件の読み込みと登録を検証する。
+  - 例外: encoding_hellは廃止済みの`addons.res2res[0].config.items[0].conditions`をエラーにする。
+- 既存retry fixtureはrawの復元とヘッダ判定設定の明示的な受け渡しを検証する。
+  - 制限: ヘッダ判定設定は`original_config`から供給する。reportの保存形式や旧reportの補完方針は決定しない。
+- CLIのrun/retryは引き続きスケルトン。
+  - 残件: HTTP・各アドオン本体・CLI接続後にE2Eハーネスを実行する。
 
 ### JSON差分エンジンの検証
 

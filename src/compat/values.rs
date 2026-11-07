@@ -1,4 +1,4 @@
-//! 式入力用の暫定モデル。設定・モデル実装時に置換する。
+//! 正式モデルをPython互換の式入力へ変換するアダプター。
 use indexmap::IndexMap;
 use std::sync::Arc;
 
@@ -6,10 +6,10 @@ use minijinja::{
     ErrorKind, State, Value,
     value::{Enumerator, Object},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value as Json;
 
-use super::encoding;
+pub use crate::models::{Request, Response};
 
 pub fn serialized(value: impl Serialize) -> Value {
     match serde_json::to_value(value) {
@@ -71,40 +71,6 @@ impl TemplateInput for &Value {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct Request {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    pub method: String,
-    pub path: String,
-    pub qs: IndexMap<String, Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub raw: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub form: Option<Json>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub json: Option<Json>,
-    pub headers: IndexMap<String, String>,
-    pub url_encoding: String,
-}
-
-impl Default for Request {
-    fn default() -> Self {
-        Self {
-            name: None,
-            method: "GET".into(),
-            path: String::new(),
-            qs: IndexMap::new(),
-            raw: None,
-            form: None,
-            json: None,
-            headers: IndexMap::new(),
-            url_encoding: "utf-8".into(),
-        }
-    }
-}
-
 impl Request {
     /// filter/rename/json_sortのto_dict()経路。Noneのキーを省略する。
     pub fn to_dict_value(&self) -> Value {
@@ -131,35 +97,9 @@ impl Request {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Response {
-    pub body: Arc<[u8]>,
-    pub encoding: Option<String>,
-    pub headers: IndexMap<String, String>,
-    pub url: String,
-    pub status_code: u16,
-    /// timedeltaの秒。elapsed_secとは別に保持する。
-    pub elapsed: f64,
-    pub elapsed_sec: f64,
-    #[serde(rename = "type")]
-    pub response_type: String,
-}
-
 impl Response {
-    pub fn text(&self) -> super::Result<String> {
-        encoding::response_text(&self.body, self.encoding.as_deref())
-    }
-    pub fn ok(&self) -> bool {
-        self.status_code == 200
-    }
     pub fn to_template_value(&self) -> Value {
         Value::from_object(self.clone())
-    }
-    fn content_type(&self) -> Option<&str> {
-        self.headers
-            .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case("content-type"))
-            .map(|(_, value)| value.as_str())
     }
 }
 
