@@ -87,6 +87,12 @@ async fn main() {
     let mut results = Vec::new();
     for request in probe.requests {
         let result = match probe.action.as_deref() {
+            Some("notify") => {
+                let notifier = serde_json::from_value(json!({"type": "slack", "version": 2})).unwrap();
+                jumeaux::notification::notify(&notifier, "TLS fixture", &jumeaux::notification::Context {
+                    webhook_url: Some(format!("{}{}", probe.one.host, request.path)), thread_ts: None,
+                }).await.map(|outcome| json!({"ok": outcome.error.is_none()}))
+            }
             Some("prepare") => prepare(&probe.one, &request).map(|p| json!({"original_url": p.original_url, "url": p.url.to_string(), "headers": p.headers, "body_hex": p.body.iter().map(|b| format!("{b:02x}")).collect::<String>()})),
             Some("pair") => transport.concurrent_request(&request).await.map(|(one, other)| json!({"one": response(one), "other": response(other)})),
             Some("challenge") => transport.challenge(1, &request).await.map(|outcome| match outcome {

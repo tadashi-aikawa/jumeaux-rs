@@ -19,13 +19,16 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "compat/gen"))
-from http_transport import rust_probe, transport, executor  # noqa: E402
+from http_transport import rust_probe, transport  # noqa: E402
 from jumeaux.addons import AddOnExecutor  # noqa: E402
 from jumeaux.commands.server.main import MyServerHandler  # noqa: E402
 from jumeaux.domain.config.service import create_config  # noqa: E402
 from jumeaux.models import Log2ReqsAddOnPayload, Reqs2ReqsAddOnPayload  # noqa: E402
-from owlmixin import TDict, TList, TOption  # noqa: E402
+from owlmixin import TList, TOption  # noqa: E402
 import requests  # noqa: E402
+from compare import configured_headers, request_headers, load  # noqa: E402
+
+HEADER_RULES = load(ROOT / "compat/harness/comparison.json")["request_header_rules"]
 
 
 @contextmanager
@@ -50,25 +53,8 @@ def record(handler, body):
 def normalized(rows, configured):
     result = Counter()
     for row in rows:
-        received = {k.lower(): v for k, v in row["headers"]}
-        choices = configured[(row["method"], row["url"])]
-        matches = [choice for choice in choices if all(received.get(k) == v for k, v in choice.items())]
-        assert matches, (row, choices)
-        selected = max(matches, key=len)
-        headers = sorted((k, v) for k, v in received.items() if k in selected or k == "content-type")
+        headers = request_headers(row, HEADER_RULES, configured)
         result[json.dumps({**row, "headers": headers}, sort_keys=True)] += 1
-    return result
-
-
-def configured_variants(report):
-    result = {}
-    for trial in report["trials"]:
-        for side in ("one", "other"):
-            access, req = report["summary"][side].get("headers", {}), trial.get("headers", {})
-            explicit = {k.lower() for k in access.keys() | req.keys()}
-            merged = {k.lower(): v for k, v in executor.merge_headers(TDict(access), TDict(req)).items()}
-            selected = {k: v for k, v in merged.items() if k in explicit}
-            result.setdefault((trial["method"], trial[side]["url"]), []).append(selected)
     return result
 
 
@@ -110,7 +96,7 @@ def baselines(binary):
         reqs = addons.apply_log2reqs(Log2ReqsAddOnPayload.from_dict({"file": str(baseline / "requests")}))
         reqs = addons.apply_reqs2reqs(Reqs2ReqsAddOnPayload.from_dict({"requests": reqs}), config).requests.to_dicts()
         report = json.loads((baseline / "report.json").read_text(encoding=config.output.encoding))
-        headers = configured_variants(report)
+        headers = configured_headers([report], HEADER_RULES)
         one, other = config.one.to_dict(), config.other.to_dict()
         for row in expected:
             row.pop("occurrence")
@@ -139,6 +125,10 @@ def connection_contracts(binary):
             self.send_header("Content-Length", "2")
             self.end_headers()
             self.wfile.write(b"ok")
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            self.do_GET()
 
         def do_CONNECT(self):
             host, port = self.path.rsplit(":", 1)
@@ -183,11 +173,22 @@ def connection_contracts(binary):
                 assert records[-1] == host + "/explicit", records
                 count += 1
             for bypass, target in [("127.0.0.0/8", host), ("*", host),
-                                   (f"localhost:{direct.server_port}", host.replace("127.0.0.1", "localhost"))]:
+                                   (f"localhost:{direct.server_port}", host.replace("127.0.0.1", "localhost")),
+                                   ("LOCALHOST", host.replace("127.0.0.1", "localhost")),
+                                   (".localhost", host.replace("127.0.0.1", "localhost"))]:
                 with patch.dict(os.environ, {**base_env, "HTTP_PROXY": "http://" + proxy_address, "NO_PROXY": bypass}, clear=True):
                     actual = rust_probe(binary, {"name": "one", "host": target}, [{"path": "/bypass-pattern"}], trust_env=True)
                     assert actual["results"][0]["status_code"] == 200, actual
                     assert records[-1] == "/bypass-pattern", records
+                count += 1
+            with patch.dict(os.environ, {**base_env, "REQUESTS_CA_BUNDLE": "/nonexistent-ca.pem"}, clear=True):
+                actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": "/http-invalid-ca"}], trust_env=True)
+                assert actual["results"][0]["status_code"] == 200, actual
+                count += 1
+                actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": "/mixed-invalid-ca"}],
+                                    other={"name": "other", "host": "https://localhost:1"}, trust_env=True, action="challenge")
+                assert actual["results"][0]["status"] == "failure", actual
+                assert records[-1] == "/mixed-invalid-ca", records
                 count += 1
         with patch.dict(os.environ, {**base_env, "HTTP_PROXY": "http://127.0.0.1:9", "http_proxy": "http://" + proxy_address}, clear=True):
             actual = rust_probe(binary, {"name": "one", "host": "http://fixture.invalid"}, [{"path": "/lowercase"}], trust_env=True, injected="dns")
@@ -241,6 +242,26 @@ def connection_contracts(binary):
                     endpoint = {**endpoint, "proxy": f"localhost:{secure_proxy.server_port}"}
                     actual = rust_probe(binary, endpoint, [{"path": "/secure-proxy"}], ca_bundle=str(ca))
                     assert actual["results"][0]["status_code"] == 200, actual
+                    count += 1
+            # Apple固有の有効期間・EKU制限を持ち込まないことを固定する。
+            subprocess.run(["openssl", "req", "-new", "-key", str(key), "-out", str(csr),
+                            "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost"], capture_output=True, check=True)
+            for days in (3650, 365):
+                subprocess.run(["openssl", "x509", "-req", "-in", str(csr), "-CA", str(ca), "-CAkey", str(ca_key),
+                                "-out", str(cert), "-days", str(days), "-copy_extensions", "copy"], capture_output=True, check=True)
+                tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                tls.load_cert_chain(cert, key)
+                with serve(Receiver, tls) as https:
+                    host = f"https://localhost:{https.server_port}"
+                    with requests.Session() as session:
+                        session.trust_env = False
+                        assert session.get(host, verify=str(ca), timeout=3).status_code == 200
+                    actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": "/no-eku"}], ca_bundle=str(ca))
+                    assert actual["results"][0]["status_code"] == 200, actual
+                    count += 1
+                    with patch.dict(os.environ, {**base_env, "REQUESTS_CA_BUNDLE": str(ca)}, clear=True):
+                        actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": "/notify"}], action="notify")
+                        assert actual["results"][0]["ok"], actual
                     count += 1
     print(f"proxy・TLS: {count}/{count}成功", flush=True)
 

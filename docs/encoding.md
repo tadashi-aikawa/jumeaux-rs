@@ -56,8 +56,12 @@
   - 採取: `compat/gen/http_transport.py --encoding`がPythonのrequests.ResponseとJumeauxの`Response._decide_encoding`を呼ぶ。
   - 検証: `cargo test --test http_encoding`で23件すべてPython期待値と比較する。
 - HTTP転送は圧縮本文を展開してから`http_encoding`へ渡す。
+  - 圧縮: gzip・deflate・zstdを大小無視で選択する。gzipの末尾ゴミ・途中切れはPython同様に展開済みbytesを保持する。
   - 接続: `src/http/transport.rs`のReceivedResponseで両側の通信完了を確定し、モデル変換時に決定する。本文bytesのdecodeは`Response.text`で行う。
   - ヘッダ: Content-Encoding・Content-Lengthは受信値を保持する。encoding判定には小文字キーのContent-Typeを渡す。
+- charsetの不正な表記2種は許容差異とする。
+  - `charset`のみ: PythonはAttributeError。Rustはこのパラメータを無視して後続の判定へ進む。
+  - `charset=\t'utf-8'`: Pythonはタブと片側の引用符を残す。Rustは除去してutf-8を選ぶ。
 
 ## codecと別名
 

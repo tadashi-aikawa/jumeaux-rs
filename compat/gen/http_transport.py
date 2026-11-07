@@ -19,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 import warnings
 import zlib
+from compression import zstd
+from datetime import datetime
 from urllib.parse import parse_qs, urlsplit
 
 SOURCE = Path(os.environ.get(
@@ -85,6 +87,7 @@ def prepared():
         ("unicode-path", {}, {"path": "/日本 語"}),
         ("unreserved-percent", {}, {"path": "/%7E%41%2F%zz"}),
         ("valid-percent", {}, {"path": "/%7E%41%2F"}),
+        ("percent-uppercase", {}, {"path": "/%e6%97%a5/%2f", "qs": {"x": ["%ab"]}}),
         ("path-backreference", {"path": {"before": r"/old/(\w+)", "after": r"/new/\1/\1"}}, {"path": "/old/api"}),
         ("query-cp932", {}, {"path": "/", "qs": {"key": ["日本", "", "+ &"]}, "url_encoding": "cp932"}),
         ("query-first-case", {"query": {"overwrite": {"key/i": ["new"]}, "remove": ["DROP/i"]}}, {"path": "/", "qs": {"Key": ["1"], "KEY": ["2"], "drop": ["x"]}}),
@@ -121,6 +124,12 @@ def prepared():
     return cases
 
 
+def timestamps():
+    return [{"input": value, "expected": datetime.fromisoformat(value).isoformat()} for value in
+            ("2026-11-08T00:57:56.433948+09:00", "2026-11-08T00:57:56.000000+09:00",
+             "2026-11-08T00:57:56.001000+00:00", "2026-11-08T00:57:56.000000-05:00")]
+
+
 def failure_trial(error, method):
     """実際に観測した例外をchallenge境界へ渡して捕捉の有無を確かめる。"""
     arg = {
@@ -148,10 +157,13 @@ def rust_probe(binary, one, reqs, retries=2, timeout=3, **kwargs):
     return json.loads(result.stdout)
 
 
+def normalized_records(records):
+    return [{**r, "headers": sorted([k, re.sub(r"^jumeaux/[^ ]+$", "jumeaux/<version>", v) if k == "user-agent" else v]
+                                    for k, v in r["headers"])} for r in records]
+
+
 def assert_records(actual, expected, name):
-    def normalized(records):
-        return [{**r, "headers": sorted(h for h in r["headers"] if h[0] != "user-agent")} for r in records]
-    assert normalized(actual) == normalized(expected), (name, normalized(actual), normalized(expected))
+    assert normalized_records(actual) == normalized_records(expected), (name, normalized_records(actual), normalized_records(expected))
 
 
 def transport(rust=None):
@@ -171,7 +183,7 @@ def transport(rust=None):
             records.append({
                 "method": self.command, "path": self.path,
                 "headers": [[k.lower(), v] for k, v in self.headers.items()
-                            if k.lower() in {"content-type", "x-test", "cookie", "user-agent"}],
+                            if k.lower() != "host"],
                 "body_hex": body.hex(),
             })
             if self.path == "/disconnect":
@@ -189,6 +201,8 @@ def transport(rust=None):
                 status, headers = 302, {"Location": "/loop"}
             if self.path == "/retry-after":
                 status, headers = 503, {"Retry-After": "0"}
+            if self.path == "/retry-after-empty":
+                status, headers = 503, {"Retry-After": ""}
             if self.path == "/status-503":
                 status = 503
             if self.path == "/cookie/set":
@@ -196,6 +210,21 @@ def transport(rust=None):
             if self.path == "/gzip":
                 body = gzip.compress(b"expanded", mtime=0)
                 headers["Content-Encoding"] = "gzip"
+            if self.path in {"/gzip-upper", "/gzip-trailing", "/gzip-truncated", "/gzip-multi", "/gzip-corrupt", "/redirect-bad-gzip"}:
+                body = gzip.compress(b"expanded", mtime=0)
+                headers["Content-Encoding"] = "GZIP" if self.path == "/gzip-upper" else "gzip"
+                if self.path == "/gzip-trailing":
+                    body += b"\x00\x00junk"
+                if self.path == "/gzip-truncated":
+                    body = body[:-6]
+                if self.path == "/gzip-multi":
+                    body += gzip.compress(b"second", mtime=0)
+                if self.path in {"/gzip-corrupt", "/redirect-bad-gzip"}:
+                    body = b"not gzip"
+                if self.path == "/redirect-bad-gzip":
+                    status, headers["Location"] = 302, "/done"
+            if self.path == "/zstd":
+                body, headers["Content-Encoding"] = zstd.compress(b"expanded"), "zstd"
             if self.path in {"/deflate", "/raw-deflate"}:
                 body = zlib.compress(b"expanded")
                 if self.path == "/raw-deflate":
@@ -208,6 +237,9 @@ def transport(rust=None):
             self.send_header("Content-Length", str(len(body) + (5 if self.path == "/truncated" else 0)))
             for key, value in headers.items():
                 self.send_header(key, value)
+            if self.path == "/cookie/many":
+                for cookie in ("a=1; Path=/", "b=2; Path=/", "deep=3; Path=/cookie", "a=updated; Path=/"):
+                    self.send_header("Set-Cookie", cookie)
             self.end_headers()
             if self.path == "/body-timeout":
                 time.sleep(0.6)
@@ -235,10 +267,13 @@ def transport(rust=None):
                 ("deflate", "GET", "/deflate", 2, {}),
                 ("raw-deflate", "GET", "/raw-deflate", 2, {}),
                 ("empty-gzip", "GET", "/empty-gzip", 2, {}),
+                *[(path, "GET", "/" + path, 2, {}) for path in
+                  ("gzip-upper", "gzip-trailing", "gzip-truncated", "gzip-multi", "gzip-corrupt", "zstd", "redirect-bad-gzip", "retry-after-empty")],
                 ("status-503", "GET", "/status-503", 2, {}),
                 ("retry-after-get", "GET", "/retry-after", 2, {}),
                 ("retry-after-post", "POST", "/retry-after", 2, {}),
                 ("cookie-shared", "GET", "/cookie/read", 2, {}),
+                ("cookie-order", "GET", "/cookie/read", 2, {}),
             ]
             for status in (301, 302, 303, 307, 308):
                 probes.append((f"redirect-post-{status}", "POST", f"/redirect/{status}", 2, {"data": "raw"}))
@@ -253,8 +288,9 @@ def transport(rust=None):
                     session.trust_env = False
                     session.mount("http://", HTTPAdapter(max_retries=retries))
                     records.clear()
-                    if name == "cookie-shared":
-                        session.get(base + "/cookie/set")
+                    if name in {"cookie-shared", "cookie-order"}:
+                        session.get(base + ("/cookie/set" if name == "cookie-shared" else "/cookie/many"),
+                                    headers=executor.merge_headers(TDict({}), TDict({})))
                         session.close()  # executor.http_getも毎回closeするがCookieは残る。
                     try:
                         res = session.request(
@@ -266,8 +302,7 @@ def transport(rust=None):
                                     "path": res.url.removeprefix(base)}
                     except requests.RequestException as error:
                         expected = {"error": type(error).__name__, "challenge": failure_trial(error, method)}
-                # 自動User-Agentは版違いを比較しない。明示X-TestとContent-Type等を保持。
-                captured = [{**r, "headers": [h for h in r["headers"] if h[0] != "user-agent"]} for r in records]
+                captured = normalized_records(records)
                 cases.append({"name": name, "input": {"method": method, "path": path,
                               "max_retries": retries, "timeout": timeout, **kwargs},
                               "expected": {**expected, "records": captured}})
@@ -281,9 +316,9 @@ def transport(rust=None):
                         req["raw" if isinstance(kwargs["data"], str) else "form"] = kwargs["data"]
                     if "json" in kwargs:
                         req["json"] = kwargs["json"]
-                    steps = [{"path": "/cookie/set"}, req] if name == "cookie-shared" else [req]
+                    steps = [{"path": "/cookie/set" if name == "cookie-shared" else "/cookie/many"}, req] if name in {"cookie-shared", "cookie-order"} else [req]
                     endpoint = {"name": "one", "host": base, "headers": {"X-Test": "endpoint"}}
-                    if name == "cookie-shared":
+                    if name in {"cookie-shared", "cookie-order"}:
                         endpoint["headers"] = {}
                     actual = rust_probe(rust, endpoint, steps, retries, timeout)["results"][-1]
                     comparable = {"error": actual["error"]} if "error" in actual else {
@@ -331,5 +366,5 @@ if __name__ == "__main__":
         cases = transport(binary)
         print(f"HTTP transport: {len(cases)}/{len(cases)} Python一致")
     else:
-        cases = prepared() if "--prepare" in sys.argv else encodings() if "--encoding" in sys.argv else transport()
+        cases = timestamps() if "--time" in sys.argv else prepared() if "--prepare" in sys.argv else encodings() if "--encoding" in sys.argv else transport()
         print(json.dumps(cases, ensure_ascii=False, indent=2))

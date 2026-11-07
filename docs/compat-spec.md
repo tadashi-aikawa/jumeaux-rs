@@ -223,10 +223,11 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - モックのDate、Last-Modified、Serverは固定する。これらのレスポンス値を除外しない。
 - 比較規則は `compat/harness/comparison.json` に集約する。
 - API・通知のリクエストヘッダは `request_header_rules` に従う。
-  - 比較対象: configのheaders、requestsのheadersに指定したヘッダ、およびContent-Type。
+  - 比較対象: config・Requestに明示したヘッダと、Content-Type・Accept・Accept-Encoding・Connection・Content-Length・Cookie・User-Agent。
   - 規則: ヘッダ名は大小無視、並び順も無視する。値は完全一致とする。
-  - 比較対象外: HTTPクライアントが自動付与したUser-Agent、Accept-Encoding、Accept、Connection、Content-Length、Hostなど。
-  - 例外: 同じ名前でもconfigやrequestsで明示したヘッダは比較する。
+  - 比較対象外: 自動付与のHost。明示した場合は比較する。
+  - User-Agent: 自動値は製品名を維持しバージョン部分だけ正規化する。明示値は完全一致とする。
+  - 同一URL: trialごとの明示値の組を保持する。別trialの明示User-Agentを自動値の比較へ適用しない。
   - 維持: メソッド、URL、本文bytes、回数は完全比較する。原記録には自動ヘッダも残す。
 - PythonランタイムのDeprecationWarningは基準採取時に抑制する。
   - 方法: `PYTHONWARNINGS=ignore`。依存ライブラリが警告設定を上書きするため、Pythonラッパーはimport後にも再設定する。
@@ -241,6 +242,12 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 
 ## 意図的に変える差異
 
+- `.netrc`由来のAuthorizationは自動付与しない。
+  - Python版: trust_envがtrueならnetrcから認証情報を取得する。
+  - Rust版: 設定・Requestで明示したAuthorizationを使う。
+- HTTPSのCA bundle読込失敗はfailureのTrialにする。
+  - Python版: 存在しないパスはOSErrorで停止する。
+  - Rust版: HTTPS送信時のSSLErrorとして扱う。HTTPのみのtrialは継続できる。
 - Slack v1もWebhook未設定時は警告して送信をスキップする。
   - Python版: SLACK_INCOMING_WEBHOOKS_URLが無いとKeyErrorになる。
   - Rust版: v2と同じ3件のwarningログを返す。ライブラリから直接ログを出さない。
@@ -284,6 +291,16 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 
 以下はPython版と一致しない差異として許容したもの。
 
+- `Content-Encoding: gzip, identity`をRustではgzip展開する。
+  - Python版: この組合せはContentDecodingErrorになる。
+- `Content-Type: text/html; charset`のような`=`のないcharsetをRustでは無視する。
+  - Python版: boolのパラメータ値にstripを呼び、AttributeErrorになる。
+- `charset=\t'utf-8'`のタブと引用符をRustでは除き、`utf-8`を選択する。
+  - Python版: 先頭タブと片側の引用符が残ったcodec名を保持する。
+- ループバックのHTTPへSecure付きCookieを送ることを許容する。
+  - Python版: HTTPでは送らない。Rustのcookie_storeはループバックをsecureな宛先として扱う。
+- macOSのシステムproxy設定は取得しない。
+  - Rust版: AccessPoint.proxyまたはproxy環境変数を使用する。
 - JSON numberはserde_jsonで正規化した表記を使う。
   - 例: `1e2` は `1e+2`。Pythonの `100.0` とは一致しない。`1.2300` はRustで `1.2300`、Pythonで `1.23`。
   - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
@@ -1045,10 +1062,10 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## HTTP転送の接続契約
 
-`compat/fixtures/http-transport.json`に49件のPython観測値を保存する。
+`compat/fixtures/http-transport.json`に58件のPython観測値を保存する。
 
 - `compat/gen/http_transport.py --rust <http_probe>`でPython実測・保存済みfixture・Rust転送を照合する。
-  - 比較: メソッド、URL、明示ヘッダ、本文bytes、再試行回数、エラー分類。
+  - 比較: メソッド、URL、自動・明示ヘッダ、本文bytes、再試行回数、エラー分類。
 - `compat/harness/http_acceptance.py`で既存31ケースのAPI記録124リクエストも比較する。
   - 入力: 基準Pythonの入力アドオンが生成したRequestをRustへ渡す。one/otherは並行送信する。
   - 制限: HTTP部品の受入。製品CLIのアドオン・保存処理との接続は全体統合で行う。
@@ -1064,6 +1081,9 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 | `concurrent_request` | 両側の通信完了を待ち、Responseの組を返す |
 | `challenge` → `ChallengeOutcome` | ConnectionError系だけをfailureのTrialへ変換。成功時は`ResponsePair`に両Responseとrequest_timeを返す |
 
+- request_timeはローカル時刻のUTCオフセットを付けたISO日時とする。
+  - 小数部: マイクロ秒が0なら省略し、非0なら6桁を出力する。Pythonのisoformatから採取した4件を検証する。
+
 - `src/http/request.rs`に送信データの組み立て、`src/http/transport.rs`に接続処理を閉じる。
 - 応答ヘッダは`models::Headers`に小文字キーで保存し、重複値は`, `で連結する。
   - 条件式: 既存の`Response::to_template_value`による大小無視アクセスを使う。HTTPから受け取ったヘッダで検証する。
@@ -1073,14 +1093,14 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 | 項目 | Python版の挙動 | Rustの実装・検証 |
 | --- | --- | --- |
-| Session | exec全体で1個。one/otherと各trialで共有 | 1個のJarを両endpointで共有。oneのSet-Cookieをotherへ送るテストあり |
-| Session.close | 各http_get/http_postのfinallyで呼ぶ。Cookieは残る | idle接続をプールしない。Cookieは独立したJarに残す |
-| gzip・deflate | 自動展開。Response.bodyは展開済みbytes。元のContent-Encoding・Content-Lengthを保持 | flate2で展開。reqwestの自動展開は有効にしない。gzip、空gzip、zlib・raw deflateとヘッダ保持を検証 |
-| redirect | 最大30回。31回目の応答を受信後にTooManyRedirects | ローカル受信31回を実測済み |
+| Session | exec全体で1個。one/otherと各trialで共有 | 1個のCookieStoreを両endpointで共有。挿入順を保持してpath長の降順で安定ソートし送信 |
+| Session.close | 各http_get/http_postのfinallyで呼ぶ。Cookieは残る | idle接続をプールしない。Cookieは独立したCookieStoreに残す |
+| gzip・deflate・zstd | Accept-Encodingは`gzip, deflate, zstd`。展開済みbytesと元の圧縮ヘッダを保持 | flate2・zstdで展開。reqwestの圧縮featureは無効。Content-Encodingの大小無視、gzipの末尾ゴミ・途中切れ・複数memberを検証 |
+| redirect | 最大30回。31回目の応答を受信後にTooManyRedirects | 本文の展開・途中切断エラーは無視して追跡する。ローカル受信31回を実測済み |
 | POSTのredirect | 301・302・303ではGETへ変更して本文を消す。307・308ではPOSTと本文を維持 | 5ステータスを実測済み |
 | proxy | endpoint.proxyからhttp用は`http://<host>`、https用は`https://<host>`を生成 | 明示proxyを環境変数より優先しNO_PROXYでも除外しない。HTTP proxy・HTTPS proxyをローカルで検証 |
-| proxy環境変数 | requests.Sessionのtrust_envは既定true | HTTP_PROXY・HTTPS_PROXY・ALL_PROXY、優先する小文字名、NO_PROXYのホスト・port・IPv4 CIDR・`*`を検証。CGI環境の大文字HTTP_PROXYは無視 |
-| 証明書 | verifyは既定true。REQUESTS_CA_BUNDLE、次にCURL_CA_BUNDLEを参照 | native-tlsで検証。未信頼CA・ホスト名不一致を拒否し、追加CAと両環境変数を検証。既定のルート証明書集合は後述 |
+| proxy環境変数 | requests.Sessionのtrust_envは既定true | HTTP_PROXY・HTTPS_PROXY・ALL_PROXY、優先する小文字名、NO_PROXYのホスト・port・IPv4 CIDR・`*`を検証。NO_PROXYは大小無視と先頭`.`を除いた完全一致も扱う。CGI環境の大文字HTTP_PROXYは無視 |
+| 証明書 | verifyは既定true。REQUESTS_CA_BUNDLE、次にCURL_CA_BUNDLEを参照 | rustlsとwebpki-rootsで検証。未信頼CA・ホスト名不一致を拒否し、追加CAと両環境変数を検証 |
 | timeout | Jumeauxはtimeoutを渡さず、requests既定の無期限 | 実測では例外分類のため0.2秒を注入。他のprobeは3秒。製品の既定値変更ではない |
 | retry回数 | Nは初回を除く追加試行回数 | N=0・2の記録一致を確認。reqwestの標準retryを無効にし独自ループで制御 |
 | 接続失敗 | GET・POSTとも初回+N回 | DNS・接続拒否・connect timeoutをソケット入口の注入で実測 |
@@ -1095,7 +1115,12 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 実測: `for_host(...).no_budget().max_retries_per_request(2)`で切断時の3回送信を確認した。
   - 不足: classifierのReqRepは応答ヘッダを公開せず、retry Futureは即時完了する。Retry-Afterの有無・値・待機をそこで再現できない。
   - 実装: `retry::never()`を指定し、HTTPモジュール側で対象・待機・残り回数を管理する。本文読み取り失敗では再送しない。
-- `Retry-After`は秒数とHTTP日時を受理する。不正な値はInvalidHeaderとして停止する。
+- `Retry-After`は秒数とHTTP日時を受理する。空値では再試行せず返し、その他の不正値はInvalidHeaderとして停止する。
+- TLS backendは`rustls-tls-webpki-roots`を使用する。通知も同じTLS・CA・proxy設定を使用する。
+  - 理由: native-tlsがmacOSで追加する有効期間・EKUの制限を持ち込まない。EKUなしの10年・1年証明書で転送と通知の成功を検証する。
+  - ルート: Mozilla系のwebpki-rootsを使う。certifiと更新時期まで同一とは限らない。明示CA bundleを指定した場合は既定ルートを無効にする。
+  - 読込: CA bundleはHTTPS接続時だけ読む。HTTPのみの実行は不正なbundleの影響を受けない。
+  - エラー: 読込不能・不正なbundleはHTTPS送信のConnectionError系として扱い、challengeでfailureにする。
 - reqwestが返すTLS・proxyの接続失敗はConnectionError系へ写す。
   - 契約: Pythonの例外クラスの派生構造ではなく、failureになる範囲を維持する。ネイティブなエラー詳細はError.messageに保持する。
 
@@ -1111,11 +1136,13 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 優先順位: 非空dataがjsonより優先する。空dataとjsonを渡すとjsonになる。
 - fixtureの記録はmethod・path/query・比較対象ヘッダ・body_hexを保持する。
   - 正規化: ホストはループバックの一時ポートなので省く。ヘッダ名は小文字。リストの順序は比較契約に含めない。
-  - 検証: 49ケースすべてをRustと比較し、保存済みPython fixtureの再現も検査する。
-- `http-request.json`の17ケースでpath置換の後方参照、queryの`/i`・削除・`$DATETIME`、CP932のURL、ヘッダ・本文を固定する。
+  - 検証: 58ケースすべてをRustと比較し、保存済みPython fixtureの再現も検査する。
+- `http-request.json`の18ケースでpath置換の後方参照、queryの`/i`・削除・`$DATETIME`、CP932のURL、ヘッダ・本文を固定する。
+  - URL: 既存のパーセントエンコードも`%HH`の大文字表記へそろえる。
   - query: overwriteとremoveの`/i`は元のqsから最初に一致したキーを選ぶ。追加したキーを再検索しない。
   - ヘッダ: Pythonと同じく通常dictでマージしてから大小無視へ変換する。大文字小文字だけ違うキーを併記した場合の挿入順もfixtureで維持する。
   - Content-Length: 非空POST本文では明示値も実際の本文bytes長へ更新する。
+  - 空POST: 明示Content-Length・Transfer-EncodingがなければContent-Length: 0を送る。
 
 ### 通信失敗とTrialの実測
 
@@ -1141,13 +1168,10 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## 未決
 
-- TLSの既定ルート証明書集合とOS依存設定。
-  - 現実装: native-tlsのOSルート証明書を使う。Pythonのrequestsは基準環境のcertifi bundleを使うため、集合の一致は保証しない。環境変数以外のOS proxy設定は取得しない。
-  - 案: 実OSの全体受入で使用するCA・proxyを確認する。同じREQUESTS_CA_BUNDLEとproxy環境変数を指定する経路はローカル受入済み。証明書集合の固定・同梱は別途判断する。
-- 全体E2Eハーネスの同一URLに対するヘッダ設定の識別。
-  - 現実装: `compare.py::configured_headers`は同一method・URLの明示ヘッダ名を合算する。request_headersでは別trialの明示User-Agentが、自動User-Agentにも比較を適用してバージョンの差を誤検出する。
-  - HTTP受入: `http_acceptance.py`ではリクエストごとの明示値の組を保持し、明示値とContent-Typeだけを照合する。31ケースのAPI記録が一致する。
-  - 案: CLI全体統合時に同じ識別を共通ハーネスへ適用する。自動ヘッダ全体や明示User-Agentを一律除外しない。
+- challenge全体統合での並行数とCookieのスコープ。
+  - threads: 指定数に従ってtrialを並行実行し、出力のtrial順は入力順を維持する。
+  - processes: PythonはtrialごとにSessionを複製するためCookieをtrial間で共有しない。
+  - 案: threadsではHttpTransportを共有し、processes相当の経路ではtrialごとに生成する。one/other内の共有は維持する。
 
 - asyncの入力処理内にある同期ファイルI/O。
   - 現実装: prepareが呼ぶInputFactoryでstd::fs::readを使う。

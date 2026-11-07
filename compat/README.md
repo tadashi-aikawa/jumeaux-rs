@@ -79,26 +79,30 @@ uv run --project compat/harness python compat/harness/run.py
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py > /tmp/jumeaux-http-transport.json
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --encoding > /tmp/jumeaux-http-encoding.json
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --prepare > /tmp/jumeaux-http-request.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --time > /tmp/jumeaux-http-time.json
 diff compat/fixtures/http-transport.json /tmp/jumeaux-http-transport.json
 diff compat/fixtures/encoding/http.json /tmp/jumeaux-http-encoding.json
 diff compat/fixtures/http-request.json /tmp/jumeaux-http-request.json
+diff compat/fixtures/http-time.json /tmp/jumeaux-http-time.json
 cargo test --test http --test http_encoding -- --nocapture
 cargo build --example http_probe
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/harness/http_acceptance.py
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B -m unittest discover -s compat/harness -p test_compare.py
 ```
 
-- 転送fixtureは49件のPython実測。動的ポートのループバック受信先だけを使う。
-  - 対象: 本文bytes、redirect、Cookie、gzip、retry、通信失敗とchallengeの捕捉。
+- 転送fixtureは58件のPython実測。動的ポートのループバック受信先だけを使う。
+  - 対象: 本文bytes、自動・明示ヘッダ、redirect、Cookieの順序、gzip・zstd、retry、通信失敗とchallengeの捕捉。
   - 注入: DNS失敗・接続拒否・connect timeoutはソケット入口で注入し、外部へ通信しない。
   - 比較: Rustの送信・受信結果と保存済みPython観測値を照合する。timeoutの0.2秒は実測用であり、製品の設定ではない。
-- リクエスト組み立ては17件すべてRustとPython期待値を比較する。
+- リクエスト組み立ては18件すべてRustとPython期待値を比較する。
   - 対象: path・query・ヘッダのマージ、URL文字コード、本文の優先順位・JSON・formの表記。
 - encodingは23件すべてRustでPython期待値と比較する。
   - 対象: 決定順、空本文、charsetの引用符・重複・空値、MIME typeとパラメータの区別。
+- request_timeはPythonのisoformatから採取した4件でオフセットと小数部を検証する。
 - `http_acceptance.py`は既存31ケースのapi.jsonlの124リクエストも比較する。
   - 入力: 基準Pythonの入力アドオンで生成したRequest。転送はRustのone/other並行送信。
-  - ヘッダ: 同じURLでもリクエストごとの明示設定を識別する。自動User-Agentのバージョンの差を明示値の差に混ぜない。
-  - proxy・TLS: 18ケース。OpenSSLで一時CAとserverAuth付き証明書を生成する。外部のDNS失敗はresolver注入で検証し、外部へ通信しない。
+  - ヘッダ: 共通のcompare.pyでtrialごとの明示値を識別する。自動ヘッダも比較し、User-Agentはバージョン部分だけ正規化する。
+  - proxy・TLS: 26ケース。OpenSSLで一時CAと証明書を生成する。EKUなしの10年・1年証明書による転送・通知も含む。外部のDNS失敗はresolver注入で検証し、外部へ通信しない。
   - 実行: `--phase transport|baseline|connection`で対象を限定できる。Python版の.venvとopensslコマンドが必要。
   - 制限: 製品CLIを通した保存成果物・アドオンのE2Eは全体統合の対象。
 

@@ -5,13 +5,12 @@ use crate::{
 };
 use reqwest::{
     Client, Proxy,
-    cookie::{CookieStore, Jar},
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use std::{
     io::Read,
     path::PathBuf,
-    sync::Arc,
+    sync::{Arc, Mutex, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -40,12 +39,14 @@ impl Default for TransportOptions {
 pub(super) struct Endpoint {
     pub access: AccessPoint,
     client: Client,
+    secure_client: OnceLock<Result<Client>>,
+    options: TransportOptions,
 }
 
 pub struct HttpTransport {
     pub(super) one: Endpoint,
     pub(super) other: Endpoint,
-    cookies: Arc<Jar>,
+    cookies: Mutex<cookie_store::CookieStore>,
     max_retries: u64,
 }
 
@@ -107,7 +108,8 @@ fn bypass_proxy(url: &reqwest::Url, bypass: Option<&str>) -> bool {
     let Some(spec) = bypass else {
         return false;
     };
-    let host = url.host_str().unwrap_or("").trim_matches(['[', ']']);
+    let hostname = url.host_str().unwrap_or("").to_ascii_lowercase();
+    let host = hostname.trim_matches(['[', ']']);
     let with_port = url
         .port()
         .map(|port| format!("{host}:{port}"))
@@ -116,6 +118,8 @@ fn bypass_proxy(url: &reqwest::Url, bypass: Option<&str>) -> bool {
         .map(str::trim)
         .filter(|v| !v.is_empty())
         .any(|entry| {
+            let entry = entry.to_ascii_lowercase();
+            let entry = entry.as_str();
             if entry == "*" {
                 return true;
             }
@@ -130,12 +134,56 @@ fn bypass_proxy(url: &reqwest::Url, bypass: Option<&str>) -> bool {
                 }
                 host == entry
             } else {
-                host.ends_with(entry) || with_port.ends_with(entry)
+                host.ends_with(entry)
+                    || with_port.ends_with(entry)
+                    || host == entry.trim_start_matches('.')
+                    || with_port == entry.trim_start_matches('.')
             }
         })
 }
 
 fn build_endpoint(access: &AccessPoint, options: &TransportOptions) -> Result<Endpoint> {
+    Ok(Endpoint {
+        access: access.clone(),
+        client: build_client(access, options, false)?,
+        secure_client: OnceLock::new(),
+        options: options.clone(),
+    })
+}
+
+/// 通知も同じTLS・proxy・CA設定を使う。bundleはHTTPSの場合だけ読む。
+pub(crate) fn client_for_url(url: &str) -> Result<Client> {
+    let url = reqwest::Url::parse(url).map_err(invalid)?;
+    let access = AccessPoint {
+        name: String::new(),
+        host: url.to_string(),
+        path: None,
+        query: None,
+        proxy: None,
+        default_response_encoding: None,
+        headers: Headers::new(),
+    };
+    client_builder(
+        &access,
+        &TransportOptions::default(),
+        url.scheme() == "https",
+    )?
+    .redirect(reqwest::redirect::Policy::limited(30))
+    .build()
+    .map_err(|e| Error::new("SSLError", e.to_string()))
+}
+
+fn build_client(access: &AccessPoint, options: &TransportOptions, https: bool) -> Result<Client> {
+    client_builder(access, options, https)?
+        .build()
+        .map_err(|e| Error::new("SSLError", e.to_string()))
+}
+
+fn client_builder(
+    access: &AccessPoint,
+    options: &TransportOptions,
+    https: bool,
+) -> Result<reqwest::ClientBuilder> {
     let mut builder = Client::builder()
         .http1_only()
         .redirect(reqwest::redirect::Policy::none())
@@ -186,9 +234,9 @@ fn build_endpoint(access: &AccessPoint, options: &TransportOptions) -> Result<En
             })
             .flatten()
     });
-    if let Some(path) = ca_bundle {
+    if let Some(path) = ca_bundle.filter(|_| https) {
         let pem = std::fs::read(&path)
-            .map_err(|e| Error::new("OSError", format!("{}: {e}", path.display())))?;
+            .map_err(|e| Error::new("SSLError", format!("{}: {e}", path.display())))?;
         let certificates = reqwest::Certificate::from_pem_bundle(&pem)
             .map_err(|e| Error::new("SSLError", e.to_string()))?;
         if certificates.is_empty() {
@@ -199,19 +247,16 @@ fn build_endpoint(access: &AccessPoint, options: &TransportOptions) -> Result<En
             builder = builder.add_root_certificate(certificate);
         }
     }
-    let client = builder
-        .build()
-        .map_err(|e| Error::new("SSLError", e.to_string()))?;
-    Ok(Endpoint {
-        access: access.clone(),
-        client,
-    })
+    Ok(builder)
 }
 
 fn header_map(headers: &Headers) -> Result<HeaderMap> {
     let mut result = HeaderMap::new();
     result.insert("accept", HeaderValue::from_static("*/*"));
-    result.insert("accept-encoding", HeaderValue::from_static("gzip, deflate"));
+    result.insert(
+        "accept-encoding",
+        HeaderValue::from_static("gzip, deflate, zstd"),
+    );
     result.insert("connection", HeaderValue::from_static("keep-alive"));
     for (name, value) in headers {
         if value.starts_with(char::is_whitespace) || value.contains(['\n', '\r']) {
@@ -282,13 +327,14 @@ fn expand(mut body: Vec<u8>, headers: &Headers) -> Result<Vec<u8>> {
     let encodings = headers
         .get("content-encoding")
         .map(String::as_str)
-        .unwrap_or("");
+        .unwrap_or("")
+        .to_ascii_lowercase();
     for coding in encodings.split(',').rev().map(str::trim) {
         let mut decoded = Vec::new();
         let result = match coding {
-            "gzip" | "x-gzip" => {
-                flate2::read::MultiGzDecoder::new(body.as_slice()).read_to_end(&mut decoded)
-            }
+            "gzip" | "x-gzip" => expand_gzip(&body, &mut decoded),
+            "zstd" => zstd::stream::read::Decoder::new(body.as_slice())
+                .and_then(|mut decoder| decoder.read_to_end(&mut decoded)),
             "deflate" => {
                 let result =
                     flate2::read::ZlibDecoder::new(body.as_slice()).read_to_end(&mut decoded);
@@ -307,6 +353,31 @@ fn expand(mut body: Vec<u8>, headers: &Headers) -> Result<Vec<u8>> {
     Ok(body)
 }
 
+fn expand_gzip(mut bytes: &[u8], output: &mut Vec<u8>) -> std::io::Result<usize> {
+    let mut members = 0;
+    while !bytes.is_empty() {
+        // GzDecoderは固定長headerを読む前にmagicを検証しない。
+        // zlibは2bytesそろった時点で不正なmagicを拒否する。
+        if bytes.len() >= 2 && bytes[..2] != [0x1f, 0x8b] {
+            if members > 0 {
+                break;
+            }
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "invalid gzip header",
+            ));
+        }
+        let mut decoder = flate2::bufread::GzDecoder::new(bytes);
+        match decoder.read_to_end(output) {
+            Ok(_) => members += 1,
+            Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof || members > 0 => break,
+            Err(error) => return Err(error),
+        }
+        bytes = decoder.into_inner();
+    }
+    Ok(output.len())
+}
+
 impl HttpTransport {
     pub fn new(one: &AccessPoint, other: &AccessPoint, max_retries: i64) -> Result<Self> {
         Self::with_options(one, other, max_retries, TransportOptions::default())
@@ -321,7 +392,7 @@ impl HttpTransport {
         Ok(Self {
             one: build_endpoint(one, &options)?,
             other: build_endpoint(other, &options)?,
-            cookies: Arc::new(Jar::default()),
+            cookies: Mutex::new(cookie_store::CookieStore::default()),
             max_retries: max_retries.max(0) as u64,
         })
     }
@@ -345,17 +416,31 @@ impl HttpTransport {
         headers: &HeaderMap,
     ) -> Result<reqwest::Response> {
         let mut retries = 0;
+        let client = if prepared.url.scheme() == "https" {
+            endpoint
+                .secure_client
+                .get_or_init(|| build_client(&endpoint.access, &endpoint.options, true))
+                .as_ref()
+                .map_err(|e| Error::new(e.kind, e.message.clone()))?
+        } else {
+            &endpoint.client
+        };
         loop {
             let method = match prepared.method {
                 HttpMethod::Get => reqwest::Method::GET,
                 HttpMethod::Post => reqwest::Method::POST,
             };
-            let mut request = endpoint
-                .client
+            let mut request = client
                 .request(method, prepared.url.clone())
                 .headers(headers.clone());
             if prepared.method == HttpMethod::Post {
                 request = request.body(prepared.body.clone());
+                if prepared.body.is_empty()
+                    && !headers.contains_key("content-length")
+                    && !headers.contains_key("transfer-encoding")
+                {
+                    request = request.header("content-length", "0");
+                }
             }
             match request.send().await {
                 Ok(response) => {
@@ -363,6 +448,7 @@ impl HttpTransport {
                         && retries < self.max_retries
                         && matches!(response.status().as_u16(), 413 | 429 | 503)
                         && let Some(after) = response.headers().get("retry-after")
+                        && !after.is_empty()
                     {
                         let delay = retry_after(after)?;
                         // urllib3もretry時の本文drain失敗を無視する。
@@ -393,10 +479,22 @@ impl HttpTransport {
     ) -> Result<ReceivedResponse> {
         let mut headers = header_map(&prepared.headers)?;
         for redirects in 0..=30 {
-            if !headers.contains_key("cookie")
-                && let Some(cookie) = self.cookies.cookies(&prepared.url)
-            {
-                headers.insert("cookie", cookie);
+            if !headers.contains_key("cookie") {
+                let store = self.cookies.lock().expect("cookie lock");
+                let mut cookies = store.matches(&prepared.url);
+                cookies.sort_by_key(|cookie| std::cmp::Reverse(cookie.path.as_ref().len()));
+                let value = cookies
+                    .iter()
+                    .map(|cookie| format!("{}={}", cookie.name(), cookie.value()))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                if !value.is_empty() {
+                    headers.insert(
+                        "cookie",
+                        HeaderValue::from_str(&value)
+                            .map_err(|e| Error::new("InvalidHeader", e.to_string()))?,
+                    );
+                }
             }
             let start = Instant::now();
             let response = self.send_hop(endpoint, &prepared, &headers).await?;
@@ -404,8 +502,14 @@ impl HttpTransport {
             let url = response.url().clone();
             let status_code = response.status().as_u16();
             let location = response.headers().get("location").cloned();
-            self.cookies
-                .set_cookies(&mut response.headers().get_all("set-cookie").iter(), &url);
+            {
+                let mut store = self.cookies.lock().expect("cookie lock");
+                for cookie in response.headers().get_all("set-cookie") {
+                    if let Ok(cookie) = cookie.to_str() {
+                        let _ = store.parse(cookie, &url);
+                    }
+                }
+            }
             let response_headers = response_headers(response.headers());
             let bytes = response.bytes().await.map_err(|e| {
                 Error::new(
@@ -416,11 +520,16 @@ impl HttpTransport {
                     },
                     format!("{e:?}"),
                 )
-            })?;
-            let body = expand(bytes.to_vec(), &response_headers)?;
+            });
             if matches!(status_code, 301 | 302 | 303 | 307 | 308)
                 && let Some(location) = location
             {
+                // requestsはredirect本文のdecode・途中切断エラーを無視して追跡する。
+                if let Err(error) = &bytes
+                    && error.kind != "ChunkedEncodingError"
+                {
+                    return Err(Error::new(error.kind, error.message.clone()));
+                }
                 if redirects == 30 {
                     return Err(Error::new("TooManyRedirects", "Exceeded 30 redirects"));
                 }
@@ -455,6 +564,7 @@ impl HttpTransport {
                 prepared.url = next;
                 continue;
             }
+            let body = expand(bytes?.to_vec(), &response_headers)?;
             return Ok(ReceivedResponse {
                 body,
                 headers: response_headers,

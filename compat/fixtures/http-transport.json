@@ -17,6 +17,22 @@
           "path": "/probe?q=%93%FA%96%7B&empty=",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -44,6 +60,26 @@
           "method": "POST",
           "path": "/probe",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "9"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -80,12 +116,32 @@
           "path": "/probe",
           "headers": [
             [
-              "x-test",
-              "request"
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "33"
             ],
             [
               "content-type",
               "application/x-www-form-urlencoded"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
             ]
           ],
           "body_hex": "613d782b7926613d25453625393725413525453625394325414326623d54727565"
@@ -115,12 +171,32 @@
           "path": "/probe",
           "headers": [
             [
-              "x-test",
-              "request"
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "51"
             ],
             [
               "content-type",
               "application/json"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
             ]
           ],
           "body_hex": "7b2274657874223a20225c75363565355c7536373263222c20226e223a2031383434363734343037333730393535313631377d"
@@ -149,6 +225,26 @@
           "method": "POST",
           "path": "/probe",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -181,12 +277,32 @@
           "path": "/probe",
           "headers": [
             [
-              "x-test",
-              "request"
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "8"
             ],
             [
               "content-type",
               "application/json"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
             ]
           ],
           "body_hex": "7b2278223a20317d"
@@ -211,6 +327,26 @@
           "method": "POST",
           "path": "/probe",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -239,6 +375,22 @@
           "path": "/gzip",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -265,6 +417,22 @@
           "method": "GET",
           "path": "/deflate",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -293,6 +461,22 @@
           "path": "/raw-deflate",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -319,6 +503,394 @@
           "method": "GET",
           "path": "/empty-gzip",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip-upper",
+    "input": {
+      "method": "GET",
+      "path": "/gzip-upper",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/gzip-upper",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip-upper",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip-trailing",
+    "input": {
+      "method": "GET",
+      "path": "/gzip-trailing",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/gzip-trailing",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip-trailing",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip-truncated",
+    "input": {
+      "method": "GET",
+      "path": "/gzip-truncated",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/gzip-truncated",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip-truncated",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip-multi",
+    "input": {
+      "method": "GET",
+      "path": "/gzip-multi",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e6465647365636f6e64",
+      "path": "/gzip-multi",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip-multi",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "gzip-corrupt",
+    "input": {
+      "method": "GET",
+      "path": "/gzip-corrupt",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ContentDecodingError",
+      "challenge": {
+        "error": "ContentDecodingError"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/gzip-corrupt",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "zstd",
+    "input": {
+      "method": "GET",
+      "path": "/zstd",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e646564",
+      "path": "/zstd",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/zstd",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "redirect-bad-gzip",
+    "input": {
+      "method": "GET",
+      "path": "/redirect-bad-gzip",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/done",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/redirect-bad-gzip",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/done",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "retry-after-empty",
+    "input": {
+      "method": "GET",
+      "path": "/retry-after-empty",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 503,
+      "body_hex": "6f6b",
+      "path": "/retry-after-empty",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/retry-after-empty",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -347,6 +919,22 @@
           "path": "/status-503",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -374,16 +962,21 @@
           "path": "/retry-after",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/retry-after",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -395,6 +988,49 @@
           "method": "GET",
           "path": "/retry-after",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/retry-after",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -423,6 +1059,26 @@
           "path": "/retry-after",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -448,7 +1104,24 @@
         {
           "method": "GET",
           "path": "/cookie/set",
-          "headers": [],
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ]
+          ],
           "body_hex": ""
         },
         {
@@ -456,12 +1129,98 @@
           "path": "/cookie/read",
           "headers": [
             [
-              "x-test",
-              "request"
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
             ],
             [
               "cookie",
               "shared=yes"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "cookie-order",
+    "input": {
+      "method": "GET",
+      "path": "/cookie/read",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "6f6b",
+      "path": "/cookie/read",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/cookie/many",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/cookie/read",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "cookie",
+              "deep=3; a=updated; b=2"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
             ]
           ],
           "body_hex": ""
@@ -488,6 +1247,26 @@
           "path": "/redirect/301",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -498,6 +1277,22 @@
           "method": "GET",
           "path": "/done",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -527,6 +1322,26 @@
           "path": "/redirect/302",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -537,6 +1352,22 @@
           "method": "GET",
           "path": "/done",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -566,6 +1397,26 @@
           "path": "/redirect/303",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -576,6 +1427,22 @@
           "method": "GET",
           "path": "/done",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -605,6 +1472,26 @@
           "path": "/redirect/307",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -615,6 +1502,26 @@
           "method": "POST",
           "path": "/done",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -644,6 +1551,26 @@
           "path": "/redirect/308",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -654,6 +1581,26 @@
           "method": "POST",
           "path": "/done",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "3"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -700,6 +1647,22 @@
           "path": "/disconnect",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -745,16 +1708,21 @@
           "path": "/disconnect",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/disconnect",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -766,6 +1734,49 @@
           "method": "GET",
           "path": "/disconnect",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/disconnect",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -794,6 +1805,22 @@
           "method": "GET",
           "path": "/read-timeout",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -840,16 +1867,21 @@
           "path": "/read-timeout",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/read-timeout",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -861,6 +1893,49 @@
           "method": "GET",
           "path": "/read-timeout",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/read-timeout",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -907,6 +1982,22 @@
           "path": "/body-timeout",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -952,6 +2043,22 @@
           "path": "/body-timeout",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -980,6 +2087,22 @@
           "path": "/truncated",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1007,6 +2130,22 @@
           "method": "GET",
           "path": "/truncated",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1053,6 +2192,26 @@
           "path": "/disconnect",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1098,6 +2257,26 @@
           "path": "/disconnect",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1126,6 +2305,26 @@
           "path": "/read-timeout",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1153,6 +2352,26 @@
           "method": "POST",
           "path": "/read-timeout",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1199,6 +2418,26 @@
           "path": "/body-timeout",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1244,6 +2483,26 @@
           "path": "/body-timeout",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1271,6 +2530,26 @@
           "method": "POST",
           "path": "/truncated",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1300,6 +2579,26 @@
           "path": "/truncated",
           "headers": [
             [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "content-length",
+              "0"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
               "x-test",
               "request"
             ]
@@ -1328,16 +2627,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1350,16 +2654,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1372,16 +2681,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1394,16 +2708,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1416,16 +2735,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1438,16 +2762,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1460,16 +2789,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1482,16 +2816,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1504,16 +2843,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1526,16 +2870,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1548,16 +2897,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1570,16 +2924,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1592,16 +2951,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1614,16 +2978,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1636,16 +3005,21 @@
           "path": "/loop",
           "headers": [
             [
-              "x-test",
-              "request"
-            ]
-          ],
-          "body_hex": ""
-        },
-        {
-          "method": "GET",
-          "path": "/loop",
-          "headers": [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"
@@ -1657,6 +3031,427 @@
           "method": "GET",
           "path": "/loop",
           "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        },
+        {
+          "method": "GET",
+          "path": "/loop",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
             [
               "x-test",
               "request"

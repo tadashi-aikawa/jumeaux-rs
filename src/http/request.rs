@@ -268,7 +268,7 @@ pub fn requote_url(value: &str) -> String {
             if decoded.is_ascii_alphanumeric() || b"-._~".contains(&decoded) {
                 result.push(decoded as char);
             } else {
-                result.push_str(&value[i..i + 3]);
+                result.push_str(&value[i..i + 3].to_ascii_uppercase());
             }
             i += 3;
         } else {

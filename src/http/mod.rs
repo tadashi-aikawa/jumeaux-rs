@@ -2,6 +2,7 @@
 mod request;
 mod transport;
 pub use request::{PreparedRequest, json_body, merge_headers, prepare, query_string};
+pub(crate) use transport::client_for_url;
 pub use transport::{HttpTransport, TransportOptions};
 
 use crate::{
@@ -45,6 +46,15 @@ fn failure_summary(url: String) -> ResponseSummary {
     }
 }
 
+fn request_time(now: chrono::DateTime<chrono::FixedOffset>) -> String {
+    let precision = if now.timestamp_subsec_micros() == 0 {
+        chrono::SecondsFormat::Secs
+    } else {
+        chrono::SecondsFormat::Micros
+    };
+    now.to_rfc3339_opts(precision, false)
+}
+
 impl HttpTransport {
     /// 両側の通信完了を待つ。片側が成功してもConnectionErrorなら両側summaryを省略する。
     pub async fn challenge(&self, seq: u64, request: &Request) -> Result<ChallengeOutcome> {
@@ -52,9 +62,7 @@ impl HttpTransport {
         let other = prepare(&self.other.access, request)?;
         let url_one = one.original_url.clone();
         let url_other = other.original_url.clone();
-        let request_time = chrono::Local::now()
-            .format("%Y-%m-%dT%H:%M:%S%.6f")
-            .to_string();
+        let request_time = request_time(chrono::Local::now().fixed_offset());
         let (r_one, r_other) = tokio::join!(
             self.send_prepared(&self.one, one),
             self.send_prepared(&self.other, other)
@@ -101,5 +109,18 @@ impl HttpTransport {
             one.into_response(self.one.access.default_response_encoding.as_deref())?,
             other.into_response(self.other.access.default_response_encoding.as_deref())?,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn timestamp_matches_python_isoformat() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../compat/fixtures/http-time.json")).unwrap();
+        for case in cases {
+            let at = chrono::DateTime::parse_from_rfc3339(case["input"].as_str().unwrap()).unwrap();
+            assert_eq!(super::request_time(at), case["expected"].as_str().unwrap());
+        }
     }
 }

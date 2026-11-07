@@ -88,6 +88,33 @@
     }
   },
   {
+    "name": "percent-uppercase",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/%e6%97%a5/%2f",
+        "qs": {
+          "x": [
+            "%ab"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/%e6%97%a5/%2f?x=%25ab",
+        "url": "http://localhost/base/%E6%97%A5/%2F?x=%25ab",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
     "name": "path-backreference",
     "input": {
       "endpoint": {
