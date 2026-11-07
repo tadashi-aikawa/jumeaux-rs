@@ -85,16 +85,16 @@ pub fn headers_equal(one: &Headers, other: &Headers, ignore: &[String]) -> bool 
     normalized(one) == normalized(other)
 }
 
-fn context(reference: &JudgementReference) -> Result<minijinja::Value> {
-    Ok(minijinja::Value::from_pairs([
+fn context(reference: &JudgementReference) -> Result<values::CheckedContext> {
+    Ok(values::CheckedContext::from_pairs([
         (
             "req",
-            minijinja::Value::from_pairs([
+            values::checked_context(minijinja::Value::from_pairs([
                 ("name", values::serialized(&reference.name)),
                 ("path", values::serialized(&reference.path)),
                 ("qs", values::serialized(&reference.qs)),
                 ("headers", values::serialized(&reference.headers)),
-            ]),
+            ]))?,
         ),
         (
             "res_one",
@@ -115,7 +115,7 @@ fn context(reference: &JudgementReference) -> Result<minijinja::Value> {
 fn when(
     engine: &TemplateEngine,
     expression: Option<&str>,
-    context: &minijinja::Value,
+    context: &values::CheckedContext,
 ) -> Result<bool> {
     expression.map_or(Ok(true), |expression| {
         Ok(engine.when(expression, context)?.truthy())

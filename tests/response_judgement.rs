@@ -56,7 +56,7 @@ fn execute(input: &Value) -> Result<Value> {
             jumeaux::compat::template::TemplateEngine::new()
                 .when(
                     input["config"]["expression"].as_str().unwrap(),
-                    json!({"x":value}),
+                    jumeaux::compat::values::from_json_for_when(&json!({"x":value}))?,
                 )?
                 .to_json()?
         }

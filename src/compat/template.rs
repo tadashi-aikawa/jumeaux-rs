@@ -12,7 +12,10 @@ use minijinja::{
 use rustpython_parser::{Parse, ast};
 use serde_json::Value as Json;
 
-use super::{Error, Result, regex, values::TemplateInput};
+use super::{
+    Error, Result, regex,
+    values::{RenderInput, TemplateInput},
+};
 
 pub struct TemplateEngine {
     env: RwLock<Environment<'static>>,
@@ -170,7 +173,7 @@ impl TemplateEngine {
             .map_err(template_error)
     }
 
-    pub fn render(&self, template: &str, data: impl TemplateInput) -> Result<String> {
+    pub fn render(&self, template: &str, data: impl RenderInput) -> Result<String> {
         self.load(template)?;
         self.env
             .read()
@@ -184,7 +187,7 @@ impl TemplateEngine {
     /// boolに即時変換しない。数値・リストなどは後続の呼び出し元がtruthinessを判定する。
     pub fn when(&self, expression: &str, data: impl TemplateInput) -> Result<LiteralValue> {
         super::json::scan_expression(expression)?;
-        let data = data.into_when_value()?;
+        let data = data.into_when_value();
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }

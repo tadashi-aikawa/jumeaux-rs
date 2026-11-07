@@ -68,7 +68,7 @@ fn nonfinite_errors_are_identical_at_all_boundaries() {
         } else {
             format!("'{token}'|float")
         };
-        assert_nonfinite(engine.when(&expression, json!({})));
+        assert_nonfinite(engine.when(&expression, values::from_json_for_when(&json!({})).unwrap()));
     }
     for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
         assert_nonfinite(values::checked_context(minijinja::context!(x => value)));
@@ -78,24 +78,30 @@ fn nonfinite_errors_are_identical_at_all_boundaries() {
         let value: Value = serde_json::from_str(text).unwrap();
         assert_nonfinite(diff::diff(&value, &json!(0)));
         assert_nonfinite(diff::diff(&json!(0), &value));
-        assert_nonfinite(engine.when("True", &value));
+        assert_nonfinite(values::from_json_for_when(&value));
         assert_nonfinite(values::optional(Some(&value)));
     }
-    assert_nonfinite(engine.when("'1e400'", json!({})));
+    assert_nonfinite(engine.when("'1e400'", values::from_json_for_when(&json!({})).unwrap()));
     let huge_integer: Value = serde_json::from_str(&format!("1{}", "0".repeat(400))).unwrap();
-    assert_nonfinite(engine.when("True", &huge_integer));
+    assert_nonfinite(values::from_json_for_when(&huge_integer));
     assert_nonfinite(values::optional(Some(&huge_integer)));
     assert!(diff::diff(&huge_integer, &json!(0)).is_ok());
     assert!(compat::json::parse(r#"["NaN", "Infinity", "1e400"]"#).is_ok());
     assert!(
         engine
-            .when("x == 'Infinity'", json!({"x":"Infinity"}))
+            .when(
+                "x == 'Infinity'",
+                values::from_json_for_when(&json!({"x":"Infinity"})).unwrap()
+            )
             .unwrap()
             .truthy()
     );
     assert!(
         engine
-            .when("inf == 1 and x.NaN == 2", json!({"inf":1,"x":{"NaN":2}}))
+            .when(
+                "inf == 1 and x.NaN == 2",
+                values::from_json_for_when(&json!({"inf":1,"x":{"NaN":2}})).unwrap()
+            )
             .unwrap()
             .truthy()
     );

@@ -27,8 +27,9 @@ pub fn from_json(value: &Json) -> Value {
 }
 
 /// when用の変換では、数値を作る時点で非有限値を拒否する。
-pub fn from_json_for_when(value: &Json) -> super::Result<Value> {
-    convert_json(value, true)
+pub fn from_json_for_when(value: &Json) -> super::Result<CheckedContext> {
+    super::json::validate(value)?;
+    Ok(CheckedContext(convert_json(value, true)?))
 }
 
 fn convert_json(value: &Json, finite: bool) -> super::Result<Value> {
@@ -80,51 +81,80 @@ fn convert_json(value: &Json, finite: bool) -> super::Result<Value> {
     Ok(converted.pop().expect("JSON root"))
 }
 
-/// JSONは数値を変換し、式用Objectを持つMiniJinja Valueはそのまま渡す。
-/// 任意のserdeモデルにはserialized()を使う。
-pub trait TemplateInput {
-    /// 生JSONは入口で検査する。MiniJinja Valueは構築時に検査済みのcontext。
-    fn into_when_value(self) -> super::Result<Value>;
+/// 検査済みの条件式入力。内部値を外から直接構築・変更できない。
+///
+/// 生JSONはwhenへ渡せない。
+/// ```compile_fail
+/// use jumeaux::compat::template::TemplateEngine;
+/// TemplateEngine::new().when("True", serde_json::json!({})).unwrap();
+/// ```
+/// MiniJinja Valueも検査が必要。
+/// ```compile_fail
+/// use jumeaux::compat::template::TemplateEngine;
+/// TemplateEngine::new().when("True", minijinja::context!(x => 1)).unwrap();
+/// ```
+#[derive(Debug, Clone)]
+pub struct CheckedContext(Value);
+
+impl CheckedContext {
+    /// 個別に検査済みの値を結合する。大きいdictを再検査しない。
+    pub fn from_pairs<K: Into<String>>(values: impl IntoIterator<Item = (K, Self)>) -> Self {
+        Self(Value::from_pairs(
+            values.into_iter().map(|(key, value)| (key.into(), value.0)),
+        ))
+    }
+}
+
+mod sealed {
+    pub trait Sealed {}
+}
+
+/// when専用。CheckedContextとその参照以外には実装できない。
+pub trait TemplateInput: sealed::Sealed {
+    fn into_when_value(self) -> Value;
+}
+impl sealed::Sealed for CheckedContext {}
+impl sealed::Sealed for &CheckedContext {}
+impl TemplateInput for CheckedContext {
+    fn into_when_value(self) -> Value {
+        self.0
+    }
+}
+impl TemplateInput for &CheckedContext {
+    fn into_when_value(self) -> Value {
+        self.0.clone()
+    }
+}
+
+/// renderは既存の表示互換を保つ。whenの検査契約とは分離する。
+pub trait RenderInput {
     fn into_value(self) -> Value;
 }
-impl TemplateInput for Json {
-    fn into_when_value(self) -> super::Result<Value> {
-        (&self).into_when_value()
-    }
+impl RenderInput for Json {
     fn into_value(self) -> Value {
         from_json(&self)
     }
 }
-impl TemplateInput for &Json {
-    fn into_when_value(self) -> super::Result<Value> {
-        super::json::validate(self)?;
-        from_json_for_when(self)
-    }
+impl RenderInput for &Json {
     fn into_value(self) -> Value {
         from_json(self)
     }
 }
-impl TemplateInput for Value {
-    fn into_when_value(self) -> super::Result<Value> {
-        Ok(self)
-    }
+impl RenderInput for Value {
     fn into_value(self) -> Value {
         self
     }
 }
-impl TemplateInput for &Value {
-    fn into_when_value(self) -> super::Result<Value> {
-        Ok(self.clone())
-    }
+impl RenderInput for &Value {
     fn into_value(self) -> Value {
         self.clone()
     }
 }
 
 /// ネイティブのMiniJinja値を使う呼び出し元は、context構築時に一度だけ検査する。
-pub fn checked_context(value: Value) -> super::Result<Value> {
+pub fn checked_context(value: Value) -> super::Result<CheckedContext> {
     validate_template(&value)?;
-    Ok(value)
+    Ok(CheckedContext(value))
 }
 
 fn validate_template(value: &Value) -> super::Result<()> {
@@ -323,11 +353,12 @@ impl Object for Headers {
 struct PythonOption(super::Result<Value>);
 
 /// judgement の dict_one/dict_other は TOption をそのまま公開する。
-pub fn optional(value: Option<&Json>) -> super::Result<Value> {
-    Ok(Value::from_object(PythonOption(Ok(value
+pub fn optional(value: Option<&Json>) -> super::Result<CheckedContext> {
+    Ok(CheckedContext(Value::from_object(PythonOption(Ok(value
         .map(from_json_for_when)
         .transpose()?
-        .unwrap_or_else(|| Value::from(()))))))
+        .map(|value| value.0)
+        .unwrap_or_else(|| Value::from(())))))))
 }
 
 impl Object for PythonOption {

@@ -125,13 +125,13 @@ impl Executor {
                     continue;
                 }
                 let value = |dict: &Option<serde_json::Value>| {
-                    dict.as_ref()
-                        .and_then(|dict| get_by_diff_key(dict, path))
-                        .map(values::from_json_for_when)
-                        .transpose()
-                        .map(|value| value.unwrap_or_else(|| minijinja::Value::from(())))
+                    values::from_json_for_when(
+                        dict.as_ref()
+                            .and_then(|dict| get_by_diff_key(dict, path))
+                            .unwrap_or(&serde_json::Value::Null),
+                    )
                 };
-                let context = minijinja::Value::from_pairs([
+                let context = values::CheckedContext::from_pairs([
                     ("one", value(&reference.dict_one)?),
                     ("other", value(&reference.dict_other)?),
                 ]);
