@@ -1,5 +1,6 @@
 //! Python版から移行する際の互換境界。アドオンから直接各crateを呼ばない。
 pub mod encoding;
+pub mod json;
 pub mod regex;
 pub mod template;
 pub mod values;

@@ -21,8 +21,11 @@ fn engine() -> &'static TemplateEngine {
     &ENGINE
 }
 fn matches(when: Option<&str>, req: &Request) -> Result<bool> {
-    when.map(|when| engine().when(when, req.to_dict_value()).map(|v| v.truthy()))
-        .unwrap_or(Ok(true))
+    when.map(|when| {
+        let context = crate::compat::values::checked_context(req.to_dict_value())?;
+        engine().when(when, &context).map(|v| v.truthy())
+    })
+    .unwrap_or(Ok(true))
 }
 fn load_when(when: &str) -> Result<()> {
     engine().load(&format!("{{{{{when}}}}}"))

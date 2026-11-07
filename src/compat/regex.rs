@@ -58,6 +58,21 @@ impl Regex {
         self.inner.is_match(target).map_err(|e| self.error(e))
     }
 
+    /// Python re.findall: groupなしは全体、1つなら文字列、複数ならtuple相当。
+    pub fn findall(&self, target: &str) -> Result<Vec<serde_json::Value>> {
+        use serde_json::Value;
+        let mut result = Vec::new();
+        self.for_each_capture(target, |capture| {
+            let group = |i| Value::String(capture.get(i).map_or("", |m| m.as_str()).into());
+            result.push(match capture.len() {
+                1 => group(0),
+                2 => group(1),
+                n => Value::Array((1..n).map(group).collect()),
+            });
+        })?;
+        Ok(result)
+    }
+
     pub fn full_match(&self, target: &str) -> Result<bool> {
         self.full
             .get_or_init(|| {
@@ -79,6 +94,30 @@ impl Regex {
         let parts = self.replacement_parts(replacement)?;
         let mut output = String::new();
         let mut end = 0;
+        self.for_each_capture(target, |captures| {
+            let matched = captures.get(0).expect("group 0");
+            output.push_str(&target[end..matched.start()]);
+            for part in &parts {
+                match part {
+                    Part::Text(text) => output.push_str(text),
+                    Part::Group(index) => {
+                        if let Some(value) = captures.get(*index) {
+                            output.push_str(value.as_str());
+                        }
+                    }
+                }
+            }
+            end = matched.end();
+        })?;
+        output.push_str(&target[end..]);
+        Ok(output)
+    }
+
+    fn for_each_capture(
+        &self,
+        target: &str,
+        mut visit: impl FnMut(&fancy_regex::Captures<'_, str>),
+    ) -> Result<()> {
         let mut position = 0;
         let mut previous_empty = false;
         let nonempty = self
@@ -133,23 +172,11 @@ impl Regex {
                 break;
             };
             let matched = captures.get(0).expect("group 0");
-            output.push_str(&target[end..matched.start()]);
-            for part in &parts {
-                match part {
-                    Part::Text(text) => output.push_str(text),
-                    Part::Group(index) => {
-                        if let Some(value) = captures.get(*index) {
-                            output.push_str(value.as_str());
-                        }
-                    }
-                }
-            }
-            end = matched.end();
-            position = end;
+            visit(&captures);
+            position = matched.end();
             previous_empty = matched.start() == matched.end();
         }
-        output.push_str(&target[end..]);
-        Ok(output)
+        Ok(())
     }
 
     fn error(&self, error: impl std::fmt::Display) -> Error {

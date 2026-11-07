@@ -16,6 +16,7 @@ compat/
 │   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
 │   ├── review-fixes.json null・YAMLマージ・report読込・34アドオン設定の回帰fixture
 │   ├── review-round2.json 重複キー・マージ優先順位・null logger・report走査の回帰fixture
+│   ├── response-judgement.json 応答変換・判定の8アドオンのPython期待値
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
 ├── gen/                 Python版からのfixture・環境情報生成
 └── harness/             バイナリ差し替え、記録用受信先、比較規則
@@ -106,7 +107,7 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
   - 件数: template 216、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
-  - 許容した差異: template 22件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
+  - 許容した差異: template 23件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
   - 別名: Windows-31J・cswindows31jはPythonでもcp932へ解決される。別名をそのまま指定して採取し、`input.python_codec`に解決先を記載する。
   - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
@@ -135,6 +136,29 @@ cargo test --test markup -- --nocapture
   - 対象: plaintextの循環オブジェクトによるValueErrorを記録する。
 
 ## ハーネスの自己検証
+
+### 応答変換・judgementの先行検証
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/response_judgement.py > compat/fixtures/response-judgement.json
+cargo test --test response_judgement -- --nocapture
+```
+
+- 関数fixtureは279件。
+  - Python一致: 229件。
+  - 承認済み差異: 特殊パスの値取得修正7件、非有限数41件、lone surrogate 2件。Python観測値と`rust_expected`を両方保持する。
+  - 未決: 0件。
+  - 境界: Optionのvalue、整数の負のゼロ、深さ129・200の読み込みとソートもPythonと比較する。非有限数はjson_sort・res2dict/json・when・diffを同じ入力で比較する。
+- `cargo test --test json_boundary`で深さ1,000と1,001を検証する。
+  - 実行: 子プロセス内の2MiBスタックから、配列・辞書・混在JSONの読み込み・ソート・diff・破棄を呼び出す。
+  - エラー: 非有限数のエラー種別とメッセージを全入口で検証する。json_sortからres2dict/jsonへの連結も検証する。
+- `cargo test --release --test judgement_performance -- --nocapture`で10万キーのdictに対するsameの条件式1・10・40本を計測する。
+  - 回帰検証: 構築済みcontextの走査回数が条件式の本数で増えないことも固定する。
+- 同梱テンプレート8種とヘッダの追加3ケースは、既存reportの19 trialと比較する。
+  - 対象: ignore、ignore_order、judge_response_headers、force_json、xml、html、all_same、root_array。
+  - 比較: API応答ファイルに各テンプレートのres2res・res2dict・judgementを順に適用し、diffs_by_cognitionとstatusを検証する。
+  - 差異: header_ignore_caseのstatusは承認済みの大小無視により対照ケースのsameを使う。
+  - 範囲: HTTP通信・保存・CLI全体のE2Eは含まない。
 
 ### 設定・モデル・出力の先行検証
 

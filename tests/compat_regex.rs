@@ -98,7 +98,10 @@ fn exact_entry_points_validate_wrapped_group_numbers() {
     assert!(exact_match("aa", r"(a)\2").unwrap());
     assert!(
         TemplateEngine::new()
-            .when(expression, json!({}))
+            .when(
+                expression,
+                jumeaux::compat::values::from_json_for_when(&json!({})).unwrap()
+            )
             .unwrap()
             .truthy()
     );

@@ -15,7 +15,7 @@ fn all_diff_fixtures() {
         let actual = match input["operation"].as_str().unwrap() {
             "diff" => {
                 let started = std::time::Instant::now();
-                let result = diff(&input["one"], &input["other"]);
+                let result = diff(&input["one"], &input["other"]).unwrap();
                 if timings {
                     println!("{}: {:.6}s", case["name"], started.elapsed().as_secs_f64());
                 }
@@ -64,7 +64,7 @@ fn generated_paths_round_trip_special_keys() {
             PathSegment::Index(0),
             PathSegment::Key(key.into()),
         ]);
-        assert_eq!(diff(&before, &after).changed, vec![path.clone()]);
+        assert_eq!(diff(&before, &after).unwrap().changed, vec![path.clone()]);
         assert_eq!(get_by_diff_key(&before, &path), Some(&json!(1)), "{path}");
         assert_eq!(get_by_diff_key(&after, &path), Some(&json!(2)), "{path}");
     }
@@ -140,7 +140,7 @@ fn numeric_literals_use_python_types_and_equality() {
     ] {
         let one: Value = serde_json::from_str(one).unwrap();
         let other: Value = serde_json::from_str(other).unwrap();
-        let result = diff(&one, &other);
+        let result = diff(&one, &other).unwrap();
         assert_eq!(
             result == Default::default(),
             equal,

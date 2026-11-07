@@ -1,6 +1,6 @@
 use jumeaux::compat::{
     template::{self, TemplateEngine},
-    values::{Request, Response},
+    values::{Request, Response, checked_context, from_json_for_when},
 };
 use serde_json::{Value, json};
 
@@ -15,11 +15,14 @@ fn python_template_fixtures() {
         let input = &case["input"];
         let string = |key: &str| input[key].as_str().unwrap();
         let actual = match string("operation") {
-            "when" => engine
-                .when(string("expression"), &input["data"])
+            "when" => from_json_for_when(&input["data"])
+                .and_then(|context| engine.when(string("expression"), context))
                 .and_then(|v| v.to_json()),
             "when_type" => engine
-                .when(string("expression"), json!({}))
+                .when(
+                    string("expression"),
+                    from_json_for_when(&json!({})).unwrap(),
+                )
                 .map(|v| json!({"type": v.type_name(), "truthy": v.truthy()})),
             "render" => engine
                 .render(string("template"), &input["data"])
@@ -38,7 +41,10 @@ fn python_template_fixtures() {
                 engine
                     .when(
                         string("expression"),
-                        minijinja::context!(response => response.to_template_value()),
+                        checked_context(
+                            minijinja::context!(response => response.to_template_value()),
+                        )
+                        .unwrap(),
                     )
                     .and_then(|v| v.to_json())
             }
@@ -47,7 +53,10 @@ fn python_template_fixtures() {
                 engine
                     .when(
                         string("expression"),
-                        minijinja::context!(request => request.to_template_value()),
+                        checked_context(
+                            minijinja::context!(request => request.to_template_value()),
+                        )
+                        .unwrap(),
                     )
                     .and_then(|v| v.to_json())
             }
@@ -158,7 +167,8 @@ fn request_contexts_preserve_order_and_option_contracts() {
         engine
             .when(
                 "request.raw.is_none()",
-                minijinja::context!(request => request.to_template_value())
+                checked_context(minijinja::context!(request => request.to_template_value()))
+                    .unwrap()
             )
             .unwrap()
             .truthy()
@@ -213,7 +223,8 @@ fn response_property_errors_are_lazy_and_propagated() {
         engine
             .when(
                 "response.ok",
-                minijinja::context!(response => response.to_template_value())
+                checked_context(minijinja::context!(response => response.to_template_value()))
+                    .unwrap()
             )
             .unwrap()
             .truthy()
