@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timedelta, timezone
 import importlib.util
+from itertools import product
 import json
 import os
 from pathlib import Path
@@ -64,6 +65,7 @@ def response(body=b"abc", encoding="utf-8", kind="plain", status=200):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=ROOT / "compat/fixtures")
+    parser.add_argument("--diff-matrix", action="store_true", help="配列の組み合わせ検証用fixtureを追加する")
     args = parser.parse_args()
     fixtures = {}
 
@@ -93,14 +95,76 @@ def main():
         ("string-insert", ["a", "b"], ["x", "a", "b"]),
         ("root-array", [], [1]),
         ("equal", {"a": [None, 1]}, {"a": [None, 1]}),
+        ("insert-middle", [1, 2, 3], [1, 0, 2, 3]),
+        ("delete-duplicates", [1, 1, 2, 1], [1, 2]),
+        ("reorder", [1, 2, 3], [3, 1, 2]),
+        ("replace-and-insert", [1, 2, 3], [1, 4, 5, 3]),
+        ("shifted-replacement", [1, 2, 3, 4, 5], [0, 1, 2, 8, 9, 4, 5]),
+        ("dict-array-delete", [{"id": 1}, {"id": 2}], [{"id": 2}]),
+        ("nested-array-insert", [[1], [2]], [[0], [1], [2]]),
+        ("mixed-array", [1, {"a": 1}, 2], [0, 1, {"a": 1}, 2]),
+        ("array-int-float", [1, 2], [1.0, 2]),
+        ("array-bool-int", [True, 2], [1, 2]),
+        ("array-null", [None, 1], [0, None, 1]),
+        ("dict-sparse-overlap", {"a": 1, "b": 2}, {"a": 1, "c": 3, "d": 4}),
+        ("dict-threshold", {"a": 1, "b": 2}, {"a": 1, "c": 3}),
+        ("empty-dict-one-key", {}, {"a": 1}),
+        ("empty-dict-two-keys", {}, {"a": 1, "b": 2}),
+        ("remove-dict-two-keys", {"a": 1, "b": 2}, {}),
+        ("private-key", {"__meta": 1, "a": 1}, {"__meta": 2, "a": 1}),
+        ("nested-path", {"items": [{"id": 1}]}, {"items": [{"id": 2}]}),
+        ("sorted-paths", list(range(12)), [42] * 12),
+        ("root-type", 1, "1"),
+        ("root-float", 1, 1.0),
+        ("null-type", None, {}),
+        ("large-integers", [9007199254740992], [9007199254740993]),
+        ("large-int-float", [9007199254740993], [9007199254740992.0]),
+        ("float-negative-zero", -0.0, 0.0),
+        ("beyond-u64-array", [2**64], [2**64 + 1]),
+        ("beyond-u64-dict", {"a": 2**70}, {"a": 2**70 + 1}),
+        ("below-i64-array", [-2**63 - 1], [-2**63 - 2]),
+        ("bigint-float-equal-array", [2**200], [float(2**200)]),
+        ("bigint-float-neighbor-array", [2**200 + 1], [float(2**200)]),
+        ("bigint-float-type-dict", {"a": 2**200}, {"a": float(2**200)}),
+        ("bigint-negative-float-array", [-2**200], [-float(2**200)]),
+        ("bigint-beyond-f64", [10**400], [10**400 + 1]),
     ]
     for name, one, other in pairs:
         add("diff", name, {"operation": "diff", "one": one, "other": other}, lambda: diff(one, other))
+    if args.diff_matrix:
+        for label, values, max_length in [
+            ("scalar", [0, 1, 2], 3),
+            ("mixed", [None, True, 0, 1, 1.0, "a", {"a": 1}, [1]], 2),
+        ]:
+            arrays = [list(items) for length in range(max_length + 1) for items in product(values, repeat=length)]
+            for index, (one, other) in enumerate(product(arrays, repeat=2)):
+                add("diff", f"matrix-{label}-{index}", {"operation": "diff", "one": one, "other": other}, lambda: diff(one, other))
     for key in ("root", "myroot", "a[0]", "a.b", "a'b", "a<b>"):
         data = {key: 42}
         path = "root<" + repr(key) + ">"
         add("diff", "lookup-" + key, {"operation": "get_by_diff_key", "dict": data, "path": path, "segments": [key]}, lambda: utils.get_by_diff_key(data, path), {"value": 42}, "差分パスの文字列置換でキー名が壊れる。元のキーを1要素として参照する。")
     add("diff", "lookup-normal", {"operation": "get_by_diff_key", "dict": {"items": [{"id": 7}]}, "path": "root<'items'><0><'id'>"}, lambda: utils.get_by_diff_key({"items": [{"id": 7}]}, "root<'items'><0><'id'>"))
+    for name, data, path in [
+        ("missing", {"a": 1}, "root<'missing'>"),
+        ("out-of-bounds", {"a": []}, "root<'a'><0>"),
+        ("null", {"a": None}, "root<'a'>"),
+        ("numeric-key", {"0": 42}, "root<'0'>"),
+    ]:
+        add("diff", "lookup-" + name, {"operation": "get_by_diff_key", "dict": data, "path": path}, lambda: utils.get_by_diff_key(data, path))
+    # キー内部のブラケットは構文ではない。生成側でも壊さず値取得と往復させる。
+    for key in ("root", "myroot", "a[0]", "a.b", "a'b", "a<b>"):
+        one, other = {key: 1}, {key: 2}
+        expected = {"value": {"changed": ["root<" + repr(key) + ">"], "added": [], "removed": []}}
+        add("diff", "path-" + key, {"operation": "diff", "one": one, "other": other}, lambda: diff(one, other), expected,
+            "パス生成でもキー内部のブラケットを保持する。値取得と往復可能にする。" if "[" in key else None)
+    for name, key in [("both-quotes", "a'\"b"), ("backslash", "a\\b"), ("newline", "a\nb")]:
+        one, other = {key: 1}, {key: 2}
+        quote = '"' if "'" in key else "'"
+        escaped = key.replace("\\", "\\\\").replace(quote, "\\" + quote).replace("\n", "\\n")
+        path = "root<" + quote + escaped + quote + ">"
+        expected = {"value": {"changed": [path], "added": [], "removed": []}}
+        add("diff", "path-" + name, {"operation": "diff", "one": one, "other": other}, lambda: diff(one, other), expected,
+            "キーの引用符・バックスラッシュ・制御文字をエスケープし、パス生成と値取得を往復可能にする。")
 
     html_cases = [
         ("completion", "<p>hello"), ("empty-tags", "<p><br><img src='x'><input disabled></p>"),
