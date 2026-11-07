@@ -176,20 +176,23 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - グループ: recordが複数グループなら先頭2つをキーと値にする。1グループまたはグループなしならマッチ文字列の先頭2文字を使う。値がなければnull。
   - 上書き: 同じレコードキー・ブロック名は後勝ち。ヘッダがないブロックのJSONキーは`"null"`。
 - judgementの初期値は`judgement::initial_payload`で組み立てる。
+  - エラー伝播: `initial_payload`と`diff::diff`は`compat::Result`を返す。呼び出し元は`?`で入力エラーを伝播する。
   - 変換なし: 片側でもdictなしならdiffs_by_cognitionは未設定。本文bytesで比較する。
   - 変換あり: 本文bytesが同じなら差分計算を省略する。それ以外は`diff::diff`でunknownを組み立てる。
   - 空差分: unknownが空なら空dictを保持し、regard_as_same_bodyをtrueにする。
   - ヘッダ: 判定有効時は名前と除外キーのASCII大小を無視する。値は完全一致。無効時はregard_as_same_headerをtrueにする。
 - ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
   - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
-  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト、dict_one・dict_otherはget・get_or・is_none・is_someを持つOption。
+  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
+  - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。Rustは`any`・`flat_map`・`map`をまだ実装していない。
 - ignoreはunknownの差分をtitleへ移す。
   - 条件: conditions[].whenが偽なら、その条件から分類を作らない。addedだけの条件はchanged・removedに影響しない。
   - 値参照: caseのpathが完全一致したあと、差分パスから引いた値をone・otherとしてcase.whenへ渡す。片側に値がなければNone。
   - 順序: 同じignore内の全条件は分類前のunknownを参照する。条件間で重複一致したパスはtitle内にも重複して残る。次のignoreは分類後のunknownを参照する。
   - 統合: 同じtitleは連結する。最後に空の分類を除き、unknownが空ならregard_as_same_bodyをtrueにする。
   - 未設定と空: diffs_by_cognition未設定はスキップ。空dictかつbody=falseを直接渡すとPython同様KeyError。初期化関数が作る空dictはbody=trueなのでスキップする。
-  - 特殊キー: 既に決定した差分パス修正を適用する。Pythonで値取得できなかった5ケースはPython観測値とRust期待値を別々に保持する。
+  - 特殊キー: 既に決定した差分パス修正を適用する。Pythonで値取得できなかった7ケースはPython観測値とRust期待値を別々に保持する。
+    - 追加ケース: パス`root`単独はPythonでNone、Rustで入力全体。キー`rooted`はPythonで値なし、Rustでキーの値を取得する。
 - sameはwhen_anyの最初の真でregard_as_same_bodyをtrueにする。
   - 短絡: 以降の式は評価しない。diffs_by_cognitionはそのまま保持する。
 
@@ -231,6 +234,20 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 ## 意図的に変える差異
 
+- RustのOptionは`is_some()`を追加で公開する。
+  - Python版: TOptionには存在しない。互換の値参照には`value`・`get()`・`get_or()`を使う。
+- 非有限数はRustで表せない入力として拒否する。
+  - 対象: `NaN`・`Infinity`・`-Infinity`と、`1e400`等のf64オーバーフロー。配列・辞書内部も同じ扱い。
+  - エラー: json_sort・res2dict/json・whenの入力値と結果・diffは、`ValueError: non-finite numbers are not supported`を返す。
+  - Python版: 非有限floatとして受理する。fixtureは非有限値を`nonfinite`タグに置き換えて観測値を保存する。
+  - 連結: 旧Rust実装はjson_sortが`Infinity`を書き出し、後続res2dict/jsonが拒否する場合があった。現在はjson_sortの入口で拒否し、この出力を作らない。
+  - 整数: JSONの整数はBigInt相当の精度で保持する。when入力へのf64変換で非有限値になる巨大整数も、whenの入口で同じエラーとする。
+- lone surrogateを含むJSONはRustで表せない入力としてJSONDecodeErrorにする。
+  - 例: `"\ud800"`。Pythonは受理し、json_sortではエンコード時に`?`へ置換する。
+- JSONの配列・辞書の深さ上限は1,000コンテナとする。
+  - 読み込み: serde_jsonの既定の128段制限を解除する。文字列内のブラケットを除外して構築前に検査し、1,001段は`LimitExceeded`にする。
+  - 再帰処理: 深さ64超の読み込み・json_sort・diffは32MiBの専用スタックで実行する。直接渡されたValueにも上限を適用する。
+  - Python版: ランタイムの再帰上限に依存する。Rustは固定上限とし、配列・辞書・混在の1,000段を検証する。
 - clapが追加する `help` サブコマンドと `-V` は残す。
   - 条件: Python版にない入力を受理する追加とし、Python版で通る入力の挙動は変えない。
 - `--version` の出力はclapの既定のままとする。
@@ -271,6 +288,12 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 以下はPython版と一致しない差異として許容したもの。
 
+- ignoreのcasesはRustでは最初の一致で評価を打ち切る。
+  - Python版: 全caseを評価してから判定する。差は後続caseのエラーが発生するかどうかだけで、正常時の分類は同じ。
+- whenへ渡すi128超の整数はf64へ丸める。json_sortは整数を丸めず、整数`-0`はPythonと同じ`0`へ正規化する。
+- blockのtupleヘッダはJSONへ保存できない。
+  - Python版: アドオン実行は成功し、prop fileのJSON保存時にTypeErrorとなる。
+  - Rust版: 保存前のblock実行時にTypeErrorとなる。fixtureは保存時の失敗までを境界契約とする。
 - JSON numberはserde_jsonで正規化した表記を使う。
   - 例: `1e2` は `1e+2`。Pythonの `100.0` とは一致しない。`1.2300` はRustで `1.2300`、Pythonで `1.23`。
   - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
@@ -1005,10 +1028,6 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## 未決
 
-- 非標準JSONのNaN・Infinityの扱い。
-  - 実測: Pythonのres2dict/jsonは`NaN`を非有限floatとして受理する。Rustはserde_jsonのJSONDecodeErrorを返す。
-  - 案: JSON標準外の値は明示エラーとする。互換にするならJSON値モデル・diff・保存まで非有限値の契約を設計する。
-  - 状態: 差異を承認済みとは扱わない。`response-judgement.json`の`pending_rust_expected`で現挙動を固定し、Python一致件数から除外する。
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 - `-vv` のconfig YAMLダンプ。

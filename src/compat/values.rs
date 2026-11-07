@@ -48,27 +48,78 @@ pub fn from_json(value: &Json) -> Value {
 /// JSONは数値を変換し、式用Objectを持つMiniJinja Valueはそのまま渡す。
 /// 任意のserdeモデルにはserialized()を使う。
 pub trait TemplateInput {
+    fn validate(&self) -> super::Result<()>;
     fn into_value(self) -> Value;
 }
 impl TemplateInput for Json {
+    fn validate(&self) -> super::Result<()> {
+        super::json::validate(self).map(|_| ())
+    }
     fn into_value(self) -> Value {
         from_json(&self)
     }
 }
 impl TemplateInput for &Json {
+    fn validate(&self) -> super::Result<()> {
+        super::json::validate(self).map(|_| ())
+    }
     fn into_value(self) -> Value {
         from_json(self)
     }
 }
 impl TemplateInput for Value {
+    fn validate(&self) -> super::Result<()> {
+        validate_template(self)
+    }
     fn into_value(self) -> Value {
         self
     }
 }
 impl TemplateInput for &Value {
+    fn validate(&self) -> super::Result<()> {
+        validate_template(self)
+    }
     fn into_value(self) -> Value {
         self.clone()
     }
+}
+
+fn validate_template(value: &Value) -> super::Result<()> {
+    if let Some(option) = value.downcast_object_ref::<PythonOption>() {
+        if let Ok(value) = &option.0 {
+            validate_template(value)?;
+        }
+    } else if let Some(response) = value.downcast_object_ref::<Response>() {
+        if !response.elapsed.is_finite() || !response.elapsed_sec.is_finite() {
+            return Err(super::json::nonfinite_error());
+        }
+    } else {
+        match value.kind() {
+            minijinja::value::ValueKind::Number => {
+                if f64::try_from(value.clone()).is_ok_and(|n| !n.is_finite()) {
+                    return Err(super::json::nonfinite_error());
+                }
+            }
+            minijinja::value::ValueKind::Map => {
+                if let Ok(keys) = value.try_iter() {
+                    for key in keys {
+                        if let Ok(value) = value.get_item(&key) {
+                            validate_template(&value)?;
+                        }
+                    }
+                }
+            }
+            minijinja::value::ValueKind::Seq => {
+                if let Ok(values) = value.try_iter() {
+                    for value in values {
+                        validate_template(&value)?;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 impl Request {
@@ -236,6 +287,13 @@ pub fn optional(value: Option<&Json>) -> Value {
 }
 
 impl Object for PythonOption {
+    fn get_value(self: &Arc<Self>, key: &Value) -> Option<Value> {
+        (key.as_str()? == "value").then(|| match &self.0 {
+            Ok(value) => value.clone(),
+            Err(error) => error_value(error.clone()),
+        })
+    }
+
     fn call_method(
         self: &Arc<Self>,
         _state: &mut State,

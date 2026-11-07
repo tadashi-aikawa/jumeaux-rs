@@ -51,6 +51,19 @@ fn execute(input: &Value) -> Result<Value> {
         serde_json::from_value(json!({"name":input["addon"], "config":input["config"]})).unwrap();
     let payload = &input["payload"];
     Ok(match input["layer"].as_str().unwrap() {
+        "when" => {
+            let value = jumeaux::compat::json::parse(payload["text"].as_str().unwrap())?;
+            jumeaux::compat::template::TemplateEngine::new()
+                .when(
+                    input["config"]["expression"].as_str().unwrap(),
+                    json!({"x":value}),
+                )?
+                .to_json()?
+        }
+        "diff" => {
+            let value = jumeaux::compat::json::parse(payload["text"].as_str().unwrap())?;
+            json!(jumeaux::diff::diff(&value, &json!(0))?)
+        }
         "res2res" => {
             let executor = addons::res2res::Factory.create(&addon)?;
             let payload = executor.exec(
@@ -74,7 +87,16 @@ fn execute(input: &Value) -> Result<Value> {
             )?;
             let mut result = json!({"response":response_value(payload.response)});
             if let Some(value) = payload.result {
-                result["result"] = value;
+                if input["summary"] == "depth" {
+                    let (mut leaf, mut depth) = (&value, 0);
+                    while let Some(items) = leaf.as_array() {
+                        depth += 1;
+                        leaf = &items[0];
+                    }
+                    result["result"] = json!({"depth":depth,"leaf":leaf});
+                } else {
+                    result["result"] = value;
+                }
             }
             result
         }
@@ -169,7 +191,8 @@ fn test_reference(one: &str, other: &str) -> JudgementReference {
 #[test]
 fn initialization_distinguishes_missing_empty_and_bytes() {
     let mut reference = test_reference("{}", "{}");
-    let initial = |r: &JudgementReference| addons::judgement::initial_payload(r, false, &[]);
+    let initial =
+        |r: &JudgementReference| addons::judgement::initial_payload(r, false, &[]).unwrap();
     assert!(initial(&reference).regard_as_same());
     assert!(initial(&reference).diffs_by_cognition.is_none());
     reference.res_other = text_response("{ }");
@@ -200,18 +223,28 @@ fn header_names_and_exclusions_ignore_case_but_values_do_not() {
     reference.res_other.headers =
         serde_json::from_value(json!({"content-type":"application/json","last-modified":"other"}))
             .unwrap();
-    assert!(!addons::judgement::initial_payload(&reference, true, &[]).regard_as_same_header);
     assert!(
-        addons::judgement::initial_payload(&reference, true, &["lAsT-mOdIfIeD".into()])
+        !addons::judgement::initial_payload(&reference, true, &[])
+            .unwrap()
             .regard_as_same_header
     );
-    assert!(addons::judgement::initial_payload(&reference, false, &[]).regard_as_same_header);
+    assert!(
+        addons::judgement::initial_payload(&reference, true, &["lAsT-mOdIfIeD".into()])
+            .unwrap()
+            .regard_as_same_header
+    );
+    assert!(
+        addons::judgement::initial_payload(&reference, false, &[])
+            .unwrap()
+            .regard_as_same_header
+    );
     reference
         .res_other
         .headers
         .insert("content-type".into(), "APPLICATION/JSON".into());
     assert!(
         !addons::judgement::initial_payload(&reference, true, &["last-modified".into()])
+            .unwrap()
             .regard_as_same_header
     );
 }
@@ -250,7 +283,7 @@ fn chains_pass_converted_types_and_stop_judgement_after_same() {
         .unwrap();
     assert_eq!(dict.result, Some(json!([1, 2])));
     let reference = test_reference("one", "other");
-    let payload = addons::judgement::initial_payload(&reference, false, &[]);
+    let payload = addons::judgement::initial_payload(&reference, false, &[]).unwrap();
     let result = Chain::<Judgement>::build(&addons, &addons::judgement::Factory)
         .unwrap()
         .exec(payload, &reference)
@@ -368,7 +401,8 @@ fn template_reports_match_python_cognition_and_status() {
                 &reference,
                 config.judge_response_header,
                 &config.ignore_response_header_keys,
-            );
+            )
+            .unwrap();
             let result = judgement.exec(initial, &reference).unwrap();
             let status = if result.regard_as_same() {
                 "same"

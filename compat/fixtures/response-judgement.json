@@ -5216,10 +5216,10 @@
         }
       }
     },
-    "pending_rust_expected": {
-      "error": "JSONDecodeError"
+    "rust_expected": {
+      "error": "ValueError"
     },
-    "difference": "未決: 非標準JSONのNaN。Pythonの非有限値はfixtureではnonfiniteタグで記録する"
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
   },
   {
     "name": "block-basic",
@@ -7827,6 +7827,83 @@
         "tags": [
           "before",
           "sorted"
+        ]
+      }
+    }
+  },
+  {
+    "name": "sort-negative-zero",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "5b2d302c7b2261223a2d307d2c5b2d305d2c2d302e305d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b302c207b2261223a20307d2c205b305d2c202d302e305d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
         ]
       }
     }
@@ -11889,6 +11966,178 @@
     }
   },
   {
+    "name": "same-option-value",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "dict_one.value.a == 1 and dict_other.value.a == 2"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "same-encoding-value",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "res_one.encoding.value == 'utf-8' and res_other.encoding.value == 'utf-8'"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
     "name": "same-headers",
     "input": {
       "layer": "judgement",
@@ -12339,6 +12588,110 @@
     "difference": "compat-spec.md: 差分パスの値取得で特殊キーを辿る既存不具合の修正"
   },
   {
+    "name": "ignore-special-key-rooted",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "changed": [
+                  {
+                    "path": "root<'rooted'>",
+                    "when": "one == 1 and other == 2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [],
+            "changed": [
+              "root<'rooted'>"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "rooted": 1
+        },
+        "dict_other": {
+          "rooted": 2
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [],
+            "changed": [
+              "root<'rooted'>"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      }
+    },
+    "rust_expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [],
+            "changed": [
+              "root<'rooted'>"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    },
+    "difference": "compat-spec.md: 差分パスの値取得で特殊キーを辿る既存不具合の修正"
+  },
+  {
     "name": "ignore-special-key-a[0]",
     "input": {
       "layer": "judgement",
@@ -12649,5 +13002,2285 @@
       }
     },
     "difference": "compat-spec.md: 差分パスの値取得で特殊キーを辿る既存不具合の修正"
+  },
+  {
+    "name": "ignore-root-alone",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "changed": [
+                  {
+                    "path": "root",
+                    "when": "one.a == 1 and other.a == 2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [],
+            "changed": [
+              "root"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [],
+            "changed": [
+              "root"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      }
+    },
+    "rust_expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [],
+            "changed": [
+              "root"
+            ],
+            "removed": []
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    },
+    "difference": "compat-spec.md: root単独は入力全体を返す"
+  },
+  {
+    "name": "same-option-value-none",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "dict_one.value is none and res_one.encoding.value is none"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b7d",
+          "type": "json",
+          "encoding": null,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": null,
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "nonfinite-res2res-NaN",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "4e614e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "4e614e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before",
+          "sorted"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-NaN",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "4e614e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "4e614e",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "nonfinite": "NaN"
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-NaN",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "NaN"
+      }
+    },
+    "expected": {
+      "value": false
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-NaN",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "NaN"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-{\"a\":[NaN]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b4e614e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a205b4e614e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-{\"a\":[NaN]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b4e614e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a5b4e614e5d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "a": [
+            {
+              "nonfinite": "NaN"
+            }
+          ]
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-{\"a\":[NaN]}",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "{\"a\":[NaN]}"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-{\"a\":[NaN]}",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "{\"a\":[NaN]}"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-Infinity",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-Infinity",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "nonfinite": "Infinity"
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-Infinity",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "Infinity"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-Infinity",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "Infinity"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-{\"a\":[Infinity]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a205b496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-{\"a\":[Infinity]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a5b496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "a": [
+            {
+              "nonfinite": "Infinity"
+            }
+          ]
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-{\"a\":[Infinity]}",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "{\"a\":[Infinity]}"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-{\"a\":[Infinity]}",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "{\"a\":[Infinity]}"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res--Infinity",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "2d496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "2d496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict--Infinity",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "2d496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "2d496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "nonfinite": "-Infinity"
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when--Infinity",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "-Infinity"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff--Infinity",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "-Infinity"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-{\"a\":[-Infinity]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b2d496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a205b2d496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-{\"a\":[-Infinity]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b2d496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a5b2d496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "a": [
+            {
+              "nonfinite": "-Infinity"
+            }
+          ]
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-{\"a\":[-Infinity]}",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "{\"a\":[-Infinity]}"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-{\"a\":[-Infinity]}",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "{\"a\":[-Infinity]}"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-1e400",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-1e400",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "nonfinite": "Infinity"
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-1e400",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "1e400"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-1e400",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "1e400"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-{\"a\":[1e400]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a205b496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-{\"a\":[1e400]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a5b31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "a": [
+            {
+              "nonfinite": "Infinity"
+            }
+          ]
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-{\"a\":[1e400]}",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "{\"a\":[1e400]}"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-{\"a\":[1e400]}",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "{\"a\":[1e400]}"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res--1e400",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "2d3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "2d496e66696e697479",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict--1e400",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "2d3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "2d3165343030",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "nonfinite": "-Infinity"
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when--1e400",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "-1e400"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff--1e400",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "-1e400"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2res-{\"a\":[-1e400]}",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b2d31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a205b2d496e66696e6974795d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-res2dict-{\"a\":[-1e400]}",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "7b2261223a5b2d31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "7b2261223a5b2d31653430305d7d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "a": [
+            {
+              "nonfinite": "-Infinity"
+            }
+          ]
+        }
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-when-{\"a\":[-1e400]}",
+    "input": {
+      "layer": "when",
+      "addon": "when",
+      "config": {
+        "expression": "x == x"
+      },
+      "payload": {
+        "text": "{\"a\":[-1e400]}"
+      }
+    },
+    "expected": {
+      "value": true
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "nonfinite-diff-{\"a\":[-1e400]}",
+    "input": {
+      "layer": "diff",
+      "addon": "diff",
+      "config": {},
+      "payload": {
+        "text": "{\"a\":[-1e400]}"
+      }
+    },
+    "expected": {
+      "value": {
+        "changed": [
+          "root"
+        ],
+        "added": [],
+        "removed": []
+      }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
+  },
+  {
+    "name": "surrogate-res2res",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "False",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "5b225c7564383030225d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b223f225d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "JSONDecodeError"
+    },
+    "difference": "compat-spec.md: lone surrogateはRustで表せない入力"
+  },
+  {
+    "name": "surrogate-res2dict",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "5b225c7564383030225d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b225c7564383030225d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": [
+          {
+            "surrogate_codepoints": [
+              55296
+            ]
+          }
+        ]
+      }
+    },
+    "rust_expected": {
+      "error": "JSONDecodeError"
+    },
+    "difference": "compat-spec.md: lone surrogateはRustで表せない入力"
+  },
+  {
+    "name": "deep-json-129",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      },
+      "summary": "depth"
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "depth": 129,
+          "leaf": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "deep-sort-129",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    }
+  },
+  {
+    "name": "deep-json-200",
+    "input": {
+      "layer": "res2dict",
+      "addon": "json",
+      "config": {},
+      "payload": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        }
+      },
+      "summary": "depth"
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "result": {
+          "depth": 200,
+          "leaf": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "deep-sort-200",
+    "input": {
+      "layer": "res2res",
+      "addon": "json_sort",
+      "config": {
+        "items": [
+          {
+            "when": "True",
+            "targets": [
+              {
+                "path": ".*"
+              }
+            ]
+          }
+        ],
+        "footprints_tag": "sorted"
+      },
+      "payload": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          }
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    },
+    "expected": {
+      "value": {
+        "response": {
+          "body_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "req": {
+          "name": "req",
+          "method": "GET",
+          "path": "/test",
+          "qs": {
+            "q": [
+              "x"
+            ]
+          },
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        "tags": [
+          "before"
+        ]
+      }
+    }
   }
 ]

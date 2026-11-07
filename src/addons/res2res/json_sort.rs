@@ -73,12 +73,18 @@ impl Executor {
     }
 }
 impl AddonExecutor<Res2Res> for Executor {
-    fn exec(&self, mut payload: Res2ResPayload, _: &()) -> Result<Res2ResPayload> {
+    fn exec(&self, payload: Res2ResPayload, _: &()) -> Result<Res2ResPayload> {
         if payload.response.response_type != "json" {
             return Ok(payload);
         }
-        let original: Value = serde_json::from_str(&payload.response.text()?)
-            .map_err(|e| Error::new("JSONDecodeError", e.to_string()))?;
+        let text = payload.response.text()?;
+        let depth = crate::compat::json::scan(&text)?;
+        crate::compat::json::with_stack(depth, || self.sort(payload, &text))
+    }
+}
+impl Executor {
+    fn sort(&self, mut payload: Res2ResPayload, text: &str) -> Result<Res2ResPayload> {
+        let original = crate::compat::json::parse(text)?;
         let mut sorted = original.clone();
         for sorter in &self.items {
             if self
@@ -268,14 +274,9 @@ fn json_string(value: &Value) -> String {
     match value {
         Value::Number(number) if number.as_str().contains(['.', 'e', 'E']) => {
             let value = float(value);
-            if value == f64::INFINITY {
-                "Infinity".into()
-            } else if value == f64::NEG_INFINITY {
-                "-Infinity".into()
-            } else {
-                crate::compat::template::python_float_repr(value)
-            }
+            crate::compat::template::python_float_repr(value)
         }
+        Value::Number(_) => integer(value).unwrap().to_string(),
         Value::Object(map) => format!(
             "{{{}}}",
             map.iter()

@@ -16,8 +16,7 @@ impl crate::addons::AddonExecutor<crate::addons::Res2Dict> for Config {
             return Ok(payload);
         }
         payload.result = if self.force || payload.response.response_type == "json" {
-            let value: serde_json::Value = serde_json::from_str(&payload.response.text()?)
-                .map_err(|e| crate::compat::Error::new("JSONDecodeError", e.to_string()))?;
+            let value = crate::compat::json::parse(&payload.response.text()?)?;
             if value == serde_json::Value::Null || value.as_str() == Some("") {
                 None
             } else {

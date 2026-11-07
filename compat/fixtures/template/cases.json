@@ -1550,6 +1550,8 @@
       "operation": "when_type",
       "expression": "'1e999'"
     },
+    "rust_expected": {"error": "ValueError"},
+    "difference": "compat-spec.md: 非有限数は入口でValueError",
     "expected": {
       "value": {
         "type": "float",

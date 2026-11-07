@@ -18,6 +18,8 @@ sys.path.insert(0, str(SOURCE))
 sys.dont_write_bytecode = True
 import jumeaux.addons  # noqa: E402,F401
 from jumeaux.models import Response, Request, Res2ResAddOnPayload, Res2DictAddOnPayload, JudgementAddOnPayload, JudgementAddOnReference  # noqa: E402
+from jumeaux import utils  # noqa: E402
+from deepdiff import DeepDiff  # noqa: E402
 warnings.filterwarnings("ignore")
 
 cases = []
@@ -42,14 +44,35 @@ def dump_response(res):
             "elapsed": res.elapsed.total_seconds(), "elapsed_sec": res.elapsed_sec}
 
 
-def capture(name, layer, addon, config, payload, reference=None):
+def portable(value):
+    """Rustで表せないPython観測値も標準JSONのタグとして保存する。"""
+    if isinstance(value, float) and not math.isfinite(value):
+        return {"nonfinite": "NaN" if math.isnan(value) else "Infinity" if value > 0 else "-Infinity"}
+    if isinstance(value, str) and any(0xd800 <= ord(c) <= 0xdfff for c in value):
+        return {"surrogate_codepoints": [ord(c) for c in value]}
+    if isinstance(value, dict):
+        return {key: portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    return value
+
+
+def capture(name, layer, addon, config, payload, reference=None, summary=None):
     data = {"layer": layer, "addon": addon, "config": config, "payload": payload}
     if reference is not None:
         data["reference"] = reference
+    if summary:
+        data["summary"] = summary
     try:
-        executor = importlib.import_module(f"jumeaux.addons.{layer}.{addon}").Executor(config)
+        executor = importlib.import_module(f"jumeaux.addons.{layer}.{addon}").Executor(config) if layer in ("res2res", "res2dict", "judgement") else None
         source = copy.deepcopy(payload)
-        if layer == "res2res":
+        if layer == "when":
+            value = utils.when_filter(config["expression"], {"x": json.loads(source["text"])})
+        elif layer == "diff":
+            diff = DeepDiff(json.loads(source["text"]), 0)
+            groups = {"changed": ("type_changes", "values_changed"), "added": ("dictionary_item_added", "iterable_item_added"), "removed": ("dictionary_item_removed", "iterable_item_removed")}
+            value = {name: sorted(utils.to_jumeaux_xpath(path) for kind in kinds for path in diff.get(kind, {})) for name, kinds in groups.items()}
+        elif layer == "res2res":
             source["response"] = load_response(source["response"])
             result = executor.exec(Res2ResAddOnPayload.from_dict(source))
             value = {"response": dump_response(result.response), "req": result.req.to_dict(force_value=True), "tags": result.tags}
@@ -59,8 +82,12 @@ def capture(name, layer, addon, config, payload, reference=None):
             value = {"response": dump_response(result.response)}
             if not result.result.is_none():
                 value["result"] = result.result.get()
-                if isinstance(value["result"], float) and math.isnan(value["result"]):
-                    value["result"] = {"nonfinite": "NaN"}
+                if summary == "depth":
+                    leaf, depth = value["result"], 0
+                    while isinstance(leaf, list):
+                        depth += 1
+                        leaf = leaf[0]
+                    value["result"] = {"depth": depth, "leaf": leaf}
         else:
             ref = copy.deepcopy(reference)
             for key in ["res_one", "res_other"]:
@@ -69,7 +96,7 @@ def capture(name, layer, addon, config, payload, reference=None):
             value = result.to_dict(force_value=True)
         # tuple-keyなどJSON保存時の失敗も境界契約に含める。
         json.dumps(value)
-        expected = {"value": value}
+        expected = {"value": portable(value)}
     except Exception as error:
         expected = {"error": type(error).__name__}
     cases.append({"name": name, "input": data, "expected": expected})
@@ -89,7 +116,7 @@ for kind, text in [("json", '{"z":null,"a":[2,1,null]}'), ("xml", '<root><a>1</a
 for literal in ["null", "false", "0", '"abc"', '""', "[]", "{}", "[18446744073709551617,1.5]", "{", "NaN"]:
     case = capture("json-root-" + literal, "res2dict", "json", {}, {"response": response(literal)})
     if literal == "NaN":
-        case.update(pending_rust_expected={"error": "JSONDecodeError"}, difference="未決: 非標準JSONのNaN。Pythonの非有限値はfixtureではnonfiniteタグで記録する")
+        case.update(rust_expected={"error": "ValueError"}, difference="compat-spec.md: 非有限数は入口でValueError")
 
 block_config = {"header_regexp": r"^\[(.*)\]$", "record_regexp": r"^(\w+)=(.*)$"}
 for name, text, config in [
@@ -150,6 +177,7 @@ for name, text, config in [
     ("invalid-json", "{", sort_config()),
     ("path-raw-quote", '{"a\'b":[2,1]}', sort_config([{"path": "root<'a'b'>"}])),
     ("numbers-spelling", "[1e2,1.2300]", sort_config()),
+    ("negative-zero", '[-0,{"a":-0},[-0],-0.0]', sort_config(when="False")),
     ("numeric-object-sort", '[{"v":2},{"v":1e20},{"v":1e2},{"v":100.0000}]', sort_config()),
     ("empty-items", "[3,1]", {"items": []}),
 ]:
@@ -223,18 +251,50 @@ for name, expressions in [
     ("fallback", ["False", "req.path == '/same'"]),
     ("response", ["res_one.text != res_other.text and res_one.encoding.get() == 'utf-8'"]),
     ("option", ["dict_one.get().a == 1 and dict_other.get_or({}).a == 2"]),
+    ("option-value", ["dict_one.value.a == 1 and dict_other.value.a == 2"]),
+    ("encoding-value", ["res_one.encoding.value == 'utf-8' and res_other.encoding.value == 'utf-8'"]),
     ("headers", ["res_one.headers['cOnTeNt-TyPe'] == 'application/json'"]),
     ("numeric", ["1"]), ("empty-string", ["''"]),
 ]:
     capture("same-" + name, "judgement", "same", {"when_any": expressions}, payload, reference)
 
-for key, path in [("a.b", "root<'a.b'>"), ("root", "root<'root'>"), ("a[0]", "root<'a[0]'>"), ("a'b", 'root<"a\'b">'), ('a\\b', "root<'a\\\\b'>")]:
+for key, path in [("a.b", "root<'a.b'>"), ("root", "root<'root'>"), ("rooted", "root<'rooted'>"), ("a[0]", "root<'a[0]'>"), ("a'b", 'root<"a\'b">'), ('a\\b', "root<'a\\\\b'>")]:
     ref = {**reference, "dict_one": {key: 1}, "dict_other": {key: 2}}
     source = {**payload, "diffs_by_cognition": {"unknown": {"added": [], "changed": [path], "removed": []}}}
     case = capture("ignore-special-key-" + key, "judgement", "ignore", ignores([{"changed": [{"path": re.escape(path), "when": "one == 1 and other == 2"}]}]), source, ref)
     rust = {"value": {**source, "diffs_by_cognition": {"known": {"added": [], "changed": [path], "removed": []}}, "regard_as_same_body": True}}
     assert rust != case["expected"]
     case.update(rust_expected=rust, difference="compat-spec.md: 差分パスの値取得で特殊キーを辿る既存不具合の修正")
+
+source = {**payload, "diffs_by_cognition": {"unknown": {"added": [], "changed": ["root"], "removed": []}}}
+case = capture("ignore-root-alone", "judgement", "ignore", ignores([{"changed": [{"path": "root", "when": "one.a == 1 and other.a == 2"}]}]), source, reference)
+case.update(rust_expected={"value": {**source, "diffs_by_cognition": {"known": {"added": [], "changed": ["root"], "removed": []}}, "regard_as_same_body": True}}, difference="compat-spec.md: root単独は入力全体を返す")
+
+capture("same-option-value-none", "judgement", "same", {"when_any": ["dict_one.value is none and res_one.encoding.value is none"]}, payload,
+        {**reference, "dict_one": None, "res_one": response(encoding=None)})
+
+for token in ["NaN", "Infinity", "-Infinity", "1e400", "-1e400"]:
+    for text in [token, '{"a":[' + token + ']}']:
+        for layer, addon, config, source in [
+            ("res2res", "json_sort", sort_config(when="False"), res_payload(text)),
+            ("res2dict", "json", {}, {"response": response(text)}),
+            ("when", "when", {"expression": "x == x"}, {"text": text}),
+            ("diff", "diff", {}, {"text": text}),
+        ]:
+            case = capture(f"nonfinite-{layer}-{text}", layer, addon, config, source)
+            case.update(rust_expected={"error": "ValueError"}, difference="compat-spec.md: 非有限数は入口でValueError")
+
+for layer, addon, config, source in [
+    ("res2res", "json_sort", sort_config(when="False"), res_payload('["\\ud800"]')),
+    ("res2dict", "json", {}, {"response": response('["\\ud800"]')}),
+]:
+    case = capture("surrogate-" + layer, layer, addon, config, source)
+    case.update(rust_expected={"error": "JSONDecodeError"}, difference="compat-spec.md: lone surrogateはRustで表せない入力")
+
+for depth in [129, 200]:
+    text = "[" * depth + "0" + "]" * depth
+    capture(f"deep-json-{depth}", "res2dict", "json", {}, {"response": response(text)}, summary="depth")
+    capture(f"deep-sort-{depth}", "res2res", "json_sort", sort_config(), res_payload(text))
 
 assert len({case["name"] for case in cases}) == len(cases)
 print(json.dumps(cases, ensure_ascii=False, indent=2))

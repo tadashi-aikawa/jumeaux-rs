@@ -33,13 +33,19 @@ pub fn initial_payload(
     reference: &JudgementReference,
     judge_response_header: bool,
     ignore_response_header_keys: &[String],
-) -> JudgementPayload {
+) -> Result<JudgementPayload> {
+    for value in [&reference.dict_one, &reference.dict_other]
+        .into_iter()
+        .flatten()
+    {
+        crate::compat::json::validate(value)?;
+    }
     let same_bytes = reference.res_one.body == reference.res_other.body;
     let diffs = match (&reference.dict_one, &reference.dict_other) {
         (Some(one), Some(other)) => Some(if same_bytes {
             DiffKeys::default()
         } else {
-            diff::diff(one, other)
+            diff::diff(one, other)?
         }),
         _ => None,
     };
@@ -51,7 +57,7 @@ pub fn initial_payload(
         }
         result
     });
-    JudgementPayload {
+    Ok(JudgementPayload {
         diffs_by_cognition,
         regard_as_same_body,
         regard_as_same_header: !judge_response_header
@@ -60,7 +66,7 @@ pub fn initial_payload(
                 &reference.res_other.headers,
                 ignore_response_header_keys,
             ),
-    }
+    })
 }
 
 /// 名前・除外キーはASCII大小無視、値は完全一致。

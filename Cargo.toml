@@ -19,7 +19,7 @@ minijinja-contrib = { version = "=3.0.5", features = ["pycompat", "rand", "wordc
 regex = "1.13.1"
 rustpython-parser = { version = "0.4.0", default-features = false, features = ["num-bigint"] }
 serde = { version = "1.0.229", features = ["derive", "rc"] }
-serde_json = { version = "1.0.154", features = ["preserve_order", "arbitrary_precision"] }
+serde_json = { version = "1.0.154", features = ["preserve_order", "arbitrary_precision", "unbounded_depth"] }
 serde_yaml_ng = "0.10.0"
 serde_path_to_error = "0.1.20"
 num-bigint = "0.4.8"
