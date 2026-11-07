@@ -99,6 +99,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - BOM: utf8指定のJSONはBOMを拒否し、YAMLは受理する。utf-8-sig指定なら両方とも除去する。
   - YAML: アンカーとマージキーはconfigと同じ展開処理を再利用する。
   - 非有限数: `.inf`・`-.inf`・`.nan`は入れ子を含めてValueErrorにする。JSONで表現できない数値をnullへ変換してキーごと省略しない。引用符で囲んだ文字列は保持する。
+  - 整数: i64・u64の範囲を超えても、i128・u128で読める値はarbitrary_precisionのJSON numberとして桁を落とさず保持する。
+  - 独自タグ: `!foo x`などのローカルタグはConstructorErrorにする。標準タグの解釈差は「許容した差異」に記載する。
 - reqs2reqsは設定順に実行する。filter・replace・renameのwhenはRequest.to_dict相当をルートへ渡す。
   - 条件: 未設定のnameなどは未定義値になる。テンプレート描画後のliteral_eval相当の値をtruthinessで判定する。
   - head: 負数もPythonのslice終端として扱う。
@@ -295,6 +297,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 | `1_000` | intの1000 | 文字列`1_000` |
 | `12:30` | intの750 | 文字列`12:30` |
 | `2020-01-01` | datetime.date | 文字列`2020-01-01` |
+| `1e2` | 文字列`1e2` | floatの100.0 |
+| `!!binary aGk=` | 文字列`b'hi'` | 文字列`aGk=` |
 | `.inf`・`-.Inf`・`.nan` | 非有限float | ValueError |
 
 - YAML入力では次の寛容さ・キー解釈の差を許容する。
@@ -1039,6 +1043,9 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## 未決
 
+- asyncの入力処理内にある同期ファイルI/O。
+  - 現実装: prepareが呼ぶInputFactoryでstd::fs::readを使う。
+  - 申し送り: challenge統合時にtokio::fsまたはspawn_blockingへ移し、HTTP転送のruntimeをファイル読み込みでブロックしないようにする。
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 - `-vv` のconfig YAMLダンプ。

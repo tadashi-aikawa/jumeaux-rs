@@ -99,6 +99,23 @@ for addon in ["json", "yaml"]:
         log(f"{addon}-normalize-{label}", addon, json.dumps([request]))
 
 for container in ["json", "form"]:
+    for label, body in [
+        ("outside-64", "{n: 18446744073709551617, m: -9223372036854775809}"),
+        ("limits-128", "{n: 340282366920938463463374607431768211455, m: -170141183460469231731687303715884105728}"),
+        ("nested-large-integers", "{values: [18446744073709551617, {m: -9223372036854775809}]}"),
+        ("explicit-large-integers", "{n: !!int 18446744073709551617, m: !!int -9223372036854775809}"),
+    ]:
+        log(f"yaml-{container}-{label}", "yaml", f"- path: /a\n  {container}: {body}\n")
+for label, request in [
+    ("path", "- path: !foo /a\n"),
+    ("json-value", "- path: /a\n  json: {value: !foo x}\n"),
+    ("form-map", "- path: /a\n  form: !foo {value: x}\n"),
+    ("json-sequence", "- path: /a\n  json: {value: !foo [x]}\n"),
+    ("quoted", '- path: /a\n  json: {value: !foo "x"}\n'),
+]:
+    log(f"yaml-custom-tag-{label}", "yaml", request)
+
+for container in ["json", "form"]:
     for label, token in [("yes", "yes"), ("octal", "010"), ("underscore", "1_000"), ("sexagesimal", "12:30"), ("date", "2020-01-01"), ("inf", ".inf"), ("negative-inf", "-.Inf"), ("nan", ".nan")]:
         log(f"yaml-{container}-{label}", "yaml", f"- path: /a\n  {container}: {{value: {token}}}\n")
         CASES[-1]["input"]["scalar"] = container

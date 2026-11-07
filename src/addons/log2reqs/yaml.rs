@@ -21,6 +21,8 @@ impl Config {
                     crate::compat::Error::new(
                         if e.to_string().contains("non-finite") {
                             "ValueError"
+                        } else if e.to_string().contains("unsupported custom YAML tag") {
+                            "ConstructorError"
                         } else {
                             "ParserError"
                         },
@@ -38,7 +40,7 @@ impl Config {
 struct FiniteJson(serde_json::Value);
 impl<'de> serde::Deserialize<'de> for FiniteJson {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use serde::de::{self, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
+        use serde::de::{self, EnumAccess, MapAccess, SeqAccess, Visitor};
         use serde_json::{Map, Number, Value};
         struct JsonVisitor;
         impl<'de> Visitor<'de> for JsonVisitor {
@@ -60,6 +62,16 @@ impl<'de> serde::Deserialize<'de> for FiniteJson {
             }
             fn visit_u64<E: de::Error>(self, v: u64) -> Result<FiniteJson, E> {
                 Ok(FiniteJson(Value::Number(v.into())))
+            }
+            fn visit_i128<E: de::Error>(self, v: i128) -> Result<FiniteJson, E> {
+                Number::from_i128(v)
+                    .map(|v| FiniteJson(Value::Number(v)))
+                    .ok_or_else(|| E::custom("integer outside JSON number range"))
+            }
+            fn visit_u128<E: de::Error>(self, v: u128) -> Result<FiniteJson, E> {
+                Number::from_u128(v)
+                    .map(|v| FiniteJson(Value::Number(v)))
+                    .ok_or_else(|| E::custom("integer outside JSON number range"))
             }
             fn visit_f64<E: de::Error>(self, v: f64) -> Result<FiniteJson, E> {
                 Number::from_f64(v)
@@ -86,9 +98,8 @@ impl<'de> serde::Deserialize<'de> for FiniteJson {
                 }
                 Ok(FiniteJson(Value::Object(values)))
             }
-            fn visit_enum<A: EnumAccess<'de>>(self, access: A) -> Result<FiniteJson, A::Error> {
-                let (_, value) = access.variant::<String>()?;
-                value.newtype_variant()
+            fn visit_enum<A: EnumAccess<'de>>(self, _: A) -> Result<FiniteJson, A::Error> {
+                Err(de::Error::custom("unsupported custom YAML tag"))
             }
         }
         deserializer.deserialize_any(JsonVisitor)
