@@ -385,6 +385,352 @@
     }
   },
   {
+    "name": "utf8-keeps-bom",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "efbbbf616263",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "value": "﻿abc"
+    }
+  },
+  {
+    "name": "latin1-not-windows1252",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "8091",
+      "encoding": "latin1"
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "ascii-replacement",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "80",
+      "encoding": "ascii"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "sjis-wave-dash",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "8160",
+      "encoding": "sjis"
+    },
+    "expected": {
+      "value": "〜"
+    }
+  },
+  {
+    "name": "cp932-wave-dash",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "8160",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "value": "～"
+    }
+  },
+  {
+    "name": "utf16le-keeps-bom",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "fffe6100",
+      "encoding": "utf-16-le"
+    },
+    "expected": {
+      "value": "﻿a"
+    }
+  },
+  {
+    "name": "utf16-no-bom",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "6100",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "value": "a"
+    }
+  },
+  {
+    "name": "utf16be",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "0061",
+      "encoding": "utf-16-be"
+    },
+    "expected": {
+      "value": "a"
+    }
+  },
+  {
+    "name": "utf16-invalid",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "fffe00",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "binary-text",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "ff",
+      "encoding": null
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "sjis-extension",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "8740",
+      "encoding": "shift_jis"
+    },
+    "expected": {
+      "value": "�@"
+    }
+  },
+  {
+    "name": "cp932-extension",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "8740",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "value": "①"
+    }
+  },
+  {
+    "name": "sjis-single-invalid",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "80a0fd",
+      "encoding": "sjis"
+    },
+    "expected": {
+      "value": "���"
+    }
+  },
+  {
+    "name": "utf16-surrogate-odd",
+    "input": {
+      "operation": "response_text",
+      "body_hex": "00d800",
+      "encoding": "utf-16-le"
+    },
+    "expected": {
+      "value": "�"
+    }
+  },
+  {
+    "name": "sjis-encode-wave",
+    "input": {
+      "operation": "encode",
+      "text": "〜",
+      "encoding": "shift_jis",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "8160"
+    }
+  },
+  {
+    "name": "sjis-encode-fullwidth",
+    "input": {
+      "operation": "encode",
+      "text": "～",
+      "encoding": "shift_jis",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "sjis-encode-extension",
+    "input": {
+      "operation": "encode",
+      "text": "①",
+      "encoding": "shift_jis",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "3f"
+    }
+  },
+  {
+    "name": "save-question-mark",
+    "input": {
+      "operation": "encode",
+      "text": "a😀日",
+      "encoding": "ascii",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "613f3f"
+    }
+  },
+  {
+    "name": "save-sjis-replacement",
+    "input": {
+      "operation": "encode",
+      "text": "a😀日",
+      "encoding": "cp932",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "613f93fa"
+    }
+  },
+  {
+    "name": "save-utf16",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-16",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "fffee5652c673dd800de"
+    }
+  },
+  {
+    "name": "save-utf16be",
+    "input": {
+      "operation": "encode",
+      "text": "日本😀",
+      "encoding": "utf-16-be",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "65e5672cd83dde00"
+    }
+  },
+  {
+    "name": "save-utf8-sig",
+    "input": {
+      "operation": "encode",
+      "text": "日本",
+      "encoding": "utf-8-sig",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "efbbbfe697a5e69cac"
+    }
+  },
+  {
+    "name": "save-latin1",
+    "input": {
+      "operation": "encode",
+      "text": "",
+      "encoding": "latin1",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "80"
+    }
+  },
+  {
+    "name": "save-iso2022",
+    "input": {
+      "operation": "encode",
+      "text": "日😀本",
+      "encoding": "iso2022_jp",
+      "errors": "replace"
+    },
+    "expected": {
+      "value": "1b2442467c1b28423f1b24424b5c1b2842"
+    }
+  },
+  {
+    "name": "detect-ascii",
+    "input": {
+      "operation": "detect",
+      "body_hex": "616263"
+    },
+    "expected": {
+      "value": "ascii"
+    }
+  },
+  {
+    "name": "detect-utf8",
+    "input": {
+      "operation": "detect",
+      "body_hex": "e697a5e69cace8aa9ee381aee69687e5ad97e382b3e383bce38389e38292e8aabfe381b9e381bee38199"
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "detect-sjis",
+    "input": {
+      "operation": "detect",
+      "body_hex": "93fa967b8cea82cc95b68e9a8352815b836882f092b282d782dc82b7"
+    },
+    "expected": {
+      "value": "CP932"
+    }
+  },
+  {
+    "name": "detect-euc",
+    "input": {
+      "operation": "detect",
+      "body_hex": "c6fccbdcb8eca4cecab8bbfaa5b3a1bca5c9a4f2c4b4a4d9a4dea4b9"
+    },
+    "expected": {
+      "value": "euc_jis_2004"
+    }
+  },
+  {
+    "name": "detect-iso2022",
+    "input": {
+      "operation": "detect",
+      "body_hex": "1b2442467c4b5c386c244e4a383b7a2533213c2549247244342459245e24391b2842"
+    },
+    "expected": {
+      "value": "ISO-2022-JP"
+    }
+  },
+  {
+    "name": "url-encode-sjis",
+    "input": {
+      "operation": "quote_plus",
+      "text": "東京 a",
+      "encoding": "sjis"
+    },
+    "expected": {
+      "value": "%93%8C%8B%9E+a"
+    }
+  },
+  {
+    "name": "url-encode-failure",
+    "input": {
+      "operation": "quote_plus",
+      "text": "😀",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
     "name": "dump-success",
     "input": {
       "operation": "dump_encoding",
@@ -474,11 +820,52 @@
     }
   },
   {
+    "name": "url-blank-skipped",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "%ff=",
+      "candidates": [
+        "utf-8"
+      ]
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "url-unknown-codec",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=%ff",
+      "candidates": [
+        "no-such-codec"
+      ]
+    },
+    "expected": {
+      "error": "LookupError"
+    }
+  },
+  {
+    "name": "url-unescaped-unicode",
+    "input": {
+      "operation": "guess_url_encoding",
+      "query": "q=東京",
+      "candidates": [
+        "ascii"
+      ]
+    },
+    "expected": {
+      "value": "ascii"
+    }
+  },
+  {
     "name": "dump-replacement-question-mark",
     "input": {
       "operation": "dump_html",
       "body_hex": "3c703eff3c2f703e",
-      "encoding": "ascii"
+      "encoding": "ascii",
+      "decoded_text": "<p>�</p>",
+      "formatted_text": "<html>\n <body>\n  <p>\n   �\n  </p>\n </body>\n</html>\n"
     },
     "expected": {
       "value": "3c68746d6c3e0a203c626f64793e0a20203c703e0a2020203f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a"
@@ -512,6 +899,96 @@
               "東京"
             ]
           },
+          "headers": {},
+          "url_encoding": "utf-8"
+        }
+      ]
+    }
+  },
+  {
+    "name": "input-utf8-bom",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "efbbbf2f78",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "value": [
+        {
+          "method": "GET",
+          "path": "﻿/x",
+          "qs": {},
+          "headers": {},
+          "url_encoding": "utf-8"
+        }
+      ]
+    }
+  },
+  {
+    "name": "input-utf8-sig",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "efbbbf2f78",
+      "encoding": "utf-8-sig"
+    },
+    "expected": {
+      "value": [
+        {
+          "method": "GET",
+          "path": "/x",
+          "qs": {},
+          "headers": {},
+          "url_encoding": "utf-8"
+        }
+      ]
+    }
+  },
+  {
+    "name": "input-utf16",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "fffe2f007800",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "value": [
+        {
+          "method": "GET",
+          "path": "/x",
+          "qs": {},
+          "headers": {},
+          "url_encoding": "utf-8"
+        }
+      ]
+    }
+  },
+  {
+    "name": "input-newlines",
+    "input": {
+      "operation": "plain_input",
+      "body_hex": "2f610d0a2f620d2f630a",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "value": [
+        {
+          "method": "GET",
+          "path": "/a",
+          "qs": {},
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        {
+          "method": "GET",
+          "path": "/b",
+          "qs": {},
+          "headers": {},
+          "url_encoding": "utf-8"
+        },
+        {
+          "method": "GET",
+          "path": "/c",
+          "qs": {},
           "headers": {},
           "url_encoding": "utf-8"
         }

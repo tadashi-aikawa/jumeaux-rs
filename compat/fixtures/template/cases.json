@@ -1174,6 +1174,644 @@
     }
   },
   {
+    "name": "extra-none",
+    "input": {
+      "operation": "when",
+      "expression": "none",
+      "data": {}
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "extra-[True, None, 'a']",
+    "input": {
+      "operation": "when",
+      "expression": "[True, None, 'a']",
+      "data": {}
+    },
+    "expected": {
+      "value": [
+        true,
+        null,
+        "a"
+      ]
+    }
+  },
+  {
+    "name": "extra-{'x': False}",
+    "input": {
+      "operation": "when",
+      "expression": "{'x': False}",
+      "data": {}
+    },
+    "expected": {
+      "value": {
+        "x": false
+      }
+    }
+  },
+  {
+    "name": "extra-'hello'",
+    "input": {
+      "operation": "when",
+      "expression": "'hello'",
+      "data": {}
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "extra-\"'hello'\"",
+    "input": {
+      "operation": "when",
+      "expression": "\"'hello'\"",
+      "data": {}
+    },
+    "expected": {
+      "value": "hello"
+    }
+  },
+  {
+    "name": "extra-'1 + 2'",
+    "input": {
+      "operation": "when",
+      "expression": "'1 + 2'",
+      "data": {}
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "extra-'0x10'",
+    "input": {
+      "operation": "when",
+      "expression": "'0x10'",
+      "data": {}
+    },
+    "expected": {
+      "value": 16
+    }
+  },
+  {
+    "name": "extra-'-2.5'",
+    "input": {
+      "operation": "when",
+      "expression": "'-2.5'",
+      "data": {}
+    },
+    "expected": {
+      "value": -2.5
+    }
+  },
+  {
+    "name": "extra-missing is defined",
+    "input": {
+      "operation": "when",
+      "expression": "missing is defined",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-missing|default('False')",
+    "input": {
+      "operation": "when",
+      "expression": "missing|default('False')",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-missing == 1",
+    "input": {
+      "operation": "when",
+      "expression": "missing == 1",
+      "data": {}
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "extra-not missing",
+    "input": {
+      "operation": "when",
+      "expression": "not missing",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'|reg('a.*')",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'|reg('a.*')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'ABC'.lower() == 'abc'",
+    "input": {
+      "operation": "when",
+      "expression": "'ABC'.lower() == 'abc'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-' x '.strip() == 'x'",
+    "input": {
+      "operation": "when",
+      "expression": "' x '.strip() == 'x'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'.startswith('a')",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'.startswith('a')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-'abc'.replace('b', 'B') == 'aBc'",
+    "input": {
+      "operation": "when",
+      "expression": "'abc'.replace('b', 'B') == 'aBc'",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-equals_without_host('http://a/x?q=1', 'https://b/x?q=1')",
+    "input": {
+      "operation": "when",
+      "expression": "equals_without_host('http://a/x?q=1', 'https://b/x?q=1')",
+      "data": {}
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "extra-calc_distance_km(35.664131,139.759302,35.694253,139.784099)",
+    "input": {
+      "operation": "when",
+      "expression": "calc_distance_km(35.664131,139.759302,35.694253,139.784099)",
+      "data": {}
+    },
+    "expected": {
+      "value": 4.029270138023603
+    }
+  },
+  {
+    "name": "extra-{{ [True, None, 'a'] }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ [True, None, 'a'] }}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "[True, None, 'a']"
+    }
+  },
+  {
+    "name": "extra-{{ {'x': False} }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ {'x': False} }}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "{'x': False}"
+    }
+  },
+  {
+    "name": "extra-{{ x }}\n",
+    "input": {
+      "operation": "render",
+      "template": "{{ x }}\n",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "日本語"
+    }
+  },
+  {
+    "name": "extra-{% if missing %}yes{% else %}no{% endif %}",
+    "input": {
+      "operation": "render",
+      "template": "{% if missing %}yes{% else %}no{% endif %}",
+      "data": {
+        "x": "日本語"
+      }
+    },
+    "expected": {
+      "value": "no"
+    }
+  },
+  {
+    "name": "literal-type-(1, 2)",
+    "input": {
+      "operation": "when_type",
+      "expression": "'(1, 2)'"
+    },
+    "expected": {
+      "value": {
+        "type": "tuple",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-{1, 2}",
+    "input": {
+      "operation": "when_type",
+      "expression": "'{1, 2}'"
+    },
+    "expected": {
+      "value": {
+        "type": "set",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-set()",
+    "input": {
+      "operation": "when_type",
+      "expression": "'set()'"
+    },
+    "expected": {
+      "value": {
+        "type": "set",
+        "truthy": false
+      }
+    }
+  },
+  {
+    "name": "literal-type-b'abc'",
+    "input": {
+      "operation": "when_type",
+      "expression": "\"b'abc'\""
+    },
+    "expected": {
+      "value": {
+        "type": "bytes",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-1+2j",
+    "input": {
+      "operation": "when_type",
+      "expression": "'1+2j'"
+    },
+    "expected": {
+      "value": {
+        "type": "complex",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-...",
+    "input": {
+      "operation": "when_type",
+      "expression": "'...'"
+    },
+    "expected": {
+      "value": {
+        "type": "ellipsis",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-{1: 'one'}",
+    "input": {
+      "operation": "when_type",
+      "expression": "\"{1: 'one'}\""
+    },
+    "expected": {
+      "value": {
+        "type": "dict",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-123456789012345678901234567890",
+    "input": {
+      "operation": "when_type",
+      "expression": "'123456789012345678901234567890'"
+    },
+    "expected": {
+      "value": {
+        "type": "int",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "literal-type-1e999",
+    "input": {
+      "operation": "when_type",
+      "expression": "'1e999'"
+    },
+    "expected": {
+      "value": {
+        "type": "float",
+        "truthy": true
+      }
+    }
+  },
+  {
+    "name": "property-response.byte|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.byte|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 9
+    }
+  },
+  {
+    "name": "property-response.url|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.url|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "http://localhost/test"
+    }
+  },
+  {
+    "name": "property-response.type|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.type|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "plain"
+    }
+  },
+  {
+    "name": "property-response.elapsed_sec|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed_sec|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "property-response.elapsed.total_seconds()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed.total_seconds()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0.0
+    }
+  },
+  {
+    "name": "property-response.elapsed.seconds|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.elapsed.seconds|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "property-response.headers['Content-Type']|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.headers['Content-Type']|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.content_type.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.content_type.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.mime_type.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.mime_type.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "text/plain"
+    }
+  },
+  {
+    "name": "property-response.charset.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.charset.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "property-response.charset|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.charset|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "property-response.encoding.get()|tojson",
+    "input": {
+      "operation": "response_when",
+      "expression": "response.encoding.get()|tojson",
+      "text": "日本語",
+      "status_code": 200
+    },
+    "expected": {
+      "value": "utf-8"
+    }
+  },
+  {
+    "name": "request-request.path == '/search'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.path == '/search'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.qs.q[0] == '東京'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.qs.q[0] == '東京'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.name.get() == '検索'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.name.get() == '検索'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.raw.is_none()",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.raw.is_none()",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "request-request.url_encoding == 'utf-8'",
+    "input": {
+      "operation": "request_when",
+      "expression": "request.url_encoding == 'utf-8'",
+      "request": {
+        "path": "/search",
+        "qs": {
+          "q": [
+            "東京"
+          ]
+        },
+        "name": "検索",
+        "headers": {
+          "X-Test": "yes"
+        }
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
     "name": "$DATETIME(%Y-%m-%d)(-86400)",
     "input": {
       "operation": "datetime",
@@ -1215,6 +1853,83 @@
     },
     "expected": {
       "value": "literal"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(+1)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(+1)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "x$DATETIME(%Y)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "x$DATETIME(%Y)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "x$DATETIME(%Y)(0)"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y)(0)\n",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y)(0)\n",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000"
+    }
+  },
+  {
+    "name": "$DATETIME()(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME()(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "$DATETIME()(0)"
+    }
+  },
+  {
+    "name": "$DATETIME(%Y-%m-%dT%H:%M:%S.%f%z %Z)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%Y-%m-%dT%H:%M:%S.%f%z %Z)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "2000-01-02T03:04:05.000000+0900 UTC+09:00"
+    }
+  },
+  {
+    "name": "$DATETIME(%%f)(0)",
+    "input": {
+      "operation": "datetime",
+      "value": "$DATETIME(%%f)(0)",
+      "now": "2000-01-02T03:04:05+09:00"
+    },
+    "expected": {
+      "value": "%f"
     }
   }
 ]

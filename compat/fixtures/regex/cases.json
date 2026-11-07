@@ -179,5 +179,217 @@
     "expected": {
       "error": "PatternError"
     }
+  },
+  {
+    "name": "numeric-group",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)(b)",
+      "replacement": "\\g<2>\\g<1>",
+      "target": "ab"
+    },
+    "expected": {
+      "value": "ba"
+    }
+  },
+  {
+    "name": "lookbehind",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?<=a)b",
+      "replacement": "x",
+      "target": "ab cb"
+    },
+    "expected": {
+      "value": "ax cb"
+    }
+  },
+  {
+    "name": "negative-lookahead",
+    "input": {
+      "operation": "sub",
+      "pattern": "a(?!b)",
+      "replacement": "x",
+      "target": "ab ac"
+    },
+    "expected": {
+      "value": "ab xc"
+    }
+  },
+  {
+    "name": "end-newline",
+    "input": {
+      "operation": "sub",
+      "pattern": "x$",
+      "replacement": "y",
+      "target": "x\n"
+    },
+    "expected": {
+      "value": "y\n"
+    }
+  },
+  {
+    "name": "multiline",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?m)^x$",
+      "replacement": "y",
+      "target": "x\nx\n"
+    },
+    "expected": {
+      "value": "y\ny\n"
+    }
+  },
+  {
+    "name": "escaped-dollar",
+    "input": {
+      "operation": "sub",
+      "pattern": "\\$",
+      "replacement": "$1",
+      "target": "$"
+    },
+    "expected": {
+      "value": "$1"
+    }
+  },
+  {
+    "name": "replacement-escapes",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)",
+      "replacement": "\\1\\n\\\\$1",
+      "target": "a"
+    },
+    "expected": {
+      "value": "a\n\\$1"
+    }
+  },
+  {
+    "name": "unmatched-group",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)?b",
+      "replacement": "\\1X",
+      "target": "b"
+    },
+    "expected": {
+      "value": "X"
+    }
+  },
+  {
+    "name": "bad-group-no-match",
+    "input": {
+      "operation": "sub",
+      "pattern": "(a)",
+      "replacement": "\\2",
+      "target": "z"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "bad-escape",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\q",
+      "target": "a"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "octal-replacement",
+    "input": {
+      "operation": "sub",
+      "pattern": "a",
+      "replacement": "\\101\\0",
+      "target": "a"
+    },
+    "expected": {
+      "value": "A\u0000"
+    }
+  },
+  {
+    "name": "empty-match",
+    "input": {
+      "operation": "sub",
+      "pattern": "x*",
+      "replacement": "-",
+      "target": "abxd"
+    },
+    "expected": {
+      "value": "-a-b--d-"
+    }
+  },
+  {
+    "name": "empty-then-nonempty",
+    "input": {
+      "operation": "sub",
+      "pattern": ".*?",
+      "replacement": "-",
+      "target": "ab"
+    },
+    "expected": {
+      "value": "-----"
+    }
+  },
+  {
+    "name": "unsupported-variable-lookbehind",
+    "input": {
+      "operation": "sub",
+      "pattern": "(?<=a+)b",
+      "replacement": "x",
+      "target": "aab"
+    },
+    "expected": {
+      "error": "PatternError"
+    }
+  },
+  {
+    "name": "search-middle",
+    "input": {
+      "operation": "search",
+      "pattern": "b",
+      "target": "abc"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "strict-end",
+    "input": {
+      "operation": "search",
+      "pattern": "x\\Z",
+      "target": "x\n"
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "class-dollar",
+    "input": {
+      "operation": "search",
+      "pattern": "[$]",
+      "target": "$"
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "unicode-digit",
+    "input": {
+      "operation": "search",
+      "pattern": "\\d+",
+      "target": "１２３"
+    },
+    "expected": {
+      "value": true
+    }
   }
 ]
