@@ -6,6 +6,7 @@ use jumeaux::cli::{Cli, Command};
 mod commands;
 mod init;
 mod logging;
+mod server;
 
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -49,11 +50,26 @@ fn main() -> ExitCode {
             }
         };
     }
-    let command = match cli.command {
-        Command::Server(_) => "server",
-        Command::Viewer(_) => "viewer",
+    let result = match cli.command {
+        Command::Server(args) => server::run(
+            args.port,
+            ".".into(),
+            false,
+            logging::Logger(args.logging.v),
+        ),
+        Command::Viewer(args) => server::run(
+            args.port,
+            std::path::PathBuf::from(args.responses_dir).join("latest"),
+            true,
+            logging::Logger(0),
+        ),
         _ => unreachable!(),
     };
-    eprintln!("{command}: 未実装");
-    ExitCode::FAILURE
+    match result {
+        Ok(code) => ExitCode::from(code),
+        Err(e) => {
+            logging::Logger(0).log(jumeaux::notification::Verbosity::Error, e.to_string());
+            ExitCode::FAILURE
+        }
+    }
 }
