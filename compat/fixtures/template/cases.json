@@ -1550,14 +1550,16 @@
       "operation": "when_type",
       "expression": "'1e999'"
     },
-    "rust_expected": {"error": "ValueError"},
-    "difference": "compat-spec.md: 非有限数は入口でValueError",
     "expected": {
       "value": {
         "type": "float",
         "truthy": true
       }
-    }
+    },
+    "rust_expected": {
+      "error": "ValueError"
+    },
+    "difference": "compat-spec.md: 非有限数は入口でValueError"
   },
   {
     "name": "property-response.byte|tojson",
@@ -2401,24 +2403,6 @@
     "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
   },
   {
-    "name": "difference-missing|length",
-    "input": {
-      "operation": "when",
-      "expression": "missing|length",
-      "data": {
-        "s": "hello",
-        "nil": null
-      }
-    },
-    "expected": {
-      "value": 0
-    },
-    "rust_expected": {
-      "error": "TypeError"
-    },
-    "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
-  },
-  {
     "name": "difference-s > 1",
     "input": {
       "operation": "when",
@@ -2471,6 +2455,127 @@
       "error": "TypeError"
     },
     "difference": "compat-spec.md: 未定義値・異種比較・例外種別"
+  },
+  {
+    "name": "length-missing|length",
+    "input": {
+      "operation": "when",
+      "expression": "missing|length",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "length-missing|count",
+    "input": {
+      "operation": "when",
+      "expression": "missing|count",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "length-missing.child|length",
+    "input": {
+      "operation": "when",
+      "expression": "missing.child|length",
+      "data": {}
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "length-none|length",
+    "input": {
+      "operation": "when",
+      "expression": "none|length",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "length-7|length",
+    "input": {
+      "operation": "when",
+      "expression": "7|length",
+      "data": {}
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "length-'日本語'|length",
+    "input": {
+      "operation": "when",
+      "expression": "'日本語'|length",
+      "data": {}
+    },
+    "expected": {
+      "value": 3
+    }
+  },
+  {
+    "name": "length-[1,2]|length",
+    "input": {
+      "operation": "when",
+      "expression": "[1,2]|length",
+      "data": {}
+    },
+    "expected": {
+      "value": 2
+    }
+  },
+  {
+    "name": "length-{}|length",
+    "input": {
+      "operation": "when",
+      "expression": "{}|length",
+      "data": {}
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "length-render-{{ missing|length }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ missing|length }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0"
+    }
+  },
+  {
+    "name": "length-render-{{ missing|count }}",
+    "input": {
+      "operation": "render",
+      "template": "{{ missing|count }}",
+      "data": {}
+    },
+    "expected": {
+      "value": "0"
+    }
+  },
+  {
+    "name": "length-render-{{ name }} ({{ name|length }} bytes)",
+    "input": {
+      "operation": "render",
+      "template": "{{ name }} ({{ name|length }} bytes)",
+      "data": {}
+    },
+    "expected": {
+      "value": " (0 bytes)"
+    }
   },
   {
     "name": "difference-repr-{{ (1, 2) }}",

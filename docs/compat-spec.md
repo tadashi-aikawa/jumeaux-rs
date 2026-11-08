@@ -242,11 +242,24 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - ヘッダ: 判定有効時は名前と除外キーのASCII大小を無視する。値は完全一致。無効時はregard_as_same_headerをtrueにする。
 - ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
   - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
-  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
+  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`メソッドを公開する。
   - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。
-  - Rustの残件: `any`・`flat_map`・`map`は後続タスクで実装する。
-    - 決定: 2026-11-08。
-    - 現状: 実装までは式から呼ぶとエラーになる。
+  - Optionメソッド: `any()`は引数なしで値の有無を返す。Noneだけがfalseで、0・false・空文字列・空配列・空dictはtrue。
+    - 実装済み: `map(func)`は変換結果をOptionで包む。`flat_map(func)`は変換結果の`get()`を呼び、その値をOptionで包む。
+    - None: コールバックを呼ばず、NoneのOptionを返す。非callableや未定義の引数でも呼び出さない。
+    - 引数: `func=`を受け付ける。非Noneに非callableを渡すとTypeError、未定義の関数ならUndefinedError。引数の不足・過剰・重複もTypeError。
+    - 戻り値: `flat_map`のコールバックが`get`を持たなければAttributeError。dictなど引数を要する`get`ならTypeError。
+    - 制限: `when`は描画後にliteral_evalする。文字列を返す例では比較式か`tojson`が必要。
+  - 式から渡せるcallableは、公開済みのグローバル関数とオブジェクトのメソッド参照。
+    - Option: `dict_one.map(dict_other.get_or).get().a == 2`。別Optionの値を使える。`map`・`flat_map`自身も渡せるが、受け取る値をcallableとして扱うため引数の型に従う。
+    - 文字列: `res_one.encoding.map('utf-8'.startswith).get()`。既存のPython文字列メソッドを参照できる。
+    - 辞書: `res_one.encoding.map({'utf-8': True}.get).get()`。リストの`count`も参照できる。
+    - attr: `res_one.encoding.map({'utf-8': True}|attr('get')).get()`。Optionや文字列のメソッドも取得できる。
+    - グローバル: `dict`・`range`などJinja2が公開するcallableを渡せる。例は`opt.map(range).get()|list`。`dict`はキーと値のペアからの構築も受け付ける。
+    - テンプレート: 描画文字列では`set`で保存したメソッドや`macro`も渡せる。`when`の式内ではマクロを定義できない。
+    - flat_map: `dict_one.flat_map(dict_other.map).is_none()`はdict_otherがNoneならtrue。コールバックが返すOptionの値を取り出す。
+  - 式から呼べない形: `lambda x: ...`はTemplateSyntaxError。Pythonの組み込み`len`・`str`・`bool`は式へ公開されておらず、非Noneの`map`に渡すとUndefinedError。
+    - any: `any(func)`という形式はTOptionの公開IFに存在せず、式から呼ぶとTypeError。
   - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
   - whenの入口: TemplateInputは検査済みの`CheckedContext`とその参照だけに実装する。生のserde_json::Value・MiniJinja Valueをwhenへ直接渡すとコンパイルエラーになる。
   - 構築: JSONは`values::from_json_for_when`、MiniJinja値は`values::checked_context`で一度検査する。検査済みの値の結合には`CheckedContext::from_pairs`を使い、各whenでは再検査しない。renderは別のRenderInputで従来の表示互換を保つ。
@@ -477,7 +490,6 @@ HTML/XMLと式・正規表現・文字コードの差異は2026-11-07の質問�
 | fixtureの式 | Python | Rust |
 | --- | --- | --- |
 | `missing > 1` | UndefinedError | False |
-| `missing\|length` | 0 | TypeError |
 | `s > 1` | TypeError | True |
 | `nil < 1` | TypeError | True |
 | `1 / 0` | ZeroDivisionError | TypeError |

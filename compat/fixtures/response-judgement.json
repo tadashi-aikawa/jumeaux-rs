@@ -12380,6 +12380,970 @@
     }
   },
   {
+    "name": "same-option-method-any",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "dict_one.any()"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "ignore-option-method-any",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "changed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "removed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "when": "dict_one.any()"
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "same-option-method-map-option",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "dict_one.map(dict_other.get_or).get().a == 2"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "ignore-option-method-map-option",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "changed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "removed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "when": "dict_one.map(dict_other.get_or).get().a == 2"
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "same-option-method-map-string",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "res_one.encoding.map('utf-8'.startswith).get()"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "ignore-option-method-map-string",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "changed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "removed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "when": "res_one.encoding.map('utf-8'.startswith).get()"
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "same-option-method-map-attr",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "res_one.encoding.map({'utf-8': True}|attr('get')).get()"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "ignore-option-method-map-attr",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "changed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "removed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "when": "res_one.encoding.map({'utf-8': True}|attr('get')).get()"
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": {
+          "a": 2,
+          "new": 4
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "same-option-method-flat-map",
+    "input": {
+      "layer": "judgement",
+      "addon": "same",
+      "config": {
+        "when_any": [
+          "dict_one.flat_map(dict_other.map).is_none()"
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": null
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
+    "name": "ignore-option-method-flat-map",
+    "input": {
+      "layer": "judgement",
+      "addon": "ignore",
+      "config": {
+        "ignores": [
+          {
+            "title": "known",
+            "conditions": [
+              {
+                "added": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "changed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "removed": [
+                  {
+                    "path": ".*"
+                  }
+                ],
+                "when": "dict_one.flat_map(dict_other.map).is_none()"
+              }
+            ]
+          }
+        ]
+      },
+      "payload": {
+        "diffs_by_cognition": {
+          "unknown": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": false,
+        "regard_as_same_header": false
+      },
+      "reference": {
+        "name": "trial",
+        "path": "/same",
+        "qs": {},
+        "headers": {},
+        "res_one": {
+          "body_hex": "7b2261223a312c22676f6e65223a337d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "res_other": {
+          "body_hex": "7b2261223a322c226e6577223a347d",
+          "type": "json",
+          "encoding": "utf-8",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "url": "http://example.test/test",
+          "status_code": 200,
+          "elapsed": 0.123456,
+          "elapsed_sec": 0.12
+        },
+        "dict_one": {
+          "a": 1,
+          "gone": 3
+        },
+        "dict_other": null
+      }
+    },
+    "expected": {
+      "value": {
+        "diffs_by_cognition": {
+          "known": {
+            "added": [
+              "root<'new'>"
+            ],
+            "changed": [
+              "root<'a'>"
+            ],
+            "removed": [
+              "root<'gone'>"
+            ]
+          }
+        },
+        "regard_as_same_body": true,
+        "regard_as_same_header": false
+      }
+    }
+  },
+  {
     "name": "ignore-special-key-a.b",
     "input": {
       "layer": "judgement",

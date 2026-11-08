@@ -178,8 +178,8 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
   - fixture: `original_config` は元設定を明示するAPIの入力契約を示す。保存済みcomparisonと旧reportの補完は `tests/review_fixes.rs` で別途検証する。
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
-  - 件数: template 216、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
-  - 許容した差異: template 23件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
+  - 件数: template 226、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
+  - 許容した差異: template 22件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
   - 別名: Windows-31J・cswindows31jはPythonでもcp932へ解決される。別名をそのまま指定して採取し、`input.python_codec`に解決先を記載する。
   - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
@@ -216,11 +216,16 @@ cargo test --test markup -- --nocapture
 cargo test --test response_judgement -- --nocapture
 ```
 
-- 関数fixtureは279件。
-  - Python一致: 229件。
+- 関数fixtureは289件。
+  - Python一致: 239件。
   - 承認済み差異: 特殊パスの値取得修正7件、非有限数41件、lone surrogate 2件。Python観測値と`rust_expected`を両方保持する。
   - 未決: 0件。
   - 境界: Optionのvalue、整数の負のゼロ、深さ129・200の読み込みとソートもPythonと比較する。非有限数はjson_sort・res2dict/json・when・diffを同じ入力で比較する。
+- Optionメソッドは別途137件をPythonの実際の式環境で採取し、全件一致する。
+  - 対象: `any()`・`map(func)`・`flat_map(func)`、メソッド参照、`attr`、公開済みグローバル、Noneの短絡、引数・戻り値のエラー。
+  - 採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/option_methods.py > compat/fixtures/template/option-methods.json`
+  - 検証: `cargo test --test compat_template -- --nocapture`
+  - 設定: sameとignoreで各5件の式を検証する。renameは未定義nameのlengthを0として描画する回帰fixtureを含む。
 - `cargo test --test json_boundary`で深さ1,000と1,001を検証する。
   - 実行: 子プロセス内の2MiBスタックから、配列・辞書・混在JSONの読み込み・ソート・diff・破棄を呼び出す。
   - エラー: 非有限数のエラー種別とメッセージを全入口で検証する。json_sortからres2dict/jsonへの連結も検証する。

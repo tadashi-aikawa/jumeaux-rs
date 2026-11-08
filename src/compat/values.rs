@@ -350,7 +350,7 @@ impl Object for Headers {
 }
 
 #[derive(Debug)]
-struct PythonOption(super::Result<Value>);
+pub(super) struct PythonOption(super::Result<Value>);
 
 /// judgement の dict_one/dict_other は TOption をそのまま公開する。
 pub fn optional(value: Option<&Json>) -> super::Result<CheckedContext> {
@@ -363,15 +363,31 @@ pub fn optional(value: Option<&Json>) -> super::Result<CheckedContext> {
 
 impl Object for PythonOption {
     fn get_value(self: &Arc<Self>, key: &Value) -> Option<Value> {
-        (key.as_str()? == "value").then(|| match &self.0 {
-            Ok(value) => value.clone(),
-            Err(error) => error_value(error.clone()),
-        })
+        let name = key.as_str()?;
+        if name == "value" {
+            return Some(match &self.0 {
+                Ok(value) => value.clone(),
+                Err(error) => error_value(error.clone()),
+            });
+        }
+        if matches!(
+            name,
+            "get" | "get_or" | "is_none" | "is_some" | "any" | "map" | "flat_map"
+        ) {
+            let option = self.clone();
+            let name = name.to_owned();
+            return Some(Value::from_function(
+                move |state: &mut State, args: minijinja::value::Rest<Value>| {
+                    option.call_method(state, &name, &args)
+                },
+            ));
+        }
+        None
     }
 
     fn call_method(
         self: &Arc<Self>,
-        _state: &mut State,
+        state: &mut State,
         name: &str,
         args: &[Value],
     ) -> Result<Value, minijinja::Error> {
@@ -379,7 +395,44 @@ impl Object for PythonOption {
             minijinja::Error::new(ErrorKind::InvalidOperation, e.message.clone())
                 .with_source(e.clone())
         })?;
-        match (name, args) {
+        let names: &[&str] = match name {
+            "get" | "is_none" | "is_some" | "any" => &[],
+            "get_or" => &["default"],
+            "map" | "flat_map" => &["func"],
+            _ => return Err(minijinja::Error::from(ErrorKind::UnknownMethod)),
+        };
+        let (positional, kwargs): (&[Value], minijinja::value::Kwargs) =
+            minijinja::value::from_args(args)?;
+        if positional.len() > names.len() {
+            return Err(minijinja::Error::new(
+                ErrorKind::InvalidOperation,
+                "too many Option arguments",
+            ));
+        }
+        let mut arguments = Vec::new();
+        for (index, name) in names.iter().enumerate() {
+            let arg = if let Some(arg) = positional.get(index) {
+                if kwargs.has(name) {
+                    return Err(minijinja::Error::new(
+                        ErrorKind::InvalidOperation,
+                        "duplicate Option argument",
+                    ));
+                }
+                arg.clone()
+            } else if kwargs.has(name) {
+                kwargs.get::<Value>(name)?
+            } else {
+                return Err(minijinja::Error::new(
+                    ErrorKind::InvalidOperation,
+                    "missing Option argument",
+                ));
+            };
+            arguments.push(arg);
+        }
+        kwargs.assert_all_used().map_err(|error| {
+            minijinja::Error::new(ErrorKind::InvalidOperation, error.to_string())
+        })?;
+        match (name, arguments.as_slice()) {
             ("get", []) => Ok(value.clone()),
             ("get_or", [default]) => Ok(if value.is_none() {
                 default.clone()
@@ -387,7 +440,35 @@ impl Object for PythonOption {
                 value.clone()
             }),
             ("is_none", []) => Ok(Value::from(value.is_none())),
-            ("is_some", []) => Ok(Value::from(!value.is_none())),
+            ("is_some" | "any", []) => Ok(Value::from(!value.is_none())),
+            ("map" | "flat_map", [function]) => {
+                let mapped = if value.is_none() {
+                    Value::from(())
+                } else {
+                    if function.is_undefined() {
+                        return Err(minijinja::Error::from(ErrorKind::UndefinedError));
+                    }
+                    let result = function.call(state, std::slice::from_ref(value))?;
+                    if name == "flat_map" {
+                        match result.call_method(state, "get", &[]) {
+                            Err(error) if error.kind() == ErrorKind::UnknownMethod => {
+                                return Err(minijinja::Error::new(
+                                    ErrorKind::InvalidOperation,
+                                    "flat_map result has no get method",
+                                )
+                                .with_source(super::Error::new(
+                                    "AttributeError",
+                                    "flat_map result has no get method",
+                                )));
+                            }
+                            result => result?,
+                        }
+                    } else {
+                        result
+                    }
+                };
+                Ok(Value::from_object(PythonOption(Ok(mapped))))
+            }
             _ => Err(minijinja::Error::from(ErrorKind::UnknownMethod)),
         }
     }

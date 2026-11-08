@@ -73,7 +73,8 @@ add("add-default", "reqs2reqs", "add", {"reqs": []}, requests=REQS)
 for label, conditions in [
     ("first", [{"when": "qs.id.0|int > 100", "name": "first {{ path }}"}, {"when": "qs.id.0|int > 10", "name": "second"}, {"name": "last"}]),
     ("unchanged", [{"when": "false", "name": "no"}]), ("empty", [{"name": ""}]),
-    ("missing", [{"name": "{{ missing }}"}]), ("missing-when", [{"when": "missing", "name": "no"}])]:
+    ("missing", [{"name": "{{ missing }}"}]), ("missing-when", [{"when": "missing", "name": "no"}]),
+    ("undefined-length", [{"name": "{{ name }} ({{ name|length }} bytes)"}])]:
     add("rename-"+label, "reqs2reqs", "rename", {"conditions": conditions}, requests=REQS)
 add("replace-sequential", "reqs2reqs", "replace", {"items": [{"queries": {"id": ["999"], "new": ["1"]}, "headers": {"X": "a"}}, {"when": "qs.id == ['999']", "queries": {"new": ["2"]}, "headers": {"X": "b"}}, {"when": "false", "queries": {"no": ["no"]}}]}, requests=REQS)
 add("replace-datetime", "reqs2reqs", "replace", {"items": [{"queries": {"t": ["$DATETIME(%Y-%m-%dT%H:%M:%S)(-60)", "literal"]}, "headers": {"X": "$DATETIME(%Y)(0)"}}]}, requests=REQS, now="2020-01-02T03:04:05+09:00")
