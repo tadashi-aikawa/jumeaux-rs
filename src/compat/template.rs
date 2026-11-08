@@ -729,7 +729,7 @@ pub(crate) fn python_float_repr(value: f64) -> String {
     }
 }
 
-fn python_repr(text: &str) -> String {
+pub(crate) fn python_repr(text: &str) -> String {
     let quote = if text.contains('\'') && !text.contains('"') {
         '"'
     } else {

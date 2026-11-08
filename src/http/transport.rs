@@ -5,7 +5,7 @@ use crate::{
 };
 use reqwest::{
     Client, Proxy,
-    header::{HeaderMap, HeaderName, HeaderValue},
+    header::{HeaderMap, HeaderValue},
 };
 use std::{
     io::Read,
@@ -274,15 +274,14 @@ fn header_map(headers: &Headers) -> Result<HeaderMap> {
     );
     result.insert("connection", HeaderValue::from_static("keep-alive"));
     for (name, value) in headers {
+        let parsed_name = super::request::header_name(name)?;
         if value.starts_with(char::is_whitespace) || value.contains(['\n', '\r']) {
             return Err(Error::new("InvalidHeader", name));
         }
-        let name = HeaderName::from_bytes(name.as_bytes())
-            .map_err(|e| Error::new("InvalidHeader", e.to_string()))?;
         let bytes = encoding::encode(value, "latin1", encoding::Errors::Strict)?;
         let value = HeaderValue::from_bytes(&bytes)
             .map_err(|e| Error::new("InvalidHeader", e.to_string()))?;
-        result.insert(name, value);
+        result.insert(parsed_name, value);
     }
     Ok(result)
 }

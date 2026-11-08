@@ -72,6 +72,36 @@ fn options() -> TransportOptions {
     }
 }
 
+#[tokio::test]
+async fn invalid_header_name_errors_identify_and_escape_the_name() {
+    let access = endpoint("http://127.0.0.1:1");
+    let transport = HttpTransport::with_options(&access, &access, 0, options()).unwrap();
+    for (name, expected) in [
+        ("", "''"),
+        (" bad", "' bad'"),
+        ("x:bad", "'x:bad'"),
+        ("Bad:Name", "'Bad:Name'"),
+        ("x\nbad", "'x\\nbad'"),
+        ("x\rbad", "'x\\rbad'"),
+        ("x:'bad", "\"x:'bad\""),
+    ] {
+        let request = Request {
+            path: "/".into(),
+            headers: [(name.to_owned(), "private-value".to_owned())].into(),
+            ..Request::default()
+        };
+        let error = transport.send_one(&request).await.unwrap_err();
+        assert_eq!(error.kind, "InvalidHeader");
+        assert_eq!(
+            error.message,
+            format!(
+                "Invalid leading whitespace, reserved character(s), or return character(s) in header name: {expected}"
+            )
+        );
+        assert!(!error.message.contains("private-value"));
+    }
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn ca_errors_match_python_failure_classification() {
