@@ -1,0 +1,15 @@
+[project]
+site_name = "Jumeaux"
+site_description = "2つのAPIレスポンスの差分を確認するツール"
+site_url = "https://tadashi-aikawa.github.io/jumeaux-rs/"
+site_author = "tadashi-aikawa"
+repo_name = "tadashi-aikawa/jumeaux-rs"
+repo_url = "https://github.com/tadashi-aikawa/jumeaux-rs"
+edit_uri = "edit/main/docs/site/"
+docs_dir = "docs/site"
+site_dir = "site"
+nav = [{ "Home" = "index.md" }]
+
+[project.theme]
+language = "ja"
+variant = "classic"
