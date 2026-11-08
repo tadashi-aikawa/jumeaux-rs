@@ -86,6 +86,77 @@ impl Server {
         stream.read_to_string(&mut response).unwrap();
         response
     }
+    fn expect_log_suffix(&self, suffix: &str) {
+        loop {
+            let line = self
+                .logs
+                .recv_timeout(std::time::Duration::from_secs(2))
+                .unwrap();
+            if line.ends_with(suffix) {
+                return;
+            }
+        }
+    }
+}
+
+#[test]
+fn server_logs_all_statuses_and_guesses_mime_types() {
+    let s = Server::start(false);
+    for (method, path, status, error) in [
+        (
+            "GET",
+            "/missing",
+            404,
+            Some("code 404, message File not found"),
+        ),
+        (
+            "HEAD",
+            "/missing",
+            404,
+            Some("code 404, message File not found"),
+        ),
+        ("GET", "/responses", 301, None),
+        ("GET", "/", 200, None),
+        (
+            "PUT",
+            "/",
+            501,
+            Some("code 501, message Unsupported method ('PUT')"),
+        ),
+    ] {
+        let response = s.request(method, path, "", "text/plain");
+        assert!(
+            response.starts_with(&format!("HTTP/1.0 {status}")),
+            "{response}"
+        );
+        if let Some(error) = error {
+            s.expect_log_suffix(error);
+        }
+        s.expect_log_suffix(&format!("\"{method} {path} HTTP/1.1\" {status} -"));
+    }
+    for (extension, mime) in [
+        ("gif", "image/gif"),
+        ("pdf", "application/pdf"),
+        ("wasm", "application/wasm"),
+        ("woff2", "font/woff2"),
+        ("ico", "image/x-icon"),
+        ("mp4", "video/mp4"),
+        ("ZIP", "application/zip"),
+        ("gz", "application/gzip"),
+        ("bz2", "application/x-bzip2"),
+        ("xz", "application/x-xz"),
+        ("js", "text/javascript"),
+        ("unknown-extension", "application/octet-stream"),
+    ] {
+        let name = format!("file.{extension}");
+        std::fs::write(s.root.join(&name), "body").unwrap();
+        let response = s.request("GET", &format!("/{name}"), "", "text/plain");
+        assert!(
+            response.contains(&format!("Content-Type: {mime}\r\n")),
+            "{extension}: {response}"
+        );
+        s.expect_log_suffix(&format!("\"GET /{name} HTTP/1.1\" 200 -"));
+    }
 }
 impl Drop for Server {
     fn drop(&mut self) {
