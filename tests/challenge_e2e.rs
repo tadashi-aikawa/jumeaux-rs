@@ -3,7 +3,7 @@
 use jumeaux::{
     addons::log2reqs,
     config,
-    executor::{Pipeline, ProcessCookieScope},
+    executor::Pipeline,
     http::{HttpTransport, TransportOptions},
     notification::Context,
 };
@@ -225,12 +225,7 @@ async fn templates_match_python_saved_trials_and_files() {
             .unwrap(),
         );
         let result = Arc::new(Pipeline::build(&config).unwrap())
-            .exec(
-                transport,
-                input.requests,
-                "test-key",
-                Some(ProcessCookieScope::PerTrial),
-            )
+            .exec(transport, input.requests, "test-key", None)
             .await
             .unwrap();
         assert_eq!(

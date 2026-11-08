@@ -311,11 +311,13 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - Python版: TOptionには存在しない。互換の値参照には`value`・`get()`・`get_or()`を使う。
 - 非有限数はRustで表せない入力として拒否する。
   - 対象: `NaN`・`Infinity`・`-Infinity`と、`1e400`等のf64オーバーフロー。配列・辞書内部も同じ扱い。
-  - エラー: json_sort・res2dict/json・whenの入力値と結果・diffは、`ValueError: non-finite numbers are not supported`を返す。
+  - エラー: json_sort・res2dict/json・dump/json・whenの入力値と結果・diffは、`ValueError: non-finite numbers are not supported`を返す。
   - Python版: 非有限floatとして受理する。fixtureは非有限値を`nonfinite`タグに置き換えて観測値を保存する。
   - 連結: 旧Rust実装はjson_sortが`Infinity`を書き出し、後続res2dict/jsonが拒否する場合があった。現在はjson_sortの入口で拒否し、この出力を作らない。
   - 整数: JSONの整数はBigInt相当の精度で保持する。when入力へのf64変換で非有限値になる巨大整数も、whenの入口で同じエラーとする。
   - 小文字: JSON中の`nan`・`inf`・`infinity`はPython同様JSONDecodeErrorとする。whenの描画結果に現れる非有限floatの`nan`・`inf`はValueErrorとする。
+- 保存I/Oの汎用例外名はRustで`IOError`、Pythonで`OSError`となる差を許容する。
+  - パス: ディレクトリ作成・本文とpropの書き込み・latest操作のエラーには対象パスを含める。OSのエラーメッセージ本文は完全一致の対象外とする。
 - lone surrogateを含むJSONはRustで表せない入力としてJSONDecodeErrorにする。
   - 例: `"\ud800"`。Pythonは受理し、json_sortではエンコード時に`?`へ置換する。
 - JSONの配列・辞書の深さ上限は1,000コンテナとする。
@@ -1264,17 +1266,25 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 - 入口は`executor::Pipeline::build`と`Arc<Pipeline>::exec`。
   - 入力: `log2reqs::prepare`でreqs2reqsまで適用したRequest配列、共有HttpTransport、key、processes時のCookieスコープ。
-  - 出力: `Execution { trials, concurrency, comparison }`。Report集計・final・CLIは実行しない。
+  - 出力: `LoggedResult<Execution, Progress>`。Executionは`trials`・`logs`・`started_at`・`ended_at`・`concurrency`・`comparison`を持つ。Report集計・final・CLIは実行しない。
   - 単体入口: `challenge`は1trialのHTTPを実行する。`finish`はHTTPのResponsePairを注入し、同期アドオンと保存を実行する。
+- logsはCLIの進捗行を組み立てる構造化データを観測順で保持する。
+  - 材料: seq・全件数・元のRequest.name・path・method・status・両側のstatus_codeとresponse_sec。nameなし・空文字はNoneを維持する。
+  - 表示: 正常応答は`name.unwrap_or(path)`を使う。通信失敗の`💀`行はnameなしを`None`と表示する。sameはverbosity 2、differentとfailureはverbosity 1相当。
+  - タイミング: 正常応答はjudgement後・store_criterion前、通信失敗はfailure生成時に記録する。保存や後続アドオンが失敗しても、それ以前のログと実行中trialのログを`Failure { error, logs }`で返す。prepareと同じLoggedResultの形を使い、実際の出力・書式はCLIの責務とする。
+- 実行時刻はタイムゾーン付きの`started_at`と`ended_at`に保持する。
+  - start: 保存ディレクトリ作成後・trial開始前。
+  - end: 全trial完了後・latestの張り替え前。保存とdid_challenge/sleepの時間を含む。
 - 成功時の順序はHTTPのone/other同時送信、res2resのone→other、res2dictのone→other、差分、judgement、store_criterion、dumpと保存、did_challenge。
   - 参照: judgement・store_criterion・did_challengeへres2res適用後のResponseを渡す。
   - 通信失敗: HTTPのChallengeOutcome::Failureをそのまま返す。後続アドオンと保存をスキップする。
-  - エラー: initial_payloadを含むアドオンのErrは停止として返す。failureへ置換しない。既に完了した保存は巻き戻さない。
+  - エラー: initial_payloadを含むアドオン・HTTP・保存のErrは停止として返す。failureへ置換しない。Errを受け取った時点で新しいtrialのspawnを止め、実行中のtrialは保存とsleepも含めて完了を待つ。abortはしない。既に完了した保存は巻き戻さない。
 - threadsとprocesses相当の並行数は`Config::concurrency()`から決める。
   - 制限: HTTP、アドオン、保存、sleepを含めて同時実行trial数を制限する。
   - 結果: 完了順に依存せず入力順へ並べる。エラーが複数ある場合も入力順の最初を返す。
   - runtime: HTTPはasync、同期アドオン・保存・sleepはspawn_blocking内で実行する。prepareの入力ファイル読み込みはtokio::fsを使う。
   - クライアント: HttpTransportのendpointをArcで共有する。`isolated_cookies()`でもreqwestのClientとHTTPS初期化状態を再利用する。
+  - Cookie: threadsでは共有する。processesでは`ProcessCookieScope::PerTrial`を既定とし、trialごとに分離する。one/other内では共有する。公開APIでSharedを明示した場合のみtrial間でも共有する。
 - store_criterion/freeはstored=trueなら短絡する。
   - 未指定: freeのwhen_anyがNoneなら保存する。空配列なら保存しない。レイヤー自体が空なら保存しない。
   - 条件: when_anyを先頭から評価し、最初の真で保存する。式には辞書を渡す。Responseのtext・ok等のプロパティは公開しない。
@@ -1298,7 +1308,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - prop: owlmixin同様に入れ子のnullも除外し、再帰キーソートと区切り`(',', ': ')`を適用する。`1E2`→`100.0`、`-0`→`0`等は保存時だけ正規化する。res2dictの値は書き換えない。
   - encoding: 本文はdumpの指定、propは固定UTF-8。propはoutputのwriterをUTF-8で使う。output.encodingは後続Report・summary・stdout等の設定として保持する。
   - scalar: propのルートがdict/list以外ならPythonと同じTypeError。本文2ファイルが既に保存されている場合も消さない。
-  - ディレクトリ: 4サブディレクトリのmodeはUnixで0777。既存keyの再使用はエラー。
+  - ディレクトリ: 4サブディレクトリのmodeはUnixで0777。keyが既存でも保存用サブディレクトリが未作成なら使用できる。one・other・one-props・other-propsを順に作成し、既存サブディレクトリに達した時点でエラーとする。それ以前の作成分は巻き戻さない。
 - keyは`sha256((str(now()) + args_str).encode('utf-8')).hexdigest()`。
   - 時刻: 空白区切り、タイムゾーン付き、マイクロ秒は0なら省略・非0なら6桁。`hash_from_args_at`で時刻固定のfixtureを比較する。
 - latestは全trialが正常に返った後に相対リンクを張り替える。
@@ -1310,15 +1320,11 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 結果: Python完全一致102件。ゼロ除算の2件は既存の承認済み例外差異を適用し、TypeErrorで一致する。
   - 内容: store_criterion 24件、dump 41件、tag 9件、sleep 5件、prop 7件、key 8件、ファイル名4件、HTTP以降の統合6件。
   - ローカルHTTP: 22ケースのTrial 43件と本文・prop 94ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
-  - 追加検証: 並行数と順序、Cookie共有・分離、failureのスキップ、例外時latest維持、既存key拒否、リンク張り替え、実sleepをRustテストで固定する。
+  - 追加fixture: `compat/fixtures/challenge-review.json`の15件はPythonと一致する。保存先作成6件とログ9件を比較する。ログの実測時間だけを0.0秒へ正規化する。
+  - 追加検証: 並行数と順序、Cookie共有・分離の既定、failureのスキップ、例外時の新規投入停止・実行中trial完了待ち・latest維持、空のkeyディレクトリ再使用と既存サブディレクトリ拒否、リンク張り替え、実行時刻、実sleepをRustテストで固定する。
 
 ## 未決
 
-- processes時のCookieスコープの既定。
-  - 実装済み: threadsは指定数の並行実行・入力順の結果・Cookie共有を維持する。
-  - processes: PythonはtrialごとにSessionを複製するためCookieをtrial間で共有しない。
-  - 推奨案: `ProcessCookieScope::PerTrial`を採用する。クライアントはArcで共有し、Cookieだけtrialごとに分離する。one/other内のCookie共有は維持する。
-  - 判断待ち: 公開execはprocesses有効時にShared・PerTrialの明示を必須とする。未指定なら保存・送信前にエラー。受入試験ではPerTrialを明示する。CLIの既定値としては未採用。
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 - `-vv` のconfig YAMLダンプ。

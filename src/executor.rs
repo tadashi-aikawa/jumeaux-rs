@@ -6,22 +6,59 @@ use crate::{
     compat::{Error, Result},
     config::{Config, HeaderJudgementSettings},
     http::{ChallengeOutcome, HttpTransport, ResponsePair},
-    models::{Concurrency, OutputSummary, Request, Response, ResponseSummary, Status, Trial},
+    models::{
+        Concurrency, HttpMethod, OutputSummary, Request, Response, ResponseSummary, Status, Trial,
+    },
+    notification::{Failure, LoggedResult},
 };
 use std::{
+    collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
-/// 未決のprocesses時Cookie契約を呼出元が明示する。暗黙の既定値は設けない。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// processesは既定でtrialごとにCookieを分離する。threadsは常に共有する。
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ProcessCookieScope {
     Shared,
+    #[default]
     PerTrial,
 }
 
+/// CLIの進捗行の材料。出力・書式・verbosityの選択は呼出側が担う。
+#[derive(Debug, Clone, PartialEq)]
+pub struct Progress {
+    pub seq: u64,
+    pub total: usize,
+    /// Trial.nameのseq補完前の値。通信失敗の名前なしはNoneとして表示する。
+    pub name: Option<String>,
+    pub path: String,
+    pub method: HttpMethod,
+    pub status: Status,
+    pub one: ProgressResponse,
+    pub other: ProgressResponse,
+}
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgressResponse {
+    pub status_code: Option<u16>,
+    pub response_sec: Option<f64>,
+}
+impl From<&ResponseSummary> for ProgressResponse {
+    fn from(summary: &ResponseSummary) -> Self {
+        Self {
+            status_code: summary.status_code,
+            response_sec: summary.response_sec,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Execution {
     pub trials: Vec<Trial>,
+    /// 判断・通信失敗を観測した順。保存などで停止した場合もFailure.logsへ返す。
+    pub logs: Vec<Progress>,
+    pub started_at: chrono::DateTime<chrono::FixedOffset>,
+    pub ended_at: chrono::DateTime<chrono::FixedOffset>,
     pub concurrency: Concurrency,
     /// 後続のReport組み立てでsummary.comparisonへ保存する。
     pub comparison: HeaderJudgementSettings,
@@ -57,19 +94,11 @@ impl Pipeline {
         requests: Vec<Request>,
         key: &str,
         process_cookies: Option<ProcessCookieScope>,
-    ) -> Result<Execution> {
+    ) -> LoggedResult<Execution, Progress> {
         let concurrency = self.config.concurrency()?;
         let processes = self.config.processes.is_some_and(|n| n != 0);
-        let isolated = if processes {
-            process_cookies.ok_or_else(|| {
-                Error::new(
-                    "ValueError",
-                    "processes: Cookie scope is undecided; select Shared or PerTrial explicitly",
-                )
-            })? == ProcessCookieScope::PerTrial
-        } else {
-            false
-        };
+        let isolated =
+            processes && process_cookies.unwrap_or_default() == ProcessCookieScope::PerTrial;
         let limit = if processes {
             concurrency.processes
         } else {
@@ -82,11 +111,16 @@ impl Pipeline {
                 .await
                 .map_err(join_error)??,
         );
+        let started_at = chrono::Local::now().fixed_offset();
+        let total = requests.len();
         let mut pending = requests.into_iter().enumerate();
         let mut running = tokio::task::JoinSet::new();
+        let mut indices = HashMap::new();
         let mut completed = Vec::new();
+        let logs = Arc::new(Mutex::new(Vec::new()));
+        let mut stopped = false;
         loop {
-            while running.len() < limit {
+            while !stopped && running.len() < limit {
                 let Some((index, request)) = pending.next() else {
                     break;
                 };
@@ -97,30 +131,69 @@ impl Pipeline {
                 } else {
                     Arc::clone(&transport)
                 };
-                running.spawn(async move {
-                    (
-                        index,
-                        pipeline
-                            .challenge(&transport, index as u64 + 1, request, storage)
-                            .await,
-                    )
+                let logs = Arc::clone(&logs);
+                let seq = index as u64 + 1;
+                let (name, path, method) =
+                    (request.name.clone(), request.path.clone(), request.method);
+                let handle = running.spawn(async move {
+                    pipeline
+                        .challenge_with_log(
+                            &transport,
+                            seq,
+                            request,
+                            storage,
+                            move |status, one, other| {
+                                logs.lock().unwrap().push(Progress {
+                                    seq,
+                                    total,
+                                    name,
+                                    path,
+                                    method,
+                                    status,
+                                    one: one.into(),
+                                    other: other.into(),
+                                });
+                            },
+                        )
+                        .await
                 });
+                indices.insert(handle.id(), index);
             }
-            let Some(result) = running.join_next().await else {
+            let Some(result) = running.join_next_with_id().await else {
                 break;
             };
-            completed.push(result.map_err(join_error)?);
+            let (id, result) = match result {
+                Ok(pair) => pair,
+                Err(error) => (error.id(), Err(join_error(error))),
+            };
+            // abortしない。spawn_blocking内の保存とsleepまで終えてからエラーを返す。
+            stopped |= result.is_err();
+            completed.push((indices.remove(&id).unwrap(), result));
         }
+        let ended_at = chrono::Local::now().fixed_offset();
+        let logs = std::mem::take(&mut *logs.lock().unwrap());
         completed.sort_by_key(|(index, _)| *index);
         let trials = completed
             .into_iter()
             .map(|(_, result)| result)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()
+            .map_err(|error| Failure {
+                error,
+                logs: logs.clone(),
+            })?;
         tokio::task::spawn_blocking(move || storage.update_latest())
             .await
-            .map_err(join_error)??;
+            .map_err(join_error)
+            .and_then(|result| result)
+            .map_err(|error| Failure {
+                error,
+                logs: logs.clone(),
+            })?;
         Ok(Execution {
             trials,
+            logs,
+            started_at,
+            ended_at,
             concurrency,
             comparison: self.config.comparison(),
         })
@@ -133,13 +206,30 @@ impl Pipeline {
         request: Request,
         storage: Arc<Storage>,
     ) -> Result<Trial> {
+        self.challenge_with_log(transport, seq, request, storage, |_, _, _| {})
+            .await
+    }
+
+    async fn challenge_with_log(
+        self: &Arc<Self>,
+        transport: &HttpTransport,
+        seq: u64,
+        request: Request,
+        storage: Arc<Storage>,
+        log: impl FnOnce(Status, &ResponseSummary, &ResponseSummary) + Send + 'static,
+    ) -> Result<Trial> {
         match transport.challenge(seq, &request).await? {
-            ChallengeOutcome::Failure(trial) => Ok(*trial),
+            ChallengeOutcome::Failure(trial) => {
+                log(trial.status, &trial.one, &trial.other);
+                Ok(*trial)
+            }
             ChallengeOutcome::Responses(pair) => {
                 let pipeline = Arc::clone(self);
-                tokio::task::spawn_blocking(move || pipeline.finish(seq, request, *pair, &storage))
-                    .await
-                    .map_err(join_error)?
+                tokio::task::spawn_blocking(move || {
+                    pipeline.finish_with_log(seq, request, *pair, &storage, log)
+                })
+                .await
+                .map_err(join_error)?
             }
         }
     }
@@ -151,6 +241,17 @@ impl Pipeline {
         request: Request,
         pair: ResponsePair,
         storage: &Storage,
+    ) -> Result<Trial> {
+        self.finish_with_log(seq, request, pair, storage, |_, _, _| {})
+    }
+
+    fn finish_with_log(
+        &self,
+        seq: u64,
+        request: Request,
+        pair: ResponsePair,
+        storage: &Storage,
+        log: impl FnOnce(Status, &ResponseSummary, &ResponseSummary),
     ) -> Result<Trial> {
         let name = request.name.clone().unwrap_or_else(|| seq.to_string());
         let one = self.res2res.exec(
@@ -210,6 +311,9 @@ impl Pipeline {
         } else {
             Status::Different
         };
+        let mut summary_one = summary(&one.response, self.config.judge_response_header);
+        let mut summary_other = summary(&other.response, self.config.judge_response_header);
+        log(status, &summary_one, &summary_other);
         let store_req = Request {
             name: Some(name.clone()),
             path: request.path.clone(),
@@ -229,8 +333,6 @@ impl Pipeline {
                 },
             )?
             .stored;
-        let mut summary_one = summary(&one.response, self.config.judge_response_header);
-        let mut summary_other = summary(&other.response, self.config.judge_response_header);
         if stored {
             summary_one.file = Some(response_file("one", seq, &name));
             summary_other.file = Some(response_file("other", seq, &name));
@@ -307,14 +409,16 @@ impl Pipeline {
 fn join_error(error: tokio::task::JoinError) -> Error {
     Error::new("RuntimeError", error.to_string())
 }
-fn io_error(error: std::io::Error) -> Error {
+fn io_error(error: std::io::Error, path: &Path) -> Error {
     let kind = match error.kind() {
         std::io::ErrorKind::NotFound => "FileNotFoundError",
         std::io::ErrorKind::AlreadyExists => "FileExistsError",
         std::io::ErrorKind::PermissionDenied => "PermissionError",
+        std::io::ErrorKind::NotADirectory => "NotADirectoryError",
+        std::io::ErrorKind::IsADirectory => "IsADirectoryError",
         _ => "IOError",
     };
-    Error::new(kind, error.to_string())
+    Error::new(kind, format!("{error}: '{}'", path.display()))
 }
 
 fn summary(response: &Response, headers: bool) -> ResponseSummary {
@@ -410,7 +514,7 @@ pub struct Storage {
     key: String,
 }
 impl Storage {
-    /// Python同様、既存実行ディレクトリの再使用はエラーとする。
+    /// keyディレクトリは再使用できる。既存の保存用サブディレクトリはエラーとする。
     pub fn create(output: &OutputSummary, key: &str) -> Result<Self> {
         if key.is_empty()
             || Path::new(key).components().count() != 1
@@ -422,16 +526,20 @@ impl Storage {
             return Err(Error::new("ValueError", "key must be one directory name"));
         }
         let root = Path::new(&output.response_dir).join(key);
-        std::fs::create_dir_all(&output.response_dir).map_err(io_error)?;
-        std::fs::create_dir(&root).map_err(io_error)?;
         for side in ["one", "other", "one-props", "other-props"] {
             let path = root.join(side);
-            std::fs::create_dir(&path).map_err(io_error)?;
+            match std::fs::create_dir(&path) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    std::fs::create_dir_all(&root).map_err(|error| io_error(error, &path))?;
+                    std::fs::create_dir(&path).map_err(|error| io_error(error, &path))?;
+                }
+                result => result.map_err(|error| io_error(error, &path))?,
+            }
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o777))
-                    .map_err(io_error)?;
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o777))
+                    .map_err(|error| io_error(error, &path))?;
             }
         }
         Ok(Self {
@@ -443,19 +551,21 @@ impl Storage {
         &self.root
     }
     pub fn write(&self, file: &str, body: &[u8]) -> Result<()> {
-        std::fs::write(self.root.join(file), body).map_err(io_error)
+        let path = self.root.join(file);
+        std::fs::write(&path, body).map_err(|error| io_error(error, &path))
     }
     pub fn update_latest(&self) -> Result<()> {
         let latest = self.root.parent().unwrap().join("latest");
         match std::fs::symlink_metadata(&latest) {
-            Ok(_) => std::fs::remove_file(&latest).map_err(io_error)?,
+            Ok(_) => std::fs::remove_file(&latest).map_err(|error| io_error(error, &latest))?,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
-            Err(error) => return Err(io_error(error)),
+            Err(error) => return Err(io_error(error, &latest)),
         }
         #[cfg(unix)]
-        std::os::unix::fs::symlink(&self.key, latest).map_err(io_error)?;
+        std::os::unix::fs::symlink(&self.key, &latest).map_err(|error| io_error(error, &latest))?;
         #[cfg(windows)]
-        std::os::windows::fs::symlink_dir(&self.key, latest).map_err(io_error)?;
+        std::os::windows::fs::symlink_dir(&self.key, &latest)
+            .map_err(|error| io_error(error, &latest))?;
         Ok(())
     }
 }

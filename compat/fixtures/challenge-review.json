@@ -1,0 +1,290 @@
+[
+  {
+    "name": "storage-missing",
+    "input": {
+      "layer": "storage",
+      "setup": "missing"
+    },
+    "expected": {
+      "error": null,
+      "error_path": null,
+      "directories": [
+        "responses",
+        "responses/key",
+        "responses/key/one",
+        "responses/key/one-props",
+        "responses/key/other",
+        "responses/key/other-props"
+      ]
+    }
+  },
+  {
+    "name": "storage-empty",
+    "input": {
+      "layer": "storage",
+      "setup": "empty"
+    },
+    "expected": {
+      "error": null,
+      "error_path": null,
+      "directories": [
+        "responses",
+        "responses/key",
+        "responses/key/one",
+        "responses/key/one-props",
+        "responses/key/other",
+        "responses/key/other-props"
+      ]
+    }
+  },
+  {
+    "name": "storage-unrelated",
+    "input": {
+      "layer": "storage",
+      "setup": "unrelated"
+    },
+    "expected": {
+      "error": null,
+      "error_path": null,
+      "directories": [
+        "responses",
+        "responses/key",
+        "responses/key/one",
+        "responses/key/one-props",
+        "responses/key/other",
+        "responses/key/other-props"
+      ]
+    }
+  },
+  {
+    "name": "storage-one",
+    "input": {
+      "layer": "storage",
+      "setup": "one"
+    },
+    "expected": {
+      "error": "FileExistsError",
+      "error_path": "responses/key/one",
+      "directories": [
+        "responses",
+        "responses/key",
+        "responses/key/one"
+      ]
+    }
+  },
+  {
+    "name": "storage-other",
+    "input": {
+      "layer": "storage",
+      "setup": "other"
+    },
+    "expected": {
+      "error": "FileExistsError",
+      "error_path": "responses/key/other",
+      "directories": [
+        "responses",
+        "responses/key",
+        "responses/key/one",
+        "responses/key/other"
+      ]
+    }
+  },
+  {
+    "name": "storage-file",
+    "input": {
+      "layer": "storage",
+      "setup": "file"
+    },
+    "expected": {
+      "error": "NotADirectoryError",
+      "error_path": "responses/key/one",
+      "directories": [
+        "responses"
+      ]
+    }
+  },
+  {
+    "name": "same-unnamed",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": null,
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "same"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 2,
+          "message": "[1 / 8] O (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} /a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "same-empty",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": "",
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "same"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 2,
+          "message": "[1 / 8] O (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} /a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "different-named",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": "日本 (a)",
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "different"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 1,
+          "message": "[1 / 8] X (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} 日本 (a)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "different-post",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": null,
+        "path": "/a",
+        "method": "POST"
+      },
+      "status": "different"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 1,
+          "message": "[1 / 8] X (200 - 200) <0.0s - 0.0s> {HttpMethod.POST} /a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "failure-unnamed",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": null,
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "failure"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 1,
+          "message": "[1 / 8] 💀 None"
+        }
+      ]
+    }
+  },
+  {
+    "name": "failure-empty",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": "",
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "failure"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 1,
+          "message": "[1 / 8] 💀 None"
+        }
+      ]
+    }
+  },
+  {
+    "name": "failure-named",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": "日本",
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "failure"
+    },
+    "expected": {
+      "error": null,
+      "logs": [
+        {
+          "verbosity": 1,
+          "message": "[1 / 8] 💀 日本"
+        }
+      ]
+    }
+  },
+  {
+    "name": "storage-error",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": "a/b",
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "same"
+    },
+    "expected": {
+      "error": "FileNotFoundError",
+      "logs": [
+        {
+          "verbosity": 2,
+          "message": "[1 / 8] O (200 - 200) <0.0s - 0.0s> {HttpMethod.GET} a/b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "parse-error",
+    "input": {
+      "layer": "progress",
+      "request": {
+        "name": null,
+        "path": "/a",
+        "method": "GET"
+      },
+      "status": "invalid"
+    },
+    "expected": {
+      "error": "JSONDecodeError",
+      "logs": []
+    }
+  }
+]

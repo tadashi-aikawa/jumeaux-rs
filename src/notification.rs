@@ -47,11 +47,11 @@ impl Log {
 }
 /// 通信・テンプレート評価が失敗しても、それ以前のログを呼出側へ返す。
 #[derive(Debug)]
-pub struct Failure {
+pub struct Failure<L = Log> {
     pub error: Error,
-    pub logs: Vec<Log>,
+    pub logs: Vec<L>,
 }
-impl From<Error> for Failure {
+impl<L> From<Error> for Failure<L> {
     fn from(error: Error) -> Self {
         Self {
             error,
@@ -59,13 +59,13 @@ impl From<Error> for Failure {
         }
     }
 }
-impl std::fmt::Display for Failure {
+impl<L> std::fmt::Display for Failure<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.error.fmt(f)
     }
 }
-impl std::error::Error for Failure {}
-pub type LoggedResult<T> = std::result::Result<T, Failure>;
+impl<L: std::fmt::Debug> std::error::Error for Failure<L> {}
+pub type LoggedResult<T, L = Log> = std::result::Result<T, Failure<L>>;
 
 fn validate_version(notifier: &Notifier) -> Result<()> {
     if !matches!(notifier.version, 1 | 2) {

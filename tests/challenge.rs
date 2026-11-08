@@ -340,7 +340,7 @@ impl Server {
                     maximum.fetch_max(current, Ordering::SeqCst);
                     let delay = if path.contains("slow") { 80 } else { 10 };
                     std::thread::sleep(std::time::Duration::from_millis(delay));
-                    let body = if path.contains("invalid") { "{" } else { "{\"a\":1}" };
+                    let body = if path.contains("invalid") { "{" } else if path.contains("different") { "{\"a\":2}" } else { "{\"a\":1}" };
                     write!(stream,"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nSet-Cookie: token=ok; Path=/\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",body.len(),body).unwrap();
                     active.fetch_sub(1, Ordering::SeqCst);
                 }));
@@ -431,12 +431,14 @@ async fn parallelism_is_bounded_and_trials_keep_input_order() {
 }
 
 #[tokio::test]
-async fn cookie_scope_is_explicit_and_clients_can_be_shared() {
+async fn cookie_scope_defaults_to_per_trial_for_processes_and_shared_for_threads() {
     use std::sync::Arc;
     let temp = Temp::new();
     let server = Server::start();
     for (key, processes, scope, expected_cookie) in [
         ("threads", None, None, true),
+        ("processes-default", Some(1), None, false),
+        ("processes-zero", Some(0), None, true),
         (
             "shared",
             Some(1),
@@ -474,13 +476,10 @@ async fn cookie_scope_is_explicit_and_clients_can_be_shared() {
             "{key}: {records:?}"
         );
     }
-    let mut config = server.config(&temp.0);
-    config.processes = Some(1);
-    let result = Arc::new(Pipeline::build(&config).unwrap())
-        .exec(server.transport(&config), Vec::new(), "undecided", None)
-        .await;
-    assert_eq!(result.err().unwrap().kind, "ValueError");
-    assert!(!temp.0.join("undecided").exists());
+    assert_eq!(
+        executor::ProcessCookieScope::default(),
+        executor::ProcessCookieScope::PerTrial
+    );
 }
 
 #[tokio::test]
@@ -499,7 +498,9 @@ async fn addon_error_keeps_previous_latest_and_failure_skips_addons() {
             None,
         )
         .await;
-    assert_eq!(result.err().unwrap().kind, "JSONDecodeError");
+    let failure = result.unwrap_err();
+    assert_eq!(failure.error.kind, "JSONDecodeError");
+    assert!(failure.logs.is_empty());
     assert!(files(&temp.0.join("invalid")).is_empty());
     assert_eq!(
         std::fs::read_link(temp.0.join("latest")).unwrap(),
@@ -523,6 +524,10 @@ async fn addon_error_keeps_previous_latest_and_failure_skips_addons() {
         .await
         .unwrap();
     assert_eq!(result.trials[0].status, Status::Failure);
+    assert_eq!(result.logs.len(), 1);
+    assert_eq!(result.logs[0].name, None);
+    assert_eq!(result.logs[0].status, Status::Failure);
+    assert_eq!(result.logs[0].one.status_code, None);
     assert_eq!(
         json!(result.trials[0].one),
         json!({"url":format!("{}/a?",config.one.host), "type":"unknown"})
@@ -532,5 +537,306 @@ async fn addon_error_keeps_previous_latest_and_failure_skips_addons() {
     assert_eq!(
         std::fs::read_link(temp.0.join("latest")).unwrap(),
         Path::new("failure")
+    );
+}
+
+#[tokio::test]
+async fn storage_error_stops_pending_trials_and_drains_running_trials() {
+    use std::sync::Arc;
+    for threads in [1, 2] {
+        let temp = Temp::new();
+        let server = Server::start();
+        let mut config = server.config(&temp.0);
+        config.threads = threads;
+        config.addons.did_challenge = serde_json::from_value(json!([
+            {"name":"sleep","config":{"min":0.2,"max":0.2}}
+        ]))
+        .unwrap();
+        let previous = Storage::create(&config.output, "previous").unwrap();
+        previous.update_latest().unwrap();
+        let mut input = requests(&["/first", "/slow", "/3", "/4", "/5", "/6", "/7", "/8"]);
+        input[0].name = Some("a/b".into());
+        let started = std::time::Instant::now();
+        let failure = Arc::new(Pipeline::build(&config).unwrap())
+            .exec(server.transport(&config), input, "error", None)
+            .await
+            .unwrap_err();
+        assert_eq!(failure.error.kind, "FileNotFoundError");
+        assert!(
+            failure
+                .error
+                .message
+                .contains(temp.0.join("error/one/(1)a/b").to_str().unwrap())
+        );
+        assert_eq!(failure.logs.len(), threads as usize);
+        assert!(failure.logs.iter().all(|log| log.total == 8));
+        assert_eq!(failure.logs[0].name.as_deref(), Some("a/b"));
+        let records = server.cookies.lock().unwrap().clone();
+        assert_eq!(records.len(), threads as usize * 2);
+        assert!(
+            records
+                .iter()
+                .all(|(path, _)| path == "/first" || path == "/slow")
+        );
+        let saved = files(&temp.0.join("error"));
+        if threads == 1 {
+            assert!(saved.is_empty());
+        } else {
+            assert_eq!(
+                saved.keys().map(String::as_str).collect::<Vec<_>>(),
+                [
+                    "one-props/(2)2.json",
+                    "one/(2)2",
+                    "other-props/(2)2.json",
+                    "other/(2)2"
+                ]
+            );
+            assert!(started.elapsed() >= std::time::Duration::from_millis(200));
+        }
+        assert_eq!(
+            std::fs::read_link(temp.0.join("latest")).unwrap(),
+            Path::new("previous")
+        );
+        // execが返った後にHTTP・保存が増えない。
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        assert_eq!(files(&temp.0.join("error")), saved);
+        assert_eq!(*server.cookies.lock().unwrap(), records);
+    }
+}
+
+#[tokio::test]
+async fn first_error_in_input_order_wins_even_if_it_finishes_later() {
+    use std::sync::Arc;
+    let temp = Temp::new();
+    let server = Server::start();
+    let mut config = server.config(&temp.0);
+    config.threads = 2;
+    let mut input = requests(&["/slow", "/invalid", "/never"]);
+    input[0].name = Some("a/b".into());
+    let failure = Arc::new(Pipeline::build(&config).unwrap())
+        .exec(server.transport(&config), input, "errors", None)
+        .await
+        .unwrap_err();
+    assert_eq!(failure.error.kind, "FileNotFoundError");
+    assert_eq!(failure.logs.len(), 1);
+    assert_eq!(failure.logs[0].seq, 1);
+    assert_eq!(server.cookies.lock().unwrap().len(), 4);
+    assert!(files(&temp.0.join("errors")).is_empty());
+    assert!(!temp.0.join("latest").exists());
+}
+
+#[tokio::test]
+async fn execution_times_cover_trials_after_storage_and_before_latest() {
+    use std::sync::Arc;
+    let temp = Temp::new();
+    let server = Server::start();
+    let mut config = server.config(&temp.0);
+    config.addons.did_challenge = serde_json::from_value(json!([
+        {"name":"sleep","config":{"min":0.02,"max":0.02}}
+    ]))
+    .unwrap();
+    for (key, input) in [("empty", Vec::new()), ("one", requests(&["/a"]))] {
+        let before = chrono::Local::now().fixed_offset();
+        let execution = Arc::new(Pipeline::build(&config).unwrap())
+            .exec(server.transport(&config), input, key, None)
+            .await
+            .unwrap();
+        let after = chrono::Local::now().fixed_offset();
+        assert!(before <= execution.started_at);
+        assert!(execution.started_at <= execution.ended_at);
+        assert!(execution.ended_at <= after);
+        // key直下のディレクトリ構成とlatestのmtimeで計測位置を検証する。
+        let created: chrono::DateTime<chrono::Utc> = std::fs::metadata(temp.0.join(key))
+            .unwrap()
+            .modified()
+            .unwrap()
+            .into();
+        let linked: chrono::DateTime<chrono::Utc> =
+            std::fs::symlink_metadata(temp.0.join("latest"))
+                .unwrap()
+                .modified()
+                .unwrap()
+                .into();
+        assert!(created <= execution.started_at);
+        assert!(execution.ended_at <= linked);
+        assert_eq!(execution.logs.len(), execution.trials.len());
+        if key == "one" {
+            assert!((execution.ended_at - execution.started_at).num_milliseconds() >= 20);
+        }
+    }
+}
+
+#[tokio::test]
+async fn latest_error_preserves_progress_logs() {
+    use std::sync::Arc;
+    let temp = Temp::new();
+    let server = Server::start();
+    let config = server.config(&temp.0);
+    std::fs::create_dir(temp.0.join("latest")).unwrap();
+    let failure = Arc::new(Pipeline::build(&config).unwrap())
+        .exec(server.transport(&config), requests(&["/a"]), "key", None)
+        .await
+        .unwrap_err();
+    assert!(
+        failure
+            .error
+            .message
+            .contains(temp.0.join("latest").to_str().unwrap())
+    );
+    assert_eq!(failure.logs.len(), 1);
+    assert_eq!(failure.logs[0].seq, 1);
+    assert_eq!(files(&temp.0.join("key")).len(), 4);
+}
+
+// CLI実装前の比較用フォーマッタ。構造化ログだけでPythonの行とverbosityを復元する。
+fn progress_line(log: &executor::Progress) -> Value {
+    use jumeaux::models::HttpMethod;
+    let prefix = format!("[{} / {}]", log.seq, log.total);
+    let message = if log.status == Status::Failure {
+        assert_eq!(log.one.status_code, None);
+        assert_eq!(log.other.status_code, None);
+        assert_eq!(log.one.response_sec, None);
+        assert_eq!(log.other.response_sec, None);
+        format!("{prefix} 💀 {}", log.name.as_deref().unwrap_or("None"))
+    } else {
+        assert!(log.one.response_sec.unwrap() >= 0.0);
+        assert!(log.other.response_sec.unwrap() >= 0.0);
+        // ローカルHTTPの実測時間だけをPython fixtureの固定値へ正規化する。
+        let symbol = if log.status == Status::Same { "O" } else { "X" };
+        let method = match log.method {
+            HttpMethod::Get => "GET",
+            HttpMethod::Post => "POST",
+        };
+        format!(
+            "{prefix} {symbol} ({} - {}) <0.0s - 0.0s> {{HttpMethod.{method}}} {}",
+            log.one.status_code.unwrap(),
+            log.other.status_code.unwrap(),
+            log.name.as_deref().unwrap_or(&log.path)
+        )
+    };
+    json!({"verbosity": if log.status == Status::Same { 2 } else { 1 }, "message": message})
+}
+
+fn storage_review(input: &Value) -> Value {
+    fn directories(root: &Path, path: &Path, out: &mut Vec<String>) {
+        for entry in std::fs::read_dir(path).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_dir() {
+                out.push(
+                    entry
+                        .path()
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .into(),
+                );
+                directories(root, &entry.path(), out);
+            }
+        }
+    }
+    let temp = Temp::new();
+    let key = temp.0.join("responses/key");
+    let setup = input["setup"].as_str().unwrap();
+    match setup {
+        "missing" => (),
+        "file" => {
+            std::fs::create_dir(key.parent().unwrap()).unwrap();
+            std::fs::write(&key, b"existing").unwrap();
+        }
+        _ => {
+            std::fs::create_dir_all(&key).unwrap();
+            match setup {
+                "unrelated" => std::fs::write(key.join("keep"), b"existing").unwrap(),
+                "one" | "other" => std::fs::create_dir(key.join(setup)).unwrap(),
+                "empty" => (),
+                _ => unreachable!(),
+            }
+        }
+    }
+    let error = Storage::create(&config(&temp.0.join("responses")).output, "key").err();
+    let error_path = error.as_ref().map(|error| {
+        let path = error
+            .message
+            .rsplit_once(": '")
+            .unwrap()
+            .1
+            .strip_suffix('\'')
+            .unwrap();
+        Path::new(path)
+            .strip_prefix(&temp.0)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned()
+    });
+    let mut dirs = Vec::new();
+    directories(&temp.0, &temp.0, &mut dirs);
+    dirs.sort();
+    if setup == "unrelated" {
+        assert_eq!(std::fs::read(key.join("keep")).unwrap(), b"existing");
+    }
+    #[cfg(unix)]
+    if error.is_none() {
+        use std::os::unix::fs::PermissionsExt;
+        for side in ["one", "other", "one-props", "other-props"] {
+            assert_eq!(
+                std::fs::metadata(key.join(side))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o777
+            );
+        }
+    }
+    json!({"error":error.map(|e|e.kind), "error_path":error_path, "directories":dirs})
+}
+
+#[tokio::test]
+async fn python_review_fixtures() {
+    use std::sync::Arc;
+    let cases: Vec<Value> =
+        serde_json::from_str(include_str!("../compat/fixtures/challenge-review.json")).unwrap();
+    for case in &cases {
+        let input = &case["input"];
+        let actual = if input["layer"] == "storage" {
+            storage_review(input)
+        } else {
+            let temp = Temp::new();
+            let server = Server::start();
+            let mut config = server.config(&temp.0);
+            match input["status"].as_str().unwrap() {
+                "different" => config.other.host.push_str("/different"),
+                "invalid" => config.one.host.push_str("/invalid"),
+                "failure" => config.other.host = "http://127.0.0.1:0".into(),
+                "same" => (),
+                _ => unreachable!(),
+            }
+            let request: Request = serde_json::from_value(input["request"].clone()).unwrap();
+            let execution = Arc::new(Pipeline::build(&config).unwrap())
+                .exec(server.transport(&config), vec![request; 8], "key", None)
+                .await;
+            let (error, logs) = match execution {
+                Ok(result) => {
+                    assert_eq!(result.logs.len(), 8);
+                    for (log, trial) in result.logs.iter().zip(&result.trials) {
+                        assert_eq!(log.seq, trial.seq);
+                        assert_eq!(log.total, 8);
+                        assert_eq!(log.one.response_sec, trial.one.response_sec);
+                        assert_eq!(log.other.response_sec, trial.other.response_sec);
+                    }
+                    (None, result.logs)
+                }
+                Err(failure) => (Some(failure.error.kind), failure.logs),
+            };
+            json!({"error":error, "logs":logs.iter().take(1).map(progress_line).collect::<Vec<_>>()})
+        };
+        assert_eq!(actual, case["expected"], "{}", case["name"]);
+    }
+    println!(
+        "challenge review fixtures: {}/{} matched",
+        cases.len(),
+        cases.len()
     );
 }
