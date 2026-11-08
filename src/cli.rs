@@ -1,7 +1,7 @@
 use clap::{ArgAction, Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "jumeaux", version, about, infer_long_args = true)]
+#[command(name = "jumeaux", version, about, infer_long_args = true, override_help = include_str!("../assets/help.txt"))]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,

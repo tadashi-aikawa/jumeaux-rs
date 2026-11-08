@@ -4,6 +4,7 @@ use clap::{Parser, error::ErrorKind};
 
 use jumeaux::cli::{Cli, Command};
 mod commands;
+mod init;
 mod logging;
 
 fn main() -> ExitCode {
@@ -17,6 +18,15 @@ fn main() -> ExitCode {
             }
         },
     };
+    if let Command::Init(args) = &cli.command {
+        return match init::run(args.name.as_deref()) {
+            Ok(code) => ExitCode::from(code),
+            Err(e) => {
+                logging::Logger(0).log(jumeaux::notification::Verbosity::Error, e.to_string());
+                ExitCode::FAILURE
+            }
+        };
+    }
     if matches!(cli.command, Command::Run(_) | Command::Retry(_)) {
         let result = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -40,7 +50,6 @@ fn main() -> ExitCode {
         };
     }
     let command = match cli.command {
-        Command::Init(_) => "init",
         Command::Server(_) => "server",
         Command::Viewer(_) => "viewer",
         _ => unreachable!(),
