@@ -223,7 +223,7 @@ async fn notify_conditions_nulls_and_errors_stop_later_addons() {
 fn final_validates_even_unreached_templates_and_miroir() {
     for addon in [
         json!({"name":"notify","config":{"notifies":[{"notifier":"x","message":"{{ broken", "when":"False"}]}}),
-        json!({"name":"miroir", "config":{"table":"a","bucket":"b"}}),
+        json!({"name":"miroir", "config":{"table":"a","bucket":"b", "local_stack":{"use":false}, "endpoints":{}}}),
     ] {
         assert!(Pipeline::build(&[serde_json::from_value(addon).unwrap()]).is_err());
     }

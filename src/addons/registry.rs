@@ -31,6 +31,9 @@ macro_rules! register {
                 return Err(invalid(&format!("{path}.transformer"),
                     "Python transformer is unsupported; external command contract is undecided"));
             }
+            if let AddonConfig::FinalMiroir(config) = &config {
+                config.validate()?;
+            }
             Ok(config)
         }
     };
