@@ -8,8 +8,69 @@ repo_url = "https://github.com/tadashi-aikawa/jumeaux-rs"
 edit_uri = "edit/main/docs/site/"
 docs_dir = "docs/site"
 site_dir = "site"
-nav = [{ "Home" = "index.md" }]
+extra_css = [
+  "https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css",
+  "css/custom.css",
+]
+nav = [
+  { "Home" = "index.md" },
+  { "Get Started" = [
+    { "Quickstart" = "ja/getstarted/quickstart.md" },
+    { "Configuration" = "ja/getstarted/configuration.md" },
+    { "Report" = "ja/getstarted/report.md" },
+    { "Python版からの移行" = "ja/getstarted/migration.md" },
+  ] },
+  { "Addons" = [
+    { "Summary" = "ja/addons/index.md" },
+    { "log2reqs" = "ja/addons/log2reqs.md" },
+    { "reqs2reqs" = "ja/addons/reqs2reqs.md" },
+    { "res2res" = "ja/addons/res2res.md" },
+    { "res2dict" = "ja/addons/res2dict.md" },
+    { "judgement" = "ja/addons/judgement.md" },
+    { "store_criterion" = "ja/addons/store_criterion.md" },
+    { "dump" = "ja/addons/dump.md" },
+    { "did_challenge" = "ja/addons/did_challenge.md" },
+    { "final" = "ja/addons/final.md" },
+    { "カスタムアドオン" = "ja/addons/custom.md" },
+  ] },
+  { "Models" = [
+    { "AccessPoint" = "ja/models/access-point.md" },
+    { "Notifier" = "ja/models/notifier.md" },
+    { "Request" = "ja/models/request.md" },
+    { "Response" = "ja/models/response.md" },
+    { "Trial" = "ja/models/trial.md" },
+  ] },
+  { "Template" = "ja/template.md" },
+  { "Releases" = [
+    { "All" = "ja/releases/index.md" },
+    { "v0.1.0" = "ja/releases/v0.1.0.md" },
+    { "Python版の履歴" = "https://tadashi-aikawa.github.io/jumeaux/ja/releases/" },
+  ] },
+]
 
 [project.theme]
 language = "ja"
 variant = "classic"
+logo = "img/logo.png"
+favicon = "img/favicon.ico"
+
+[project.markdown_extensions]
+meta = {}
+wikilinks = {}
+nl2br = {}
+admonition = {}
+footnotes = {}
+codehilite = { guess_lang = false }
+toc = { permalink = true }
+attr_list = {}
+pymdownx.details = {}
+pymdownx.emoji = { emoji_index = "zensical.extensions.emoji.twemoji", emoji_generator = "zensical.extensions.emoji.to_svg" }
+pymdownx.magiclink = {}
+pymdownx.snippets = { base_path = ["docs/site"], check_paths = true }
+pymdownx.superfences = {}
+
+[project.extra]
+social = [
+  { icon = "fontawesome/brands/github-alt", link = "https://github.com/tadashi-aikawa" },
+  { icon = "fontawesome/brands/twitter", link = "https://twitter.com/Tadashi_MAMAN" },
+]
