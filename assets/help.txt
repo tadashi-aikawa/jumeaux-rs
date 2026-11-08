@@ -9,4 +9,3 @@ Commands:
   retry               Retry Jumeaux from report
   run                 Run Jumeaux
   server              Boot mock API server
-  viewer              Boot Jumeaux Viewer

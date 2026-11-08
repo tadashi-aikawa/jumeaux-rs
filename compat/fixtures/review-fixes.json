@@ -284,10 +284,6 @@
             {
               "name": "json",
               "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
-              "cls_name": "Executor"
             }
           ]
         },
@@ -3511,72 +3507,6 @@
     "expected": {
       "error": "UnknownPropertiesError"
     }
-  },
-  {
-    "name": "addon-valid-final/viewer",
-    "operation": "addon",
-    "input": {
-      "layer": "final",
-      "name": "viewer",
-      "config": {}
-    },
-    "expected": {
-      "value": {}
-    }
-  },
-  {
-    "name": "addon-empty-final/viewer",
-    "operation": "addon",
-    "input": {
-      "layer": "final",
-      "name": "viewer",
-      "config": {}
-    },
-    "expected": {
-      "value": {}
-    }
-  },
-  {
-    "name": "addon-null-fields-final/viewer",
-    "operation": "addon",
-    "input": {
-      "layer": "final",
-      "name": "viewer",
-      "config": {}
-    },
-    "expected": {
-      "value": {}
-    }
-  },
-  {
-    "name": "addon-null-defaults-final/viewer",
-    "operation": "addon",
-    "input": {
-      "layer": "final",
-      "name": "viewer",
-      "config": {}
-    },
-    "expected": {
-      "value": {}
-    }
-  },
-  {
-    "name": "addon-unknown-final/viewer",
-    "operation": "addon",
-    "input": {
-      "layer": "final",
-      "name": "viewer",
-      "config": {
-        "typo": 1
-      }
-    },
-    "expected": {
-      "value": {}
-    },
-    "rust_expected": {
-      "error": "UnknownPropertiesError"
-    },
-    "difference": "docs/compat-spec.md: Python transformerと解釈しない設定は拒否する"
   },
   {
     "name": "process-output-utf-16",

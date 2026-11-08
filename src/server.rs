@@ -1,4 +1,4 @@
-//! server/viewerの静的配信。Viewerはlatestをリクエストごとに解決する。
+//! モックAPIサーバーの静的配信。
 use crate::logging::{Logger, repr};
 use jumeaux::{
     compat::{
@@ -12,32 +12,12 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
 };
 
-const RELOAD: &str = r#"<script>
-(() => {
-  let previous;
-  async function check() {
-    try {
-      const response = await fetch('/__jumeaux_reload', {cache: 'no-store'});
-      if (response.ok) {
-        const current = await response.text();
-        if (previous !== undefined && current !== previous) location.reload();
-        previous = current;
-      }
-    } catch (_) {}
-    setTimeout(check, 500);
-  }
-  check();
-})();
-</script>"#;
-
-pub fn run(port: i64, root: PathBuf, viewer: bool, logger: Logger) -> Result<u8> {
+pub fn run(port: i64, root: PathBuf, logger: Logger) -> Result<u8> {
     let port = u16::try_from(port)
         .map_err(|_| Error::new("ValueError", "port must be between 0 and 65535"))?;
-    let listener = TcpListener::bind((if viewer { "127.0.0.1" } else { "0.0.0.0" }, port))
-        .map_err(io_error)?;
+    let listener = TcpListener::bind(("0.0.0.0", port)).map_err(io_error)?;
     let address = listener.local_addr().map_err(io_error)?;
     logger.log(
         Verbosity::Normal,
@@ -49,30 +29,11 @@ pub fn run(port: i64, root: PathBuf, viewer: bool, logger: Logger) -> Result<u8>
             address.port()
         ),
     );
-    if viewer && std::env::var_os("JUMEAUX_NO_BROWSER").is_none() {
-        let url = format!("http://127.0.0.1:{}/", address.port());
-        std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            #[cfg(target_os = "macos")]
-            let result = std::process::Command::new("open").arg(&url).status();
-            #[cfg(target_os = "windows")]
-            let result = std::process::Command::new("rundll32")
-                .args(["url.dll,FileProtocolHandler", &url])
-                .status();
-            #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-            let result = std::process::Command::new("xdg-open").arg(&url).status();
-            if let Err(error) = result {
-                logger.log(Verbosity::Warning, format!("Cannot open browser: {error}"));
-            }
-        });
-    }
-    let revision = Arc::new(Mutex::new(fingerprint(&root)));
     for stream in listener.incoming() {
         let stream = stream.map_err(io_error)?;
         let root = root.clone();
-        let revision = Arc::clone(&revision);
         std::thread::spawn(move || {
-            if let Err(error) = handle(stream, &root, viewer, logger, &revision) {
+            if let Err(error) = handle(stream, &root, logger) {
                 logger.log(Verbosity::Error, error.to_string());
             }
         });
@@ -82,28 +43,7 @@ pub fn run(port: i64, root: PathBuf, viewer: bool, logger: Logger) -> Result<u8>
 fn io_error(e: impl std::fmt::Display) -> Error {
     Error::new("IOError", e.to_string())
 }
-fn fingerprint(root: &Path) -> String {
-    let path = root.join("report.json");
-    let stamp = std::fs::metadata(&path)
-        .ok()
-        .and_then(|m| m.modified().ok())
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_nanos())
-        .unwrap_or_default();
-    let body = std::fs::read(&path).unwrap_or_default();
-    format!(
-        "{stamp}:{:?}",
-        ring::digest::digest(&ring::digest::SHA256, &body)
-    )
-}
-
-fn handle(
-    mut stream: TcpStream,
-    root: &Path,
-    viewer: bool,
-    logger: Logger,
-    revision: &Mutex<String>,
-) -> Result<()> {
+fn handle(mut stream: TcpStream, root: &Path, logger: Logger) -> Result<()> {
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(30)))
         .map_err(io_error)?;
@@ -192,23 +132,6 @@ fn handle(
         logger.log(Verbosity::Verbose, value);
     }
     let target_path = target.split(['?', '#']).next().unwrap();
-    if viewer && target_path == "/__jumeaux_reload" {
-        let current = fingerprint(root);
-        let mut previous = revision.lock().map_err(io_error)?;
-        if *previous != current {
-            logger.log(Verbosity::Normal, "Reload viewer.");
-            *previous = current.clone();
-        }
-        // ポーリングのアクセスログは出さず、変更検出時の通知だけを残す。
-        return respond(
-            &mut stream,
-            200,
-            "text/plain",
-            current.as_bytes(),
-            head,
-            &[("Cache-Control", "no-store".into())],
-        );
-    }
     let decoded = decode_path(target_path);
     let mut path = root.to_path_buf();
     let mut relative = PathBuf::new();
@@ -268,7 +191,7 @@ fn handle(
             return reply(200, "text/html; charset=utf-8", html.as_bytes(), head, &[]);
         }
     }
-    let mut body=match std::fs::read(&path){Ok(body)=>body,Err(_)=>return reply(404,"text/html; charset=utf-8",b"<!DOCTYPE HTML><html><title>Error response</title><h1>Error response</h1><p>Error code: 404</p><p>Message: File not found.</p></html>",head,&[])};
+    let body=match std::fs::read(&path){Ok(body)=>body,Err(_)=>return reply(404,"text/html; charset=utf-8",b"<!DOCTYPE HTML><html><title>Error response</title><h1>Error response</h1><p>Error code: 404</p><p>Message: File not found.</p></html>",head,&[])};
     // JavaScript・圧縮ファイル・YAMLはPythonのMIME定義を優先する。
     let guessed = mime_guess::from_path(&path).first_or_octet_stream();
     let mime = match path
@@ -285,9 +208,6 @@ fn handle(
         Some("xz") => "application/x-xz",
         _ => guessed.essence_str(),
     };
-    if viewer && mime == "text/html" {
-        body.extend_from_slice(RELOAD.as_bytes());
-    }
     let mut extra = vec![];
     if let Ok(modified) = std::fs::metadata(&path).and_then(|m| m.modified()) {
         let at: chrono::DateTime<chrono::Utc> = modified.into();
@@ -295,9 +215,6 @@ fn handle(
             "Last-Modified",
             at.format("%a, %d %b %Y %H:%M:%S GMT").to_string(),
         ));
-    }
-    if viewer {
-        extra.push(("Cache-Control", "no-cache".into()));
     }
     reply(200, mime, &body, head, &extra)
 }

@@ -45,7 +45,7 @@ def main():
             for rel, kind in tree(one):
                 if kind == "file" and rel != "report.json":
                     equal((one / rel).read_bytes(), (other / rel).read_bytes(), f"{case}.{label}.{rel}")
-        print(f"PASS {case}: 2 reports and all response/prop/Viewer bytes matched")
+        print(f"PASS {case}: 2 reports and all response/prop bytes matched")
     print(f"{len(cases)}/{len(cases)} templates matched; {2 * len(cases)} reports")
 
 

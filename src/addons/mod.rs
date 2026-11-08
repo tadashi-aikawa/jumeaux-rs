@@ -272,6 +272,9 @@ pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> 
             }
             message.push_str(&format!("\n{}", exec::MIGRATION));
         }
+        if layer == Layer::Final && addon.name == "viewer" {
+            message.push_str("\nfinal/viewer はRust版にはありません。設定から name: viewer の行を削除してください。");
+        }
         return Err(invalid(&format!("{path}.name"), message));
     }
     if addon.cls_name != "Executor" {

@@ -99,7 +99,7 @@ valid = {
     "dump/encoding": {"encoding": "utf8"}, "dump/html": {}, "dump/json": {}, "dump/xml": {},
     "did_challenge/sleep": {"min": 1.0, "max": 2.0}, "did_challenge/tag": {"conditions": [{"tag": "tag"}]},
     "final/csv": {"column_names": ["name"], "output_path": "out.csv"}, "final/json": {},
-    "final/miroir": {"table": "table", "bucket": "bucket"}, "final/notify": {}, "final/summary": {}, "final/viewer": {},
+    "final/miroir": {"table": "table", "bucket": "bucket"}, "final/notify": {}, "final/summary": {},
 }
 for addon, config in valid.items():
     module = importlib.import_module("jumeaux.addons." + addon.replace("/", "."))
@@ -107,7 +107,7 @@ for addon, config in valid.items():
     null_defaults = {key: None for key in getattr(cls, "__annotations__", {}) if hasattr(cls, key)}
     for variant, value in [("valid", config), ("empty", {}), ("null-fields", {k: None for k in config}),
                            ("null-defaults", {**config, **null_defaults}), ("unknown", {**config, "typo": 1})]:
-        # shuffle/viewerはPythonにConfigがない。空config以外はRustの明示拒否として記録する。
+        # shuffleはPythonにConfigがない。空config以外はRustの明示拒否として記録する。
         def check():
             if cls is not None:
                 return cls.from_dict(value).to_dict(force_value=True)

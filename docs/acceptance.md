@@ -3,10 +3,32 @@
 検証日時: 2026-11-08T16:43 JST。
 受入開始時のRust版は `2163275` 、Python版7.0.0は `dc276b8` 。
 
-機械的な受入は成功した。Viewerの目視は未実施で、タダシの担当とする。
+初回の機械的な受入は成功した。
 リリース・push・実AWSへの接続は実施していない。
 
-## 環境
+## Viewer削除後の検証
+
+検証日時: 2026-11-08T21:33 JST。
+
+| 検証 | 結果 |
+| --- | --- |
+| `cargo test` | 170件成功。doctest 3件を含む |
+| `cargo test --no-default-features` | 167件成功。doctest 3件を含む |
+| `cargo test -- --ignored` | 2件成功 |
+| serverのHTML・MIME・本文配信 | 両feature構成で各2件成功 |
+| 比較ハーネスの自己検証 | 45件成功 |
+| 移行後の旧Python reportのretry | 8/8シナリオ成功 |
+| fmt・Clippy・サイトstrictビルド・releaseビルド | 成功 |
+| `cargo tree` | Viewer専用依存なし。ブラウザ起動はOSコマンドだった |
+| release CLIの35ケース比較 | 未実行。ポート8000を既存serverが使用中で開始前に停止 |
+| 削除したCLIと旧reportのViewer設定 | 終了コード1。未知コマンド・設定の削除案内を確認 |
+
+Python基準側の結果ルートの `index.html` と、Viewerに対応する設定・report項目・既知ログ・help行を比較から除く。
+Rust側の余分なHTMLやViewer設定は不一致になることを自己検証で確認した。
+
+以下の環境・OS間比較・SHA-256は、Viewer削除前の初回受入の記録である。
+
+## 初回受入の環境
 
 | 項目 | 実測 |
 | --- | --- |
@@ -23,7 +45,7 @@ LinuxコンテナはPythonを追加せずに実行した。
 コンテナのネットワークは `--network none` とし、ループバックの同梱serverだけを使った。
 x86_64の受入はarm64のColima VM上でのコンテナ実行である。
 
-## 機械的な受入結果
+## 初回受入の機械的な結果
 
 | 検証 | 成功 | 失敗 | 補足 |
 | --- | ---: | ---: | --- |
@@ -35,9 +57,9 @@ x86_64の受入はarm64のColima VM上でのコンテナ実行である。
 | `cargo test --no-default-features` | 170テスト | 0 | doctest 3件を含む。ignored 2件は別実行 |
 | 旧Python reportのretry | 8/8シナリオ | 0 | 6種類のreport、警告、exec許可 |
 | Linux x86_64の同梱テンプレート | 16/16 | 0 | 各テンプレートでinit → server → run → retry |
-| Linux x86_64とmacOSの成果物比較 | 32/32レポート | 0 | run/retry各32 Trial、保存本文・prop・Viewerのbytes一致 |
+| Linux x86_64とmacOSの成果物比較 | 32/32レポート | 0 | run/retry各32 Trial、保存本文・propのbytes一致 |
 | Linux arm64のsimple | 1/1 | 0 | init → server → run → retry |
-| Linux arm64とmacOSの成果物比較 | 2/2レポート | 0 | run/retry各2 Trial、保存本文・prop・Viewerのbytes一致 |
+| Linux arm64とmacOSの成果物比較 | 2/2レポート | 0 | run/retry各2 Trial、保存本文・propのbytes一致 |
 | `cargo fmt --check` | 成功 | 0 | |
 | `cargo clippy --all-targets -- -D warnings` | 成功 | 0 | |
 | `uv run zensical build --clean --strict` | 成功 | 0 | 利用者ドキュメント |
@@ -51,10 +73,6 @@ x86_64の受入はarm64のColima VM上でのコンテナ実行である。
 
 ### 検出した問題と対応
 
-- `--no-default-features` の初回実行で、ViewerのE2Eが `Address already in use` になった。
-  - 原因: テストで空きポートを確保・解放してから子サーバーを起動する間に、別のテストが同じポートを使用できた。
-  - 対応: `tests/server_cli.rs` をポート0で起動し、起動ログから割り当て済みポートを取得するように変更した。
-  - 結果: 単独再実行と全件再実行が成功した。
 - 外部コマンドのエラーに表示する移行ガイドURLが、サイトの実際の出力パスと異なっていた。
   - 対応: `/addons/exec/` を `/ja/addons/exec/` へ修正し、案内先ページを追加した。
   - 検証: サイトのstrictビルドでページ生成を確認し、CLIテストのURL期待値を更新した。
@@ -81,7 +99,8 @@ Linux arm64     8decee8be76b82bfaaf085bd6f92f0ae0ad81dbaa7e9bafa81b1121ebc6437e2
 ## 旧Python reportからのretry
 
 入力は `compat/python-baseline/<case>/responses/<key>/report.json` 。
-`summary.comparison` がないことを検査してから、受信先のポートだけをローカルの動的ポートへ変更した。
+`summary.comparison` がないことを検査してから、受信先のポートをローカルの動的ポートへ変更した。
+再検証では、両CLIへ渡す旧reportの `addons.final` から `name: viewer` の項目を削除した。
 
 | ケース | 確認した結果 |
 | --- | --- |
@@ -114,12 +133,15 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 ## Python版E2E 23件との対応
 
 比較対象はPython版 `e2e/main.py` 。
-テストメソッドは23件で、未対応は0件だった。
+テストメソッド23件のうち、Viewer以外の検証はすべて対応する。
 元の23件を埋めるためのE2E追加は不要だった。
 旧reportのretry受入8シナリオと、OS間比較のハーネスを追加した。
 
 下表のケース名は `compat/harness/run.py` のケースを指す。
 同ハーネスはCLIの終了コードに加え、全report、保存bytes、実送信、生成物の有無を比較する。
+
+Python版の `index.html` 存在検証は、runの14件とretryの2件に含まれる。
+各ケースの対応は維持し、HTMLの検証だけを対象外とする。
 
 | Python版のテスト | 確認すること | Rust版の対応 |
 | --- | --- | --- |
@@ -146,6 +168,7 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 | `TestRun.test_post` | POSTのform・JSON・raw、same 1・different 2 | `post` |
 | `TestRetry.test_with_empty_path` | 空pathのreportからretry、different 1 | `retry_path_empty`、追加の旧report受入 |
 | `TestRetry.test_with_notifiers` | retryでnotifiersの種別・channel・iconを保持 | `retry_notifier`、追加の旧report受入 |
+| 上記run 14件・retry 2件のViewer検証 | `index.html` の存在 | 対象外(機能を外した) |
 
 ## v0.1.0でPython版から変わること
 
@@ -156,6 +179,7 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 
 | 対象 | 移行内容 |
 | --- | --- |
+| `final/viewer` | 設定とretryする旧reportのaddons.finalからname: viewerの項目を削除 |
 | Pythonカスタムアドオン | `name: exec`、`config.command`、`config.options` へ移行 |
 | Python transformer | module・functionをtransformer.command・optionsへ移行 |
 | `cls_name` | Executor以外は使用不可。処理の選択はcommandで指定 |
@@ -171,6 +195,7 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 
 | 対象 | 利用者への影響 |
 | --- | --- |
+| `jumeaux viewer` | コマンドは対象外。結果はresponses/latest/report.jsonで確認 |
 | インストール | macOS・Linuxのarm64・x86_64用バイナリ。組み込み機能はPython不要 |
 | 外部コマンド | JSONとBase64で通信し、呼び出しごとにプロセス起動。validate、上限、タイムアウトを適用 |
 | `init addon` | 外部コマンド3雛形を生成。雛形の実行にはPython 3が必要 |
@@ -263,69 +288,7 @@ uv run --project compat/harness python compat/harness/compare_platforms.py targe
 ファイルmtimeは2000-01-01 UTCへ固定する。
 比較は既存のreport正規化と、前述のHTTP Date検証だけを使用する。
 
-## Viewerの目視手順
-
-担当はタダシ。機械試験では静的配信、report変更検出、latest差し替えを確認済み。
-ブラウザでの表示確認は未実施。
-
-リポジトリルートからターミナル1で実行する。
-
-```sh
-export JUMEAUX_BIN="$PWD/target/release/jumeaux"
-demo_dir=$(mktemp -d /tmp/jumeaux-viewer-acceptance.XXXXXX)
-cd "$demo_dir"
-"$JUMEAUX_BIN" init simple
-"$JUMEAUX_BIN" server > server.log 2>&1 &
-api_pid=$!
-api_ready=true
-until curl --silent --fail http://127.0.0.1:8000/api/one/same-1.json > /dev/null; do
-  kill -0 "$api_pid" || { echo 'server failed'; cat server.log; api_ready=false; break; }
-  sleep 0.1
-done
-if [ "$api_ready" = true ]; then
-  "$JUMEAUX_BIN" run requests && {
-    printf '目視用ディレクトリ: %s\n' "$PWD"
-    "$JUMEAUX_BIN" viewer
-  }
-fi
-```
-
-ブラウザで `http://127.0.0.1:5500/` が開く。
-ViewerはVue・Monacoなどを外部CDNから読み込む。
-目視時はCDNへ接続できるブラウザが必要。
-
-| 観点 | 確認内容 |
-| --- | --- |
-| 一覧 | Simpleのタイトル、Same 1・Different 1・Failure 0、フィルタ切り替え |
-| 差分表示 | Differentの行を選ぶと、oneとotherの保存JSONが左右に表示される |
-| 同一レスポンス | Sameは保存条件により本文がない。保存ファイルの存在と区別できる |
-| 自動リロード | reportのタイトル変更が手動更新なしで反映される |
-| latest差し替え | 同じディレクトリで再runすると、新しいreportを表示する |
-
-ターミナル2で、表示された目視用ディレクトリへ移動する。
-
-```sh
-cd <目視用ディレクトリ>
-jq '.title = "自動リロード確認"' responses/latest/report.json > updated-report.json
-mv updated-report.json responses/latest/report.json
-```
-
-タイトルが自動で変わることを確認する。
-続けてターミナル2で再runし、latest差し替えも確認する。
-
-```sh
-export JUMEAUX_BIN="<リポジトリの絶対パス>/target/release/jumeaux"
-"$JUMEAUX_BIN" run requests
-```
-
-終了時はターミナル1のviewerをCtrl-Cで止め、同じターミナルでAPIサーバーを停止する。
-
-```sh
-kill "$api_pid"
-wait "$api_pid"
-```
-
 ## 残件
 
-- タダシによるViewerの目視受入。
+- ポート8000が空いた環境で、Viewer削除後のrelease CLIの35ケース比較を実行する。
 - リリースするかの判断と、push・タグ作成・公開作業。

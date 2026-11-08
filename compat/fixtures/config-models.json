@@ -79,10 +79,6 @@
             {
               "name": "json",
               "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
-              "cls_name": "Executor"
             }
           ]
         },
@@ -264,10 +260,6 @@
             {
               "name": "json",
               "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
-              "cls_name": "Executor"
             }
           ]
         },
@@ -362,10 +354,6 @@
           "final": [
             {
               "name": "json",
-              "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
               "cls_name": "Executor"
             }
           ]
@@ -470,10 +458,6 @@
             {
               "name": "json",
               "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
-              "cls_name": "Executor"
             }
           ]
         },
@@ -568,10 +552,6 @@
           "final": [
             {
               "name": "json",
-              "cls_name": "Executor"
-            },
-            {
-              "name": "viewer",
               "cls_name": "Executor"
             }
           ]

@@ -17,4 +17,4 @@ addons:
     - {name: head, config: {size: 5}}
     - {name: repeat, config: {times: 2}}
   res2dict: [{name: json}]
-  final: [{name: json}, {name: viewer}]
+  final: [{name: json}]

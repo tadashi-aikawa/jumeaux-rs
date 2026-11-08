@@ -435,39 +435,6 @@ csv
 ```
 
 
-viewer
-----------------------------
-
-[viewer]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/final/viewer.rs
-
-[ソースコード][viewer]
-
-結果をGUIで確認するためのHTMLを出力します。
-
-出力される`index.html`は同じディレクトリに以下のエントリがいる前提で動作します。
-
-* oneディレクトリ
-* otherディレクトリ
-* report.json
-
-`report.json`を作成するには`final/json`アドオンを指定してください。
-
-### Config
-
-#### Definitions
-
-Config設定はありません。
-
-#### Examples
-
-##### 結果をGUIで確認するためのviewerを同梱する
-
-```yaml
-  final:
-    - name: json  # report.jsonが必要なため
-    - name: viewer
-```
-
 
 [Template表記]: ../template.md
 [report]: ../getstarted/report.md

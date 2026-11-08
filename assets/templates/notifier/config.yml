@@ -36,7 +36,6 @@ addons:
 
   final:
     - name: json
-    - name: viewer
 
   # Uncomment if you want to notify => Slack
   #   - name: notify

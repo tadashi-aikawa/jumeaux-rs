@@ -1,3 +1,6 @@
+#[path = "support/migration.rs"]
+mod migration;
+
 use jumeaux::{
     config::{Config, MergedArgs},
     executor::Execution,
@@ -27,6 +30,7 @@ fn aggregates_every_baseline_report() {
         )
         .unwrap();
         let expected: Report = serde_json::from_str(&text).unwrap();
+        let expected = migration::without_viewer(&expected);
         let (mut config, _) = Config::from_report(&expected).unwrap();
         config.tags = Some(expected.summary.tags.clone());
         let execution = Execution {

@@ -12,6 +12,7 @@ fn argument_errors_exit_with_one_and_write_to_stderr() {
     for args in [
         &[][..],
         &["unknown"],
+        &["viewer"],
         &["run"],
         &["server", "--port", "abc"],
     ] {
@@ -35,7 +36,6 @@ fn help_and_version_exit_with_zero_and_write_to_stdout() {
         &["retry", "--help"],
         &["init", "--help"],
         &["server", "--help"],
-        &["viewer", "--help"],
     ] {
         let output = run(args);
         assert_eq!(output.status.code(), Some(0), "args: {args:?}");

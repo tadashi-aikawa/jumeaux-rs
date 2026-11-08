@@ -51,18 +51,9 @@ fn main() -> ExitCode {
         };
     }
     let result = match cli.command {
-        Command::Server(args) => server::run(
-            args.port,
-            ".".into(),
-            false,
-            logging::Logger(args.logging.v),
-        ),
-        Command::Viewer(args) => server::run(
-            args.port,
-            std::path::PathBuf::from(args.responses_dir).join("latest"),
-            true,
-            logging::Logger(0),
-        ),
+        Command::Server(args) => {
+            server::run(args.port, ".".into(), logging::Logger(args.logging.v))
+        }
         _ => unreachable!(),
     };
     match result {

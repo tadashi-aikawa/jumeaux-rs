@@ -179,7 +179,15 @@ async fn templates_match_python_saved_trials_and_files() {
         writeln!(receiver.child.stdin.as_mut().unwrap(), "{}", work.display()).unwrap();
         receiver.child.stdin.as_mut().unwrap().flush().unwrap();
         wait_ready(&mut receiver, &work.join("receiver.ready"));
-        let mut config = config::load(&[case.join("config.yml")], &[]).unwrap();
+        let migrated = work.join("config.yml");
+        std::fs::write(
+            &migrated,
+            std::fs::read_to_string(case.join("config.yml"))
+                .unwrap()
+                .replace("    - name: viewer\n", ""),
+        )
+        .unwrap();
+        let mut config = config::load(&[migrated], &[]).unwrap();
         config.one.host = config
             .one
             .host

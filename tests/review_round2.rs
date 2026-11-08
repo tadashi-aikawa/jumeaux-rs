@@ -1,3 +1,6 @@
+#[path = "support/migration.rs"]
+mod migration;
+
 use jumeaux::{
     config::{self, Config, HeaderJudgementSettings},
     models::{OutputSummary, Report},
@@ -90,12 +93,15 @@ fn warnings_are_returned_and_comparison_is_preserved() {
     let (mut report, warnings) = Report::from_value_with_warnings(old).unwrap();
     assert!(warnings.is_empty());
     report.summary.output.logger = Some(json!({"level": "debug"}));
-    let (_, warnings) = Config::from_report(&report).unwrap();
+    let (_, warnings) = Config::from_report(&migration::without_viewer(&report)).unwrap();
     assert_eq!(warnings.len(), 2);
     assert!(warnings[0].starts_with("report.summary.comparison:"));
     assert!(warnings[1].starts_with("report.summary.output.logger:"));
-    let (_, warnings) =
-        Config::from_report_with_headers(&report, HeaderJudgementSettings::default()).unwrap();
+    let (_, warnings) = Config::from_report_with_headers(
+        &migration::without_viewer(&report),
+        HeaderJudgementSettings::default(),
+    )
+    .unwrap();
     assert_eq!(warnings.len(), 1);
     let mut source = serde_json::to_value(&report).unwrap();
     source["summary"]["comparison"] = json!({
@@ -105,7 +111,7 @@ fn warnings_are_returned_and_comparison_is_preserved() {
     });
     let (report, warnings) = Report::from_value_with_warnings(source).unwrap();
     assert_eq!(warnings.len(), 2);
-    let (config, warnings) = Config::from_report(&report).unwrap();
+    let (config, warnings) = Config::from_report(&migration::without_viewer(&report)).unwrap();
     assert!(warnings.is_empty());
     assert!(config.judge_response_header);
     assert_eq!(config.ignore_response_header_keys, ["X-Test"]);
@@ -210,8 +216,12 @@ fn parallel_output_child() {
     let _: Report = serde_json::from_value(source).unwrap();
     let report: Report =
         serde_json::from_str(include_str!("../compat/python-baseline/simple/report.json")).unwrap();
-    let _ = Config::from_report(&report).unwrap();
+    let _ = Config::from_report(&migration::without_viewer(&report)).unwrap();
     let mut report = report;
     report.summary.output.logger = Some(json!({}));
-    let _ = Config::from_report_with_headers(&report, HeaderJudgementSettings::default()).unwrap();
+    let _ = Config::from_report_with_headers(
+        &migration::without_viewer(&report),
+        HeaderJudgementSettings::default(),
+    )
+    .unwrap();
 }

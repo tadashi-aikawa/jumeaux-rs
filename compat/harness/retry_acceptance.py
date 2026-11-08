@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 
-from compare import configured_headers, equal, load, normalize_report, records, tree, validate_report
+from compare import configured_headers, equal, load, normalize_report, records, tree, validate_report, without_viewer
 from exec_samples import wait_ready
 from run import HERE, PYTHON_ROOT, ROOT, RULES, environment
 
@@ -30,7 +30,8 @@ def source_report(case, port):
     assert "comparison" not in source["summary"]
     for side in ("one", "other"):
         source["summary"][side]["host"] = source["summary"][side]["host"].replace(":8000", f":{port}")
-    return source
+    # 旧reportの移行: Rust版で使わないfinal/viewerを両CLIの入力から除く。
+    return without_viewer(source)
 
 
 def select(server, work):
@@ -55,7 +56,7 @@ def compare_retry(expected, actual):
     report = copy.deepcopy(expected[0])
     report["summary"]["comparison"] = RULES["rust_comparison_default"]
     equal(normalize_report(report, RULES), normalize_report(actual[0], RULES), "retry report")
-    equal(expected[1], actual[1], "response/prop/Viewer bytes")
+    equal(expected[1], actual[1], "response/prop bytes")
     equal(expected[2], actual[2], "recorded requests")
 
 

@@ -1,4 +1,8 @@
 #![cfg(unix)]
+
+#[path = "support/migration.rs"]
+mod migration;
+
 use jumeaux::{
     addons::{
         self, Layer,
@@ -59,7 +63,7 @@ where
 fn all_nine_layers_preserve_models_binary_nulls_and_large_integers() {
     let report: Report =
         serde_json::from_str(include_str!("../compat/python-baseline/simple/report.json")).unwrap();
-    let (config, _) = Config::from_report(&report).unwrap();
+    let (config, _) = Config::from_report(&migration::without_viewer(&report)).unwrap();
     let request: Request = serde_json::from_value(json!({"path":"/x","json":{"null":null,"list":[null,1],"large":123456789012345678901234567890u128}})).unwrap();
     let response = response();
     let loaded = runtime(Layer::Log2Reqs, "echo")

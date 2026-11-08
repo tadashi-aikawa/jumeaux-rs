@@ -3,7 +3,6 @@ pub mod json;
 pub mod miroir;
 pub mod notify;
 pub mod summary;
-pub mod viewer;
 
 use super::{
     AddonConfig, Layer, parse_config,
@@ -194,7 +193,6 @@ impl Pipeline {
                 std::fs::write(&c.output_path, c.render(&payload.report)?)
                     .map_err(|e| io_error(Path::new(&c.output_path), e))?;
             }
-            AddonConfig::FinalViewer(_) => viewer::save(&root, logs)?,
             AddonConfig::FinalMiroir(c) => c.send(payload, logs).await?,
             AddonConfig::FinalNotify(c) => {
                 c.send(

@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from compare import compare_case, equal, load, normalize_report, records, text, validate_report
+from compare import compare_case, equal, load, normalize_report, records, text, validate_report, without_viewer, without_viewer_text
 
 HERE = Path(__file__).resolve().parent
 BASELINE = HERE.parent / "python-baseline"
@@ -19,6 +19,21 @@ RULES = load(HERE / "comparison.json")
 
 
 class ComparisonTests(unittest.TestCase):
+    def rust_case(self, directory):
+        target = Path(directory) / "simple"
+        shutil.copytree(BASELINE / "simple", target, symlinks=True)
+        report = without_viewer(load(target / "report.json"))
+        for path in (target / "report.json", target / "responses" / report["key"] / "report.json"):
+            path.write_text(json.dumps(report))
+        (target / "responses" / report["key"] / "index.html").unlink()
+        for name in ("config.yml", "init-config.yml"):
+            path = target / name
+            path.write_bytes(path.read_bytes().replace(b"    - name: viewer\n", b""))
+        for stream in ("run.stdout", "run.stderr"):
+            path = target / stream
+            path.write_bytes(without_viewer_text(path.read_bytes(), stream))
+        return target, report
+
     def test_stage_elapsed_normalization_requires_microsecond_precision(self):
         for duration in ("0.0", "0.057", "1.23"):
             line = f"[1 / 2] ⏰ Judgement:   {duration}ms\n".encode()
@@ -29,11 +44,9 @@ class ComparisonTests(unittest.TestCase):
 
     def test_rust_comparison_settings_are_required_and_checked(self):
         with tempfile.TemporaryDirectory() as directory:
-            target = Path(directory) / "simple"
-            shutil.copytree(BASELINE / "simple", target, symlinks=True)
+            target, report = self.rust_case(directory)
             with self.assertRaises(AssertionError):
                 compare_case(BASELINE / "simple", target, RULES, rust=True)
-            report = load(target / "report.json")
             report["summary"]["comparison"] = copy.deepcopy(RULES["rust_comparison_default"])
             for path in [target / "report.json", target / "responses" / report["key"] / "report.json"]:
                 path.write_text(json.dumps(report))
@@ -43,6 +56,34 @@ class ComparisonTests(unittest.TestCase):
                 path.write_text(json.dumps(report))
             with self.assertRaises(AssertionError):
                 compare_case(BASELINE / "simple", target, RULES, rust=True)
+
+    def test_viewer_exclusion_is_limited_to_python_result_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target, report = self.rust_case(directory)
+            report["summary"]["comparison"] = copy.deepcopy(RULES["rust_comparison_default"])
+            paths = (target / "report.json", target / "responses" / report["key"] / "report.json")
+            for path in paths:
+                path.write_text(json.dumps(report))
+            compare_case(BASELINE / "simple", target, RULES, rust=True)
+            for rel in ("index.html", f"responses/{report['key']}/index.html", f"responses/{report['key']}/one/index.html"):
+                path = target / rel
+                path.write_text("unexpected")
+                with self.subTest(path=rel), self.assertRaises(AssertionError):
+                    compare_case(BASELINE / "simple", target, RULES, rust=True)
+                path.unlink()
+            report["addons"]["final"].append({"name": "viewer", "cls_name": "Executor"})
+            for path in paths:
+                path.write_text(json.dumps(report))
+            with self.assertRaises(AssertionError):
+                compare_case(BASELINE / "simple", target, RULES, rust=True)
+
+    def test_viewer_text_exclusion_preserves_other_lines_and_streams(self):
+        line = b"[final/viewer] Create responses/" + b"a" * 64 + b"/index.html\n"
+        self.assertEqual(without_viewer_text(line, "run.stderr"), b"")
+        for stream in ("run.stdout", "cli.stderr", "retry.stdout"):
+            self.assertEqual(without_viewer_text(line, stream), line)
+        for changed in (line.replace(b"Create", b"Wrong"), line.replace(b"index.html", b"report.json")):
+            self.assertEqual(without_viewer_text(changed, "run.stderr"), changed)
 
     def test_all_baselines_are_self_consistent(self):
         from run import TEMPLATES, EXTRAS, CLI_CASES

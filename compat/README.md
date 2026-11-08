@@ -14,7 +14,7 @@ compat/
 │   ├── encoding/        決定順、別名、BOM、変換失敗、入力、URL
 │   ├── config/          マージ・includeの入力YAML
 │   ├── config-models.json 設定・モデル・出力ストリームのPython期待値
-│   ├── review-fixes.json null・YAMLマージ・report読込・34アドオン設定の回帰fixture
+│   ├── review-fixes.json null・YAMLマージ・report読込・33アドオン設定の回帰fixture
 │   ├── review-round2.json 重複キー・マージ優先順位・null logger・report走査の回帰fixture
 │   ├── response-judgement.json 応答変換・判定の8アドオンのPython期待値
 │   └── retry.json       再構築の既存不具合と修正後の意味上の契約
@@ -57,6 +57,7 @@ uv run --project compat/harness python compat/harness/run.py
   - 原記録: 自動ヘッダも含め、ヘッダの原表記と順序をJSONLへ保存する。
   - 条件: one/other間の到着順だけには依存しない。
 - 作業ディレクトリ全体の保存ファイルはbyte単位、reportはJSONの型を含めて比較する。
+- Rust比較ではPython基準側の結果ルートの `index.html` と、Viewerに対応する設定・report項目・既知ログ・help行だけを除外する。
 - `comparison.json` の明示パスだけ可変値を扱う。
   - 検証: keyとlatest、retry_hashと元report、ファイル参照、非負時間、日時形式もチェックする。
 - `PYTHONWARNINGS=ignore` を設定し、Pythonラッパーはowlmixinのimport後にも警告抑制を設定する。
@@ -64,9 +65,10 @@ uv run --project compat/harness python compat/harness/run.py
 - 失敗時のtracebackは基準に残る。
   - Rust: Pythonのスタックは生成せず、CLIのERROR行へ理由を出す。encoding_hellは承認済み修正を適用し、encoding_fixedの成功基準と比較する。
 
-- Rust CLIの受入結果は35/35一致。
+- Rust CLIの比較ハーネスは35ケース。
+  - 実行結果: [全体受入](../docs/acceptance.md) を参照。
   - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
-  - 自己検証: 比較規則のmutationテストを含む43テストが成功する。`⏰`行の精度と、通知用transport行・再試行カウンタ行の除外範囲も検証する。
+  - 自己検証: 比較規則のmutationテストを含む45テストが成功する。`⏰`行の精度と、通知用transport行・再試行カウンタ行・Viewerの除外範囲も検証する。
   - 通知verbose: urllib3のローカルWebhook接続・POST行はrun/retry.stderrだけで除外する。通知のアプリログ・payload・送信回数は比較する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
@@ -89,6 +91,7 @@ JUMEAUX_BIN="$PWD/target/release/jumeaux" uv run --project compat/harness python
 ```
 
 - 旧report6種類、未知フィールドとloggerの警告、外部コマンドの許可を8シナリオで検証する。
+  - 移行: 両CLIの入力から `final/viewer` を削除する。
 - raw以外の5種類は、送信リクエスト・新report・保存bytesをPython版と比較する。
 - postはraw喪失の既知差異を検証する。rawなしのRust対照実行はPython版と完全一致を要求する。
 - 動的なローカルポートを使い、失敗時も一時ディレクトリへ成果物を残す。
@@ -293,13 +296,13 @@ diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
 - 基準report31件はJSON値とbytesの往復を検証する。
   - 対象: テンプレート15種と追加ケース。可変値も除外しない。
   - 例外: encoding_hellは終了コード1とreport不存在を確認する。既存基準を作り直さない。
-- 基準config31件の読み込みと登録を検証する。
+- 基準config31件はViewerの削除案内と、削除後の読み込み・登録を検証する。
   - 例外: encoding_hellは廃止済みの`addons.res2res[0].config.items[0].conditions`をエラーにする。
 - 既存retry fixtureはrawの復元とヘッダ判定設定の明示的な受け渡しを検証する。
   - 入力: ヘッダ判定設定は`original_config`から供給する。
-- `review-fixes.json` は186件。
-  - Python一致: 180件。null既定値・YAMLマージキー・後続レイヤーの上書き・report未知キー・Request本文の型・34アドオンの型付き設定・プロセス出力を検証する。
-  - 意図的な差異: 6件。設定の旧logger拒否、reportの旧logger破棄、Python transformer拒否2件、shuffle・viewerの未知設定拒否。
+- `review-fixes.json` は181件。
+  - Python一致: 176件。null既定値・YAMLマージキー・後続レイヤーの上書き・report未知キー・Request本文の型・33アドオンの型付き設定・プロセス出力を検証する。
+  - 意図的な差異: 5件。設定の旧logger拒否、reportの旧logger破棄、Python transformer拒否2件、shuffleの未知設定拒否。
   - エラー: Python例外とRustのデシリアライズエラーを必須欠落・型違反・未知キーで対応付ける。
   - 実行: `cargo test --test review_fixes -- --nocapture`。
   - 再採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/review_fixes.py` を一時ファイルへ出力して比較する。

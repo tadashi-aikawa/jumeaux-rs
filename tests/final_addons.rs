@@ -126,53 +126,14 @@ impl Drop for Temp {
 }
 
 #[tokio::test]
-async fn viewer_log_paths_keep_trailing_response_dir_slashes() {
-    let temp = Temp::new();
-    for suffix in ["", "/", "//"] {
-        let mut report = report();
-        report.key = "path-test".into();
-        report.summary.output.response_dir = format!("{}{suffix}", temp.0.display());
-        std::fs::create_dir_all(temp.0.join(&report.key)).unwrap();
-        let expected_root = format!("{}/{}", report.summary.output.response_dir, report.key);
-        let pipeline =
-            Pipeline::build(&serde_json::from_value::<Vec<_>>(json!([{"name":"viewer"}])).unwrap())
-                .unwrap();
-        let result = pipeline
-            .exec(
-                FinalPayload {
-                    output_summary: report.summary.output.clone(),
-                    report,
-                },
-                &FinalReference { notifiers: None },
-                &Context::default(),
-                |_| Ok(()),
-            )
-            .await
-            .unwrap();
-        assert_eq!(
-            result.logs[0].message,
-            format!("[final/viewer] Create {expected_root}/index.html")
-        );
-        assert_eq!(
-            result.logs[1].message,
-            format!("[final/viewer] report.json doesn't exist in {expected_root}.")
-        );
-        assert_eq!(
-            std::fs::read(temp.0.join("path-test/index.html")).unwrap(),
-            final_addons::viewer::HTML
-        );
-    }
-}
-
-#[tokio::test]
 async fn final_stream_delivers_logs_before_stdout_and_preserves_them_on_failure() {
     let temp = Temp::new();
     let mut report = report();
     report.summary.output.response_dir = temp.0.to_str().unwrap().into();
     std::fs::create_dir(temp.0.join(&report.key)).unwrap();
     let addons = serde_json::from_value::<Vec<_>>(json!([
-        {"name":"viewer"}, {"name":"summary", "config":{"sysout":true}},
-        {"name":"viewer"}, {"name":"csv", "config":{"column_names":["seq"],"output_path":temp.0.join("missing/out.csv")}},
+        {"name":"notify", "config":{"notifies":[{"notifier":"unused","message":"unused","when":"False"}]}}, {"name":"summary", "config":{"sysout":true}},
+        {"name":"notify", "config":{"notifies":[{"notifier":"unused","message":"unused","when":"False"}]}}, {"name":"csv", "config":{"column_names":["seq"],"output_path":temp.0.join("missing/out.csv")}},
         {"name":"json"}
     ])).unwrap();
     let events = std::cell::RefCell::new(Vec::new());
@@ -184,7 +145,9 @@ async fn final_stream_delivers_logs_before_stdout_and_preserves_them_on_failure(
                 output_summary: report.summary.output.clone(),
                 report,
             },
-            &FinalReference { notifiers: None },
+            &FinalReference {
+                notifiers: Some(Default::default()),
+            },
             &Context::default(),
             |_| {
                 events.borrow_mut().push("stdout".to_owned());
@@ -198,10 +161,10 @@ async fn final_stream_delivers_logs_before_stdout_and_preserves_them_on_failure(
     assert_eq!(failure.error.kind, "IOError");
     assert!(failure.logs.is_empty());
     let events = events.into_inner();
-    assert_eq!(events.len(), 7);
-    assert!(events[0].starts_with("[final/viewer] Create "));
-    assert_eq!(events[3], "stdout");
-    assert_eq!(&events[..3], &events[4..]);
+    assert_eq!(events.len(), 3);
+    assert!(events[0].starts_with("[final/notify] Don't Notify by unused."));
+    assert_eq!(events[1], "stdout");
+    assert_eq!(events[0], events[2]);
     assert!(!temp.0.join(key).join("report.json").exists());
 }
 
@@ -277,7 +240,7 @@ async fn notify_stream_delivers_start_log_before_waiting_for_webhook() {
 }
 
 #[tokio::test]
-async fn final_order_output_encoding_and_viewer_bytes() {
+async fn final_order_and_output_encoding() {
     let temp = Temp::new();
     let mut report = report();
     let output = &mut report.summary.output;
@@ -286,8 +249,7 @@ async fn final_order_output_encoding_and_viewer_bytes() {
     let root = temp.0.join(&report.key);
     std::fs::create_dir(&root).unwrap();
     let addons: Vec<jumeaux::models::Addon> = serde_json::from_value(json!([
-        {"name":"viewer"}, {"name":"json", "config":{"indent":2}},
-        {"name":"viewer"}, {"name":"summary"},
+        {"name":"json", "config":{"indent":2}}, {"name":"summary"},
         {"name":"summary", "config":{"sysout":true}},
         {"name":"json", "config":{"sysout":true}},
         {"name":"csv", "config":{"column_names":["name"],"output_path":temp.0.join("result.csv")}}
@@ -311,18 +273,7 @@ async fn final_order_output_encoding_and_viewer_bytes() {
         .await
         .unwrap();
     assert!(outcome.exit_code.is_none());
-    assert_eq!(
-        outcome
-            .logs
-            .iter()
-            .filter(|l| l.level == Verbosity::Warning)
-            .count(),
-        2
-    );
-    assert_eq!(
-        std::fs::read(root.join("index.html")).unwrap(),
-        final_addons::viewer::HTML
-    );
+    assert!(outcome.logs.is_empty());
     for name in ["summary.txt", "report.json"] {
         assert!(
             std::fs::read(root.join(name))

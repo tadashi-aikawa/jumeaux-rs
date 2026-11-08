@@ -2,7 +2,7 @@
 
 Rust版はPython版 `7.0.0` を基準にしています。
 
-CLI、設定ファイル、リクエスト形式、レポート、Viewerの互換性を検証しています。
+CLI、設定ファイル、リクエスト形式、レポートの互換性を検証しています。
 既存設定では、以下の差異を確認してください。
 
 ## インストールと拡張
@@ -29,6 +29,9 @@ CLI、設定ファイル、リクエスト形式、レポート、Viewerの互�
     - 詳細: [Miroirの認証と接続](../addons/final.md#miroir)
 
 ## 設定と認証
+
+- `final/viewer` はRust版にはありません。`addons.final` から `name: viewer` の項目を削除してください。
+    - 旧レポート: `retry` する場合も、レポートの `addons.final` から同じ項目を削除してください。
 
 - 未知の設定キー、未知のアドオン名、`Executor` 以外の `cls_name` はエラーになります。
 - `output.logger` の非null値はエラーになります。設定から削除してください。
@@ -80,6 +83,8 @@ MiniJinja固有の以下の拡張も使えません。
 詳細: [テンプレートのサポート外](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/compat-spec.md#テンプレートのサポート外)
 
 ## CLIと通知
+
+- `jumeaux viewer` コマンドはありません。結果は `responses/latest/report.json` で確認してください。
 
 - `--version` は `jumeaux 0.1.0` の形式です。`-V` と `help` サブコマンドも使えます。
 - `init` のテンプレート名一覧はソート順です。

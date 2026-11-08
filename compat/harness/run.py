@@ -1,4 +1,4 @@
-"""基準採取と、任意のJUMEAUX_BINに対する同一入力の比較。"""
+"""基準採取と、任意のJUMEAUX_BINに対する比較。RustではViewerの削除をcompare.pyで反映する。"""
 
 import argparse
 from contextlib import contextmanager

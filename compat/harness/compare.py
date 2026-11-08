@@ -126,8 +126,24 @@ def text(data, report_list, rules, stream=None):
     return "".join(lines)
 
 
-def tree(root, snapshot=False):
-    return sorted((p.relative_to(root).as_posix(), "dir" if p.is_dir() else "file") for p in root.rglob("*") if not (snapshot and p.name == ".gitkeep"))
+def tree(root, snapshot=False, excluded=()):
+    return sorted((p.relative_to(root).as_posix(), "dir" if p.is_dir() else "file") for p in root.rglob("*") if not (snapshot and p.name == ".gitkeep") and p.relative_to(root).as_posix() not in excluded)
+
+
+def without_viewer(report):
+    report = copy.deepcopy(report)
+    report["addons"]["final"] = [addon for addon in report["addons"]["final"] if addon["name"] != "viewer"]
+    return report
+
+
+def without_viewer_text(data, stream):
+    # Python基準の既知のViewer行だけを除く。Rust側の出力は変更しない。
+    if stream == "cli.stdout":
+        return data.replace(b"  viewer              Boot Jumeaux Viewer\n", b"")
+    if stream in ("run.stderr", "retry.stderr"):
+        data = data.replace(b"    - cls_name: Executor\n      name: viewer\n", b"")
+        return re.sub(rb"(?m)^\[final/viewer\] Create responses/[0-9a-f]{64}/index\.html\n", b"", data)
+    return data
 
 
 def configured_headers(report_list, rules):
@@ -177,13 +193,15 @@ def records(path, header_rules=None, configured=None):
     return dict(result)
 
 
-def workspace_tree(workspace, report_list, snapshot=False):
+def workspace_tree(workspace, report_list, snapshot=False, excluded=()):
     keys = {report["key"]: f"<key:{i}>" for i, report in enumerate(report_list)}
     result = {}
     for file in workspace.rglob("*"):
         if snapshot and file.name == ".gitkeep":
             continue
         name = "/".join(keys.get(part, part) for part in file.relative_to(workspace).parts)
+        if name in excluded:
+            continue
         kind = "symlink" if file.is_symlink() else "dir" if file.is_dir() else "file"
         target = keys.get(str(file.readlink()), str(file.readlink())) if file.is_symlink() else None
         result[name] = (kind, target, file)
@@ -198,13 +216,14 @@ def compare_case(baseline, actual, rules, input_baseline=None, rust=False):
     equal(len(expect_reports), len(actual_reports), "report count")
     for one, other in zip(expect_reports, actual_reports):
         if rust:
-            one = copy.deepcopy(one)
+            one = without_viewer(one)
             settings = rules["rust_comparison_by_case"].get(actual.name, rules["rust_comparison_default"])
             one["summary"]["comparison"] = settings
         equal(normalize_report(one, rules), normalize_report(other, rules), "report")
         left, right = baseline / "responses" / one["key"], actual / "responses" / other["key"]
-        equal(tree(left, snapshot=True), tree(right, snapshot=baseline == actual), "saved file tree")
-        for rel, kind in tree(left, snapshot=True):
+        expected_tree = tree(left, snapshot=True, excluded=("index.html",) if rust else ())
+        equal(expected_tree, tree(right, snapshot=baseline == actual), "saved file tree")
+        for rel, kind in expected_tree:
             if kind == "file" and rel != "report.json":
                 equal((left / rel).read_bytes(), (right / rel).read_bytes(), rel)
     for path in ("api.jsonl", "notifications.jsonl"):
@@ -222,8 +241,12 @@ def compare_case(baseline, actual, rules, input_baseline=None, rust=False):
             path = f"{label}.{stream}"
             equal((baseline / path).exists(), (actual / path).exists(), path + " existence")
             if (baseline / path).exists():
-                equal(text((baseline / path).read_bytes(), expect_reports, rules, path), text((actual / path).read_bytes(), actual_reports, rules, path), path)
-    left = workspace_tree(baseline, expect_reports, snapshot=True)
+                expected_bytes = (baseline / path).read_bytes()
+                if rust:
+                    expected_bytes = without_viewer_text(expected_bytes, path)
+                equal(text(expected_bytes, expect_reports, rules, path), text((actual / path).read_bytes(), actual_reports, rules, path), path)
+    excluded = {f"responses/<key:{i}>/index.html" for i in range(len(expect_reports))} if rust else ()
+    left = workspace_tree(baseline, expect_reports, snapshot=True, excluded=excluded)
     right = workspace_tree(actual, actual_reports, snapshot=baseline == actual)
     equal(set(left), set(right), "workspace tree")
     for name, (kind, target, file) in left.items():
@@ -237,6 +260,8 @@ def compare_case(baseline, actual, rules, input_baseline=None, rust=False):
         if input_baseline and name == "config.yml":
             file = Path(input_baseline) / name
         expected_bytes = file.read_bytes()
+        if rust and name in ("config.yml", "init-config.yml"):
+            expected_bytes = expected_bytes.replace(b"    - name: viewer\n", b"")
         if rust and actual.name in ("encoding_hell", "encoding_fixed") and name in ("config.yml", "init-config.yml"):
             expected_bytes = expected_bytes.replace(b"conditions:\n              - path:\n                  items:\n                    - regexp: .+", b"when: 'True'")
         if rust and actual.name == "encoding_hell" and name == "requests":

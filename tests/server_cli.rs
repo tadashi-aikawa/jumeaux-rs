@@ -13,7 +13,7 @@ struct Server {
     logs: std::sync::mpsc::Receiver<String>,
 }
 impl Server {
-    fn start(viewer: bool) -> Self {
+    fn start() -> Self {
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let root = std::env::temp_dir().join(format!(
             "jumeaux-server-test-{}-{}",
@@ -21,30 +21,14 @@ impl Server {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir(&root).unwrap();
-        std::fs::create_dir_all(root.join("responses/first")).unwrap();
-        std::fs::write(
-            root.join("responses/first/index.html"),
-            "<!doctype html><title>Viewer</title>",
-        )
-        .unwrap();
-        std::fs::write(
-            root.join("responses/first/report.json"),
-            "{\"key\":\"first\"}",
-        )
-        .unwrap();
-        #[cfg(unix)]
-        std::os::unix::fs::symlink("first", root.join("responses/latest")).unwrap();
+        std::fs::create_dir(root.join("responses")).unwrap();
         std::fs::write(root.join("日本語.json"), "{\"ok\":true}").unwrap();
         let mut command = Command::new(env!("CARGO_BIN_EXE_jumeaux"));
         command
             .current_dir(&root)
-            .args([if viewer { "viewer" } else { "server" }, "--port", "0"])
-            .env("JUMEAUX_NO_BROWSER", "1")
+            .args(["server", "--port", "0", "-v"])
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
-        if !viewer {
-            command.arg("-v");
-        }
         let mut child = command.spawn().unwrap();
         let mut stderr = BufReader::new(child.stderr.take().unwrap());
         let mut first = String::new();
@@ -103,7 +87,7 @@ impl Server {
 
 #[test]
 fn server_logs_all_statuses_and_guesses_mime_types() {
-    let s = Server::start(false);
+    let s = Server::start();
     for (method, path, status, error) in [
         (
             "GET",
@@ -137,6 +121,7 @@ fn server_logs_all_statuses_and_guesses_mime_types() {
         s.expect_log_suffix(&format!("\"{method} {path} HTTP/1.1\" {status} -"));
     }
     for (extension, mime) in [
+        ("html", "text/html"),
         ("gif", "image/gif"),
         ("pdf", "application/pdf"),
         ("wasm", "application/wasm"),
@@ -161,6 +146,7 @@ fn server_logs_all_statuses_and_guesses_mime_types() {
             response.contains(&format!("Content-Type: {mime}\r\n")),
             "{extension}: {response}"
         );
+        assert!(response.ends_with("\r\n\r\nbody"), "{response}");
         s.expect_log_suffix(&format!("\"GET /{name} HTTP/1.1\" 200 -"));
     }
 }
@@ -174,7 +160,7 @@ impl Drop for Server {
 
 #[test]
 fn static_server_supports_get_head_post_and_paths() {
-    let s = Server::start(false);
+    let s = Server::start();
     let path = "/%E6%97%A5%E6%9C%AC%E8%AA%9E.json";
     for (method, body, ct) in [
         ("GET", "", "text/plain"),
@@ -219,78 +205,4 @@ fn static_server_supports_get_head_post_and_paths() {
             }
         }
     }
-}
-
-#[cfg(unix)]
-#[test]
-fn viewer_polling_does_not_log_access_but_file_requests_do() {
-    let s = Server::start(true);
-    for (method, path) in [
-        ("GET", "/__jumeaux_reload"),
-        ("GET", "/__jumeaux_reload"),
-        ("GET", "/__jumeaux_reload?poll=1"),
-        ("HEAD", "/__jumeaux_reload"),
-    ] {
-        let response = s.request(method, path, "", "text/plain");
-        assert!(response.starts_with("HTTP/1.0 200 OK"), "{response}");
-        assert!(response.contains("Cache-Control: no-store\r\n"));
-        if method == "HEAD" {
-            assert!(response.ends_with("\r\n\r\n"));
-        }
-    }
-    let response = s.request("GET", "/report.json", "", "text/plain");
-    assert!(response.ends_with("{\"key\":\"first\"}"));
-    // 通常のアクセスログを受け取るまで、先行したポーリングのログも検査する。
-    loop {
-        let line = s
-            .logs
-            .recv_timeout(std::time::Duration::from_secs(2))
-            .unwrap();
-        assert!(!line.contains("/__jumeaux_reload"), "{line}");
-        if line.ends_with("\"GET /report.json HTTP/1.1\" 200 -") {
-            break;
-        }
-    }
-}
-
-#[cfg(unix)]
-#[test]
-fn viewer_tracks_report_changes_and_latest_replacement_without_browser() {
-    let s = Server::start(true);
-    let html = s.request("GET", "/", "", "text/plain");
-    assert!(html.contains("<title>Viewer</title>"));
-    assert!(html.contains("/__jumeaux_reload"));
-    assert!(html.contains("location.reload()"));
-    let first = s
-        .request("GET", "/__jumeaux_reload", "", "text/plain")
-        .split("\r\n\r\n")
-        .nth(1)
-        .unwrap()
-        .to_owned();
-    std::fs::write(
-        s.root.join("responses/first/report.json"),
-        "{\"key\":\"changed\"}",
-    )
-    .unwrap();
-    let second = s.request("GET", "/__jumeaux_reload", "", "text/plain");
-    assert_ne!(second.split("\r\n\r\n").nth(1).unwrap(), first);
-    s.expect_log_suffix("Reload viewer.");
-    std::fs::create_dir(s.root.join("responses/next")).unwrap();
-    std::fs::write(
-        s.root.join("responses/next/report.json"),
-        "{\"key\":\"next\"}",
-    )
-    .unwrap();
-    std::fs::remove_file(s.root.join("responses/latest")).unwrap();
-    std::os::unix::fs::symlink("next", s.root.join("responses/latest")).unwrap();
-    assert!(
-        s.request("GET", "/report.json", "", "text/plain")
-            .ends_with("{\"key\":\"next\"}")
-    );
-    let third = s.request("GET", "/__jumeaux_reload", "", "text/plain");
-    assert_ne!(
-        third.split("\r\n\r\n").nth(1),
-        second.split("\r\n\r\n").nth(1)
-    );
-    s.expect_log_suffix("Reload viewer.");
 }

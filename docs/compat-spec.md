@@ -13,16 +13,15 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 
 | 外部IF | 契約 |
 | --- | --- |
-| CLI | `run`、`retry`、`init`、`server`、`viewer` の引数・既定値・終了コード、help、ログレベル |
+| CLI | `run`、`retry`、`init`、`server` の引数・既定値・終了コード、help、ログレベル |
 | 標準出力 | `final/summary`・`final/json` の `sysout`。`final/csv` の任意パス出力も保存成果物として比較 |
 | config.yml | 全キーと既定値、指定順のマージ、`include` の相対パス、アドオンのタグ除外と実行順 |
 | requests | `plain`、`csv`、`json`、`yaml` の4形式。名前、メソッド、パス、query、ヘッダ、raw/form/json本文、URL文字コード |
 | テンプレート式 | `when` の値と型、描画文字列、未定義値・エラー、Python文字列メソッド、Responseの公開プロパティ、独自filterと関数、`$DATETIME` |
 | 正規表現 | `reg`、差分パスの完全一致、`json_sort` のpath、AccessPointのpath置換。Pythonの `\1`、`\2` 置換を含む |
 | report.json | キー、型、null、配列順、集計値、trial、差分パス、参照ファイル、再実行情報。限定した可変値と承認済み差異のみ例外 |
-| responses/ | keyディレクトリ、`latest`、`one/`、`other/`、`one-props/`、`other-props/`、report、Viewer、各アドオンの保存ファイルと内容 |
+| responses/ | keyディレクトリ、`latest`、`one/`、`other/`、`one-props/`、`other-props/`、report、各アドオンの保存ファイルと内容 |
 | テンプレート16種 | all_same、encoding_hell、force_json、html、ignore、ignore_order、judge_response_headers、notifier、path_custom、path_empty、post、query_custom、request_headers、root_array、simple、xml |
-| Viewer | 同梱HTML、reportとレスポンスの相対参照、静的配信、report更新時のリロード、ブラウザ起動 |
 | 通知 | Slack v1・v2のpayload、設定、エラーの扱い。受入試験はローカル記録用Webhookへ送る |
 | その他 | `final/miroir` と `output.encoding` も実装する。Python依存機能は後述の代替方式 |
 
@@ -66,14 +65,14 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - `models`: Request、Response、HttpMethod、Trial、Report、Summary、ResponseSummary、Addons、設定の値オブジェクト。
   - 共有: DiffKeysは`diff`の型を再利用する。式入力用アダプターは`compat::values`に残す。
   - 移動: `plain_requests`は`addons::log2reqs`へ移す。既存のcompat入口は再exportしてfixtureを維持する。
-- `addons`: 9レイヤー・34名の静的登録と、型付きStage・AddonExecutor・Factory・Chain。
+- `addons`: 9レイヤー・33名の静的登録と、型付きStage・AddonExecutor・Factory・Chain。
   - 順序: 各レイヤーは設定配列の先頭からreduceし、戻り値を次へ渡す。エラーで停止する。
   - 設定: 各Config型は `addons/<layer>/<name>.rs` に置く。名前・設定型・生成は1つの登録表から選ぶ。`serde_path_to_error` で必須キー・型・未知キーを検証する。
   - 生成: FactoryへAddon全体を渡す。スケルトンは登録表から生成した型付きConfigを保持する。保存用のAddonではNoneと空configを区別する。
   - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
   - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
   - 保存系: store_criterion/free、dumpの4種、did_challengeの2種も各レイヤーのFactoryから生成する。`executor::Pipeline`が実装済み6レイヤーを`Chain::build`で接続する。
-  - final: summary・json・csv・viewer・notify・miroirはasyncの`addons::final::Pipeline`で設定順に実行する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
+  - final: summary・json・csv・notify・miroirはasyncの`addons::final::Pipeline`で設定順に実行する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
@@ -335,6 +334,11 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 
 ## 意図的に変える差異
 
+- `jumeaux viewer` と `final/viewer` はRust版には含めない。
+  - 決定: タダシの決定。必要なら別途作り直す。
+  - 移行: 設定とretryする旧reportの `addons.final` から `name: viewer` の項目を削除する。未知名のエラーへ削除案内を添える。
+  - 出力: 同梱HTMLと結果ディレクトリの `index.html` は生成しない。
+
 - trial例外後の後続trialへの着手数はPythonと一致させない。
   - Python版: エラーが入力順のresult_iteratorへ届くまで、worker数に応じて後続trialへ先行着手することがある。
   - Rust版: Errを受け取った時点で新しいspawnを止める。既に実行中のtrialは保存・sleepまで完了を待つ。
@@ -392,7 +396,7 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - Rust版で解釈できない設定はエラーで停止する。
   - 規則: エラーに直すべき設定キーを含める。警告だけで無視しない。
   - 旧logger: 設定ファイルの `output.logger` は `{}` を含む非null値をエラーとする。nullと値のない `logger:` は警告なしで通す。report由来の非null値は破棄し、警告を返す。
-  - 空設定: Configを持たないPythonの `reqs2reqs/shuffle`・`final/viewer` でも、Rustは未知の設定キーを拒否する。
+  - 空設定: Configを持たないPythonの `reqs2reqs/shuffle` でも、Rustは未知の設定キーを拒否する。
 - `log2reqs: {}` と入れ子のincludeはエラーにする。
   - Python版: 空のlog2reqs指定を無視する。3段のconfigマージでは残ったincludeを後続config基準で再解決することがある。
   - Rust版: 空のlog2reqsでは必須nameの欠落を通知する。includeの解決は宣言元で1段に限定する。
@@ -1422,7 +1426,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## finalの実装境界
 
-- `addons::final::Pipeline`はsummary・json・csv・viewer・notify・miroirを設定順に実行する。
+- `addons::final::Pipeline`はsummary・json・csv・notify・miroirを設定順に実行する。
   - 出力: stdoutは呼出元が渡すcallback。`exec`はExecution.logs・Failure.logsへログを保持し、`exec_with_log`は発生時のcallbackへ通知する。ライブラリはstderrへ直接書かない。
   - CLI: `exec_with_log`を使用する。notify・miroirの通信待ちより前に開始ログを表示し、後続のstdoutやアドオンのログとの順序を維持する。通知済みログの再出力・重複保持はしない。
   - 停止: I/O・テンプレート・通信例外でも停止前のログを保持または通知する。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
@@ -1430,16 +1434,13 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - ファイル: sysout=falseなら結果ディレクトリのsummary.txt・report.jsonへoutput.encodingで保存する。
 - csvは任意のoutput_pathへUTF-8・LFで保存する。
   - 根拠: Pythonのto_csvfはoutput.encodingを渡さず、既定のutf8を使う。未知カラムは空欄、追加のTrialフィールドは無視する。
-- viewerはPython基準のHTMLをそのまま同梱する。
-  - 順序: 実行時にreport.jsonがなければPythonと同じ2警告を返す。後続のjsonより前でもコピーする。
-  - パス: 結果パスはPythonと同じ文字列連結を使う。response_dir末尾の`/`を削らず、`responses//<key>/index.html`のようなログ表示を保持する。miroirのPutログも同じ扱いとする。
 - notifyは全whenを先に評価し、選ばれた通知を順に送る。
   - 条件: CheckedContextを使う。メッセージとwhenはPipeline生成時にコンパイルする。
   - HTTPエラー: 残りの選択済み通知も送ってからエラーを返す。通信例外はその時点で停止する。
   - 意図的な差異: notifiers未設定時の案内URLは、Python版の`https://tadashi-aikawa.github.io/jumeaux/ja/getstarted/configuration/`からRust版の`https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/configuration/`へ変更する。
 - Python比較fixtureは`compat/fixtures/final-addons.json`の41件。
   - 内訳: 4文字コードでsummary・json・csvの40ケースと、nullを保持する通知context1ケース。
-  - 追加検証: 保存順、Viewerのbytes、stdout、UTF-16保存、UTF-8 CSV、ローカル通知、通知失敗時の後続final停止。
+  - 追加検証: 保存順、stdout、UTF-16保存、UTF-8 CSV、ローカル通知、通知失敗時の後続final停止。
 
 ## CLIの実装と受入
 
@@ -1465,11 +1466,6 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - アクセスログ: ファイルの200だけでなく、ディレクトリ一覧・301・404・501も出す。404・501は`code N, message ...`をアクセス行の前に出す。
   - MIME: mime_guessの拡張子表を使用する。JavaScript・圧縮ファイル・YAMLはPythonの定義を優先し、`.yml`・`.yaml`は`application/yaml`、未知の拡張子はapplication/octet-streamとする。
   - 実装差: Serverヘッダは`Jumeaux/<version>`。ディレクトリ一覧と404のHTMLはRustで生成する。Pythonのランタイム名や動的HTMLの完全一致は保証しない。
-- viewerはresponses-dir/latestを配信する。
-  - リロード: 配信するHTMLへ500ms間隔の監視スクリプトを追加し、report.jsonのmtime・内容変更とlatestの切り替えで再読込する。ディスク上の同梱HTMLは改変しない。
-  - ログ: `/__jumeaux_reload`のポーリングはアクセスログを出さない。変更検出時の`Reload viewer.`と通常のファイルへのアクセスログは維持する。
-  - ブラウザ: 起動後1秒で既定ブラウザを開く。`JUMEAUX_NO_BROWSER`が設定されていれば起動しない。
-  - 検証: ブラウザを抑止したローカル試験で配信・変更検出・latest切り替えを確認する。目視は後続の全体受入に残す。
 - RustはPython固有のtracebackを出力しない。
   - 表示: エラー種別・理由・設定パスをCLIのERROR行で示す。empty_guardの通知エラーはPythonと同じ理由本文を出す。
   - 範囲: Pythonソースの絶対パス、行番号、スタックフレームの一致は要求しない。設定エラーの終了コード1と成果物を生成しない契約は維持する。
@@ -1478,7 +1474,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 対象: 16テンプレートと追加19ケース。report・保存bytes・stdout・stderr・終了コード・API記録・通知を比較する。
   - 比較規則の補完: Rustのsummary.comparisonは除外せず、comparison.jsonのケース別期待値と厳密比較する。欠落・設定値の改変をmutationテストで拒否する。
   - encoding_hell: Rustは承認済み修正版をencoding_fixed基準と比較する。変更を許す入力ファイルはconfig.yml・init-config.ymlの廃止ブロックとrequestsのGET列だけ。Python自己比較は元の失敗基準を維持する。
-  - 維持: 既存の可変値・transport行以外の除外は追加しない。
+  - Viewer削除: Python基準側の結果ルートのindex.html、final/viewerの設定・レポート項目・既知ログ・help行だけを除外する。Rust側の余分なViewer出力は不一致とする。
 
 ### final/miroir
 
@@ -1553,7 +1549,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## 受入の段階
 
-全体受入の結果、Python版E2Eとの対応、再実行方法とViewer目視手順は [全体受入](acceptance.md) に記す。
+全体受入の結果、Python版E2Eとの対応、再実行方法は [全体受入](acceptance.md) に記す。
 
 - CLI統合前は5コンポーネントのJSON fixtureを使う。
 - CLI統合後は16テンプレートのreport、保存ファイル、stdout、stderr、終了コードとAPI記録を比較する。
@@ -1561,4 +1557,4 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - 既存不具合は `python_mismatch: true`、理由、Python観測値、修正後のexpectedを持つfixtureで検証する。
 - ヘッダ除外の大小無視は、Pythonの観測ケースと正しい大小表記の対照ケースを両方採取する。
   - 規則: Pythonラッパーの自己比較は観測値と一致させる。Rustバイナリは対照ケースの出力を期待値とし、大小を変えた入力configで成功することを検証する。
-- Viewer目視、実OSでのHTTP環境依存挙動、Miroir実接続は後続の全体受入で行う。
+- 実OSでのHTTP環境依存挙動、Miroir実接続は後続の全体受入で行う。

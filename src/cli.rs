@@ -17,8 +17,6 @@ pub enum Command {
     Init(InitArgs),
     /// Boot mock API server
     Server(ServerArgs),
-    /// Boot Jumeaux Viewer
-    Viewer(ViewerArgs),
 }
 
 #[derive(Debug, Args)]
@@ -110,22 +108,6 @@ pub struct ServerArgs {
 
     #[command(flatten)]
     pub logging: LoggingArgs,
-}
-
-#[derive(Debug, Args)]
-pub struct ViewerArgs {
-    /// Running port
-    #[arg(
-        long,
-        value_name = "port",
-        default_value_t = 5500,
-        allow_negative_numbers = true
-    )]
-    pub port: i64,
-
-    /// Directory which has responses
-    #[arg(long, value_name = "responses_dir", default_value = "responses")]
-    pub responses_dir: String,
 }
 
 #[cfg(test)]
@@ -258,7 +240,7 @@ mod tests {
     }
 
     #[test]
-    fn server_and_viewer_preserve_defaults_and_accept_overrides() {
+    fn server_preserves_defaults_and_accepts_overrides() {
         let cli = Cli::try_parse_from(["jumeaux", "server"]).unwrap();
         let Command::Server(args) = cli.command else {
             panic!("expected server");
@@ -272,26 +254,6 @@ mod tests {
         };
         assert_eq!(args.port, 8080);
         assert_eq!(args.logging.v, 1);
-
-        let cli = Cli::try_parse_from(["jumeaux", "viewer"]).unwrap();
-        let Command::Viewer(args) = cli.command else {
-            panic!("expected viewer");
-        };
-        assert_eq!(args.port, 5500);
-        assert_eq!(args.responses_dir, "responses");
-
-        let cli = Cli::try_parse_from([
-            "jumeaux",
-            "viewer",
-            "--port=5555",
-            "--responses-dir=custom-responses",
-        ])
-        .unwrap();
-        let Command::Viewer(args) = cli.command else {
-            panic!("expected viewer");
-        };
-        assert_eq!(args.port, 5555);
-        assert_eq!(args.responses_dir, "custom-responses");
     }
 
     #[test]
@@ -311,10 +273,8 @@ mod tests {
                 assert_eq!(error.kind(), ErrorKind::ValueValidation);
             }
         }
-        for command in ["server", "viewer"] {
-            let error = Cli::try_parse_from(["jumeaux", command, "--port", "invalid"]).unwrap_err();
-            assert_eq!(error.kind(), ErrorKind::ValueValidation);
-        }
+        let error = Cli::try_parse_from(["jumeaux", "server", "--port", "invalid"]).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::ValueValidation);
     }
 
     #[test]
@@ -373,12 +333,6 @@ mod tests {
             panic!("expected server");
         };
         assert_eq!(args.port, 8080);
-
-        let cli = Cli::try_parse_from(["jumeaux", "viewer", "--res=custom"]).unwrap();
-        let Command::Viewer(args) = cli.command else {
-            panic!("expected viewer");
-        };
-        assert_eq!(args.responses_dir, "custom");
     }
 
     #[test]
@@ -402,7 +356,7 @@ mod tests {
             let error = Cli::try_parse_from(["jumeaux", flag]).unwrap_err();
             assert_eq!(error.kind(), ErrorKind::DisplayHelp);
             assert_eq!(error.exit_code(), 0);
-            for command in ["run", "retry", "init", "server", "viewer"] {
+            for command in ["run", "retry", "init", "server"] {
                 let error = Cli::try_parse_from(["jumeaux", command, flag]).unwrap_err();
                 assert_eq!(error.kind(), ErrorKind::DisplayHelp);
                 assert_eq!(error.exit_code(), 0);

@@ -1,3 +1,6 @@
+#[path = "support/migration.rs"]
+mod migration;
+
 use jumeaux::{
     addons::{self, Layer},
     compat,
@@ -71,7 +74,8 @@ fn python_review_regressions() {
                     }
                 );
                 assert!(warnings.iter().all(|w| w.starts_with("report.")));
-                let (config, warnings) = Config::from_report(&report).unwrap();
+                let (config, warnings) =
+                    Config::from_report(&migration::without_viewer(&report)).unwrap();
                 assert_eq!(warnings.len(), 1);
                 assert!(warnings[0].contains("summary.comparison"));
                 assert_eq!(config.comparison(), HeaderJudgementSettings::default());
@@ -121,8 +125,8 @@ fn python_review_regressions() {
         assert_eq!(&actual, expected, "{}", case["name"]);
         count += 1;
     }
-    assert_eq!(count, 184);
-    assert_eq!(differences, 6);
+    assert_eq!(count, 179);
+    assert_eq!(differences, 5);
     assert_eq!(
         disabled_features,
         if cfg!(feature = "miroir") { 0 } else { 2 }
@@ -163,7 +167,10 @@ fn retry_round_trips_comparison_and_old_reports_default() {
         .unwrap();
     let mut report: Report = serde_json::from_value(case["input"].clone()).unwrap();
     assert_eq!(
-        Config::from_report(&report).unwrap().0.comparison(),
+        Config::from_report(&migration::without_viewer(&report))
+            .unwrap()
+            .0
+            .comparison(),
         HeaderJudgementSettings::default()
     );
     let headers = HeaderJudgementSettings {
@@ -183,7 +190,7 @@ fn retry_round_trips_comparison_and_old_reports_default() {
         serde_json::to_value(&headers).unwrap()
     );
     let reread: Report = serde_json::from_slice(&bytes).unwrap();
-    let (config, warnings) = Config::from_report(&reread).unwrap();
+    let (config, warnings) = Config::from_report(&migration::without_viewer(&reread)).unwrap();
     assert_eq!(config.comparison(), headers);
     assert!(warnings.is_empty());
 }

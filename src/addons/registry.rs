@@ -104,7 +104,6 @@ register! {
         FinalJson: "json" => json,
         FinalSummary: "summary" => summary,
         FinalNotify: "notify" => notify,
-        FinalViewer: "viewer" => viewer,
         FinalMiroir: "miroir" => miroir
     }
 }

@@ -1,3 +1,6 @@
+#[path = "support/migration.rs"]
+mod migration;
+
 use clap::Parser;
 use jumeaux::{
     addons::{self, AddonExecutor, Chain, Factory, Layer, Stage},
@@ -356,7 +359,8 @@ fn retry_fixture_restores_raw_and_requires_explicit_header_settings() {
     for case in cases.as_array().unwrap() {
         let report: Report = serde_json::from_value(case["input"]["report"].clone()).unwrap();
         let headers = serde_json::from_value(case["input"]["original_config"].clone()).unwrap();
-        let (config, warnings) = Config::from_report_with_headers(&report, headers).unwrap();
+        let (config, warnings) =
+            Config::from_report_with_headers(&migration::without_viewer(&report), headers).unwrap();
         assert!(warnings.is_empty());
         let trials: Vec<_> = report
             .trials
@@ -482,7 +486,7 @@ fn includes_resolve_against_each_source_file_before_later_merges() {
 }
 
 #[test]
-fn every_baseline_config_loads_except_the_known_broken_template() {
+fn migrated_baseline_configs_load_except_the_known_broken_template() {
     let mut count = 0;
     for entry in fs::read_dir(root().join("compat/python-baseline")).unwrap() {
         let dir = entry.unwrap().path();
@@ -490,6 +494,31 @@ fn every_baseline_config_loads_except_the_known_broken_template() {
         if !path.is_file() {
             continue;
         }
+        if dir.file_name().unwrap() != "encoding_hell" {
+            let error = config::load(&[&path], &[]).unwrap_err();
+            assert!(
+                error.message.contains("unsupported addon \"viewer\""),
+                "{error}"
+            );
+            assert!(error.message.contains("登録済みの名前:"), "{error}");
+            assert!(
+                error
+                    .message
+                    .contains("final/viewer はRust版にはありません"),
+                "{error}"
+            );
+            assert!(
+                error.message.contains("設定から name: viewer の行を削除"),
+                "{error}"
+            );
+        }
+        let migrated = Temp::new();
+        let path = migrated.write(
+            "config.yml",
+            &fs::read_to_string(path)
+                .unwrap()
+                .replace("    - name: viewer\n", ""),
+        );
         if dir.file_name().unwrap() == "encoding_hell" {
             assert!(
                 config::load(&[path], &[])

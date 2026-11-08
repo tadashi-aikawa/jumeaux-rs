@@ -101,10 +101,6 @@ Report
           {
             "cls_name": "Executor",
             "name": "json"
-          },
-          {
-            "cls_name": "Executor",
-            "name": "viewer"
           }
         ],
         "judgement": [

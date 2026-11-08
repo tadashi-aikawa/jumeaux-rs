@@ -62,11 +62,10 @@ jumeaux server
 
 ```sh
 jumeaux run requests
-jumeaux viewer
 ```
 
 `responses/latest` に最新のレポートが作成されます。
-Viewerは `http://localhost:5500/` で開きます。
+`responses/latest/report.json` で集計結果と差分を確認できます。
 
 `config.yml` の `one.host` と `other.host` を比較したいAPIへ変更し、`requests` にリクエストを記載します。
 
