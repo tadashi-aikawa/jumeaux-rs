@@ -129,6 +129,19 @@ fn run_cli(config: &Value, webhook: Option<&str>) -> std::process::Output {
     result
 }
 
+// CLI統合後の起動ログを別途厳密に検証し、既存の入力段階fixtureを維持する。
+fn input_stderr(bytes: Vec<u8>) -> String {
+    let text = String::from_utf8(bytes).unwrap();
+    let prefix = format!(
+        "{}\nVersion: {}\n",
+        include_str!("../assets/start.txt"),
+        env!("CARGO_PKG_VERSION")
+    );
+    text.strip_prefix(&prefix)
+        .expect("CLI startup banner/version")
+        .to_owned()
+}
+
 /// 外部Slackへの接続を避け、送信されたHTTP本文とContent-Typeを記録する。
 fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -217,9 +230,7 @@ fn evaluate(input: &Value) -> Result<Value> {
         ]);
         let result = run_cli(&config, None);
         assert!(result.stdout.is_empty());
-        return Ok(
-            json!({"exit_code":result.status.code(),"stderr":String::from_utf8(result.stderr).unwrap()}),
-        );
+        return Ok(json!({"exit_code":result.status.code(),"stderr":input_stderr(result.stderr)}));
     }
     if layer == "log2reqs" {
         return addons::log2reqs::read(&addon(input), &unhex(input["body_hex"].as_str().unwrap()))
@@ -482,7 +493,7 @@ fn cli_empty_guard_notifies_and_exits_with_one() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     assert_eq!(
-        String::from_utf8(output.stderr).unwrap(),
+        input_stderr(output.stderr),
         "\x1b[33m[WARNING] Requests are empty. Exit executor.\x1b[0m\nNotify using slack@v1\n"
     );
     let record = rx.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -555,7 +566,7 @@ fn notification_failure_preserves_logs_before_error() {
         .insert(0, json!({"name":"repeat","config":{"times":0}}));
     let output = run_cli(&config, context.webhook_url.as_deref());
     assert_eq!(output.status.code(), Some(1));
-    let stderr = String::from_utf8(output.stderr).unwrap();
+    let stderr = input_stderr(output.stderr);
     assert!(stderr.starts_with("\x1b[33m[WARNING] Requests are empty. Exit executor.\x1b[0m\nNotify using slack@v1\n\x1b[31m[ ERROR ] "),"{stderr}");
     rx.recv_timeout(Duration::from_secs(10)).unwrap();
     handle.join().unwrap();

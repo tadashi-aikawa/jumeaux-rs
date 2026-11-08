@@ -67,9 +67,9 @@ fn excessive_verbosity_is_an_argument_error_for_all_logging_commands() {
 }
 
 #[test]
-fn abbreviated_options_reach_the_retry_stub() {
+fn abbreviated_options_reach_retry_report_loading() {
     let output = run(&["retry", "r", "--desc=x", "--thr=1"]);
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert_eq!(String::from_utf8_lossy(&output.stderr), "retry: 未実装\n");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("IOError: r:"));
 }

@@ -3,6 +3,8 @@ use std::process::ExitCode;
 use clap::{Parser, error::ErrorKind};
 
 use jumeaux::cli::{Cli, Command};
+mod commands;
+mod logging;
 
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -15,55 +17,34 @@ fn main() -> ExitCode {
             }
         },
     };
-    if let Command::Run(args) = &cli.command {
-        let result = jumeaux::config::Config::from_run_args(args)
-            .map_err(jumeaux::notification::Failure::from)
-            .and_then(|config| {
-                let runtime = tokio::runtime::Builder::new_multi_thread()
-                    .enable_all()
-                    .build()
-                    .map_err(|e| jumeaux::compat::Error::new("RuntimeError", e.to_string()))?;
-                runtime.block_on(jumeaux::addons::log2reqs::prepare(
-                    &config,
-                    &jumeaux::notification::Context::from_env(),
-                ))
+    if matches!(cli.command, Command::Run(_) | Command::Retry(_)) {
+        let result = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| jumeaux::compat::Error::new("RuntimeError", e.to_string()))
+            .and_then(|runtime| {
+                runtime.block_on(async {
+                    match &cli.command {
+                        Command::Run(args) => commands::run(args).await,
+                        Command::Retry(args) => commands::retry(args).await,
+                        _ => unreachable!(),
+                    }
+                })
             });
-        match result {
-            Ok(result) => {
-                print_logs(&result.logs);
-                if let Some(code) = result.exit_code {
-                    return ExitCode::from(code);
-                }
+        return match result {
+            Ok(code) => ExitCode::from(code),
+            Err(e) => {
+                logging::Logger(0).log(jumeaux::notification::Verbosity::Error, e.to_string());
+                ExitCode::FAILURE
             }
-            Err(error) => {
-                print_logs(&error.logs);
-                print_logs(&[jumeaux::notification::Log::new(
-                    jumeaux::notification::Level::Error,
-                    error.error.message,
-                )]);
-                return ExitCode::FAILURE;
-            }
-        }
+        };
     }
     let command = match cli.command {
-        Command::Run(_) => "run",
-        Command::Retry(_) => "retry",
         Command::Init(_) => "init",
         Command::Server(_) => "server",
         Command::Viewer(_) => "viewer",
+        _ => unreachable!(),
     };
-
     eprintln!("{command}: 未実装");
     ExitCode::FAILURE
-}
-
-fn print_logs(logs: &[jumeaux::notification::Log]) {
-    use jumeaux::notification::Level;
-    for log in logs {
-        match log.level {
-            Level::Info => eprintln!("{}", log.message),
-            Level::Warning => eprintln!("\x1b[33m[WARNING] {}\x1b[0m", log.message),
-            Level::Error => eprintln!("\x1b[31m[ ERROR ] {}\x1b[0m", log.message),
-        }
-    }
 }
