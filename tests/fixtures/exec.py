@@ -7,6 +7,13 @@ import time
 message = json.load(sys.stdin)
 assert message["protocol_version"] == 1
 action = message["options"].get("action", "echo")
+if "marker" in message["options"]:
+    with open(message["options"]["marker"], "a") as marker:
+        marker.write(message["layer"] + " " + message["mode"] + "\n")
+if message["options"].get("hang_mode") == message["mode"]:
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    print("ready", file=sys.stderr, flush=True)
+    time.sleep(30)
 if action == "stderr":
     os.write(2, b"x" * 100000 + "終端\n".encode())
 if action == "exit":

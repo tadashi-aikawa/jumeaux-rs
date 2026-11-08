@@ -1,7 +1,7 @@
 use crate::logging::{Logger, config_yaml};
 use jumeaux::{
     addons::{
-        r#final, log2reqs,
+        exec, r#final, log2reqs,
         payload::{FinalPayload, FinalReference},
         reqs2reqs,
     },
@@ -19,12 +19,20 @@ use jumeaux::{
 use std::sync::Arc;
 
 pub async fn run(args: &RunArgs) -> Result<u8> {
-    let config = Config::from_run_args(args)?;
+    let (config, sources) = Config::from_run_args_with_sources(args)?;
     let merged = MergedArgs {
         files: Some(args.files.clone()),
         ..MergedArgs::from_cli(&args.options)
     };
-    execute(config, merged, None, None, Logger(args.options.logging.v)).await
+    execute(
+        config,
+        merged,
+        None,
+        None,
+        Logger(args.options.logging.v),
+        sources,
+    )
+    .await
 }
 pub async fn retry(args: &RetryArgs) -> Result<u8> {
     let logger = Logger(args.options.logging.v);
@@ -53,8 +61,36 @@ pub async fn retry(args: &RetryArgs) -> Result<u8> {
     }
     let merged = MergedArgs::from_retry_args(&args.options);
     config.merge_args(&merged);
+    exec::check_retry(&config.addons, args.allow_exec)?;
+    let sources = jumeaux::addons::Layer::ALL
+        .into_iter()
+        .flat_map(|layer| {
+            layer
+                .configured(&config.addons)
+                .iter()
+                .enumerate()
+                .map(move |(i, _)| {
+                    (
+                        if layer == jumeaux::addons::Layer::Log2Reqs {
+                            "addons.log2reqs".into()
+                        } else {
+                            format!("addons.{}[{i}]", layer.name())
+                        },
+                        format!("{}: report", args.report),
+                    )
+                })
+        })
+        .collect();
     let requests = report.trials.iter().map(|t| t.to_request()).collect();
-    execute(config, merged, Some(report.key), Some(requests), logger).await
+    execute(
+        config,
+        merged,
+        Some(report.key),
+        Some(requests),
+        logger,
+        sources,
+    )
+    .await
 }
 async fn execute(
     config: Config,
@@ -62,9 +98,44 @@ async fn execute(
     retry_hash: Option<String>,
     requests: Option<Vec<Request>>,
     logger: Logger,
+    sources: indexmap::IndexMap<String, String>,
 ) -> Result<u8> {
-    let pipeline = Arc::new(executor::Pipeline::build(&config)?);
-    let final_pipeline = r#final::Pipeline::build(&config.addons.final_addons)?;
+    let runtime = exec::Runtime::prepare_with_sources(
+        &config.addons,
+        logger.0,
+        move |event| logger.external(event),
+        &sources,
+    )?;
+    #[cfg(unix)]
+    let _signals = runtime.signals()?;
+    let result = execute_prepared(
+        config,
+        args,
+        retry_hash,
+        requests,
+        logger,
+        Arc::clone(&runtime),
+    )
+    .await;
+    if let Some(code) = runtime.exit_code() {
+        return Ok(code);
+    }
+    result
+}
+async fn execute_prepared(
+    config: Config,
+    args: MergedArgs,
+    retry_hash: Option<String>,
+    requests: Option<Vec<Request>>,
+    logger: Logger,
+    runtime: Arc<exec::Runtime>,
+) -> Result<u8> {
+    let pipeline = Arc::new(executor::Pipeline::build(&config)?.with_runtime(Arc::clone(&runtime)));
+    let final_pipeline =
+        r#final::Pipeline::build(&config.addons.final_addons)?.with_runtime(Arc::clone(&runtime));
+    let prepare_pipeline =
+        reqs2reqs::Pipeline::build(&config.addons.reqs2reqs)?.with_runtime(Arc::clone(&runtime));
+    runtime.validate()?;
     let key = executor::hash_from_args(&args.args_str()?);
     let context = Context::from_env();
     let requests = match requests {
@@ -76,6 +147,19 @@ async fn execute(
                 .as_ref()
                 .ok_or_else(|| Error::new("RequiredError", "input_files is required"))?
             {
+                if config.addons.log2reqs.name == "exec" {
+                    let loaded = runtime.payload::<jumeaux::addons::Log2Reqs>(
+                        0,
+                        jumeaux::addons::payload::Log2ReqsPayload {
+                            file: file.clone(),
+                            requests: vec![],
+                        },
+                        &(),
+                        Default::default(),
+                    )?;
+                    requests.extend(loaded.requests);
+                    continue;
+                }
                 let bytes = tokio::fs::read(file)
                     .await
                     .map_err(|e| Error::new("IOError", format!("{file}: {e}")))?;
@@ -129,9 +213,7 @@ __/\__  / ___|___  _ __  / _(_) __ _  __/\__
         logger.log(Verbosity::Verbose, "----");
         logger.log(Verbosity::Verbose, config_yaml(&config)?);
     }
-    let prepared = reqs2reqs::Pipeline::build(&config.addons.reqs2reqs)?
-        .exec(requests, &config, &context)
-        .await;
+    let prepared = prepare_pipeline.exec(requests, &config, &context).await;
     let prepared = match prepared {
         Ok(p) => p,
         Err(e) => {
@@ -163,6 +245,7 @@ __/\__  / ___|___  _ __  / _(_) __ _  __/\__
         .await
         .map_err(|e| e.error)?;
     let report = jumeaux::report::create_report(&config, execution, key, retry_hash);
+    runtime.check_cancelled()?;
     let stdout = config.output.stdout()?;
     let result = final_pipeline
         .exec(

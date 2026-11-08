@@ -70,6 +70,7 @@ pub struct Execution {
 
 pub struct Pipeline {
     config: Config,
+    runtime: Arc<addons::exec::Runtime>,
     res2res: Chain<Res2Res>,
     res2dict: Chain<Res2Dict>,
     judgement: Chain<Judgement>,
@@ -79,6 +80,7 @@ pub struct Pipeline {
 }
 impl Pipeline {
     pub fn with_runtime(mut self, runtime: Arc<addons::exec::Runtime>) -> Self {
+        self.runtime = Arc::clone(&runtime);
         self.res2res = self.res2res.with_runtime(Arc::clone(&runtime));
         self.res2dict = self.res2dict.with_runtime(Arc::clone(&runtime));
         self.judgement = self.judgement.with_runtime(Arc::clone(&runtime));
@@ -91,6 +93,7 @@ impl Pipeline {
         config.concurrency()?;
         Ok(Self {
             config: config.clone(),
+            runtime: addons::exec::Runtime::prepare(&config.addons, 0, |_| {})?,
             res2res: Chain::build(&config.addons, &addons::res2res::Factory)?,
             res2dict: Chain::build(&config.addons, &addons::res2dict::Factory)?,
             judgement: Chain::build(&config.addons, &addons::judgement::Factory)?,
@@ -122,6 +125,7 @@ impl Pipeline {
         process_cookies: Option<ProcessCookieScope>,
         observer: impl FnMut(&Progress) + Send + 'static,
     ) -> LoggedResult<Execution, Progress> {
+        self.runtime.check_cancelled()?;
         let concurrency = self.config.concurrency()?;
         let processes = self.config.processes.is_some_and(|n| n != 0);
         let isolated =
@@ -147,7 +151,8 @@ impl Pipeline {
         let logs = Stream::new(observer);
         let mut stopped = false;
         loop {
-            while !stopped && running.len() < limit {
+            stopped |= self.runtime.check_cancelled().is_err();
+            while !stopped && self.runtime.check_cancelled().is_ok() && running.len() < limit {
                 let Some((index, request)) = pending.next() else {
                     break;
                 };
@@ -184,6 +189,7 @@ impl Pipeline {
             completed.push((indices.remove(&id).unwrap(), result));
         }
         let ended_at = chrono::Local::now().fixed_offset();
+        self.runtime.check_cancelled()?;
         let logs = logs.take();
         completed.sort_by_key(|(index, _)| *index);
         let trials = completed
@@ -232,10 +238,13 @@ impl Pipeline {
         events: TrialEvents,
     ) -> Result<Trial> {
         events.emit(Event::Started(Box::new(request.clone())));
-        match transport
-            .challenge_with_events(seq, &request, &|event| events.emit(Event::Http(event)))
-            .await?
-        {
+        self.runtime.check_cancelled()?;
+        let observe = |event| events.emit(Event::Http(event));
+        let outcome = tokio::select! {
+            outcome = transport.challenge_with_events(seq,&request,&observe) => outcome?,
+            error = self.runtime.interrupted() => return Err(error),
+        };
+        match outcome {
             ChallengeOutcome::Failure(trial) => {
                 events.outcome(&request, trial.status, &trial.one, &trial.other);
                 Ok(*trial)

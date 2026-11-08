@@ -24,6 +24,25 @@ use wire::Wire;
 
 pub const MIGRATION: &str = "旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。\n雛形: jumeaux init addon\n移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/";
 
+// retryの許可はプロセス生成前に呼出元で判定する。設定へ保存しない。
+pub fn check_retry(addons: &Addons, allow_exec: bool) -> Result<()> {
+    if allow_exec {
+        return Ok(());
+    }
+    for layer in Layer::ALL {
+        for (index, addon) in layer.configured(addons).iter().enumerate() {
+            if addon.name == "exec" || (layer == Layer::Res2Res && addon.name == "json") {
+                return Err(invalid(
+                    &format!("report.addons.{}[{index}]", layer.name()),
+                    format!(
+                        "外部コマンドを含むReportのretryを拒否しました。Report内のcommandと実行先を確認し、信頼できる場合だけ --allow-exec を指定してください。validateも外部コマンド実行に含まれます。\n{MIGRATION}"
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Invocation {
     pub trial_seq: Option<u64>,
@@ -61,28 +80,46 @@ impl Runtime {
         verbosity: u8,
         observer: impl Fn(&Stderr) + Send + Sync + 'static,
     ) -> Result<Arc<Self>> {
+        Self::prepare_with_sources(addons, verbosity, observer, &Default::default())
+    }
+    pub fn prepare_with_sources(
+        addons: &Addons,
+        verbosity: u8,
+        observer: impl Fn(&Stderr) + Send + Sync + 'static,
+        sources: &indexmap::IndexMap<String, String>,
+    ) -> Result<Arc<Self>> {
         Self::prepare_layers(
             Layer::ALL
                 .into_iter()
                 .map(|layer| (layer, layer.configured(addons))),
             verbosity,
             observer,
+            sources,
         )
     }
     pub fn prepare_layer(layer: Layer, addons: &[Addon]) -> Result<Arc<Self>> {
-        Self::prepare_layers([(layer, addons)], 0, |_| {})
+        Self::prepare_layers([(layer, addons)], 0, |_| {}, &Default::default())
     }
     fn prepare_layers<'a>(
         layers: impl IntoIterator<Item = (Layer, &'a [Addon])>,
         verbosity: u8,
         observer: impl Fn(&Stderr) + Send + Sync + 'static,
+        sources: &indexmap::IndexMap<String, String>,
     ) -> Result<Arc<Self>> {
         let invocation_cwd = std::env::current_dir().map_err(|e| invalid("cwd", e))?;
         let environment: BTreeMap<OsString, OsString> = std::env::vars_os().collect();
         let mut commands = Vec::new();
         for (layer, addons) in layers {
             for (index, addon) in addons.iter().enumerate() {
-                let path = format!("addons.{}[{index}]", layer.name());
+                let logical = if layer == Layer::Log2Reqs {
+                    "addons.log2reqs".into()
+                } else {
+                    format!("addons.{}[{index}]", layer.name())
+                };
+                let path = sources
+                    .get(&logical)
+                    .map(|s| format!("{s}: {logical}"))
+                    .unwrap_or(logical);
                 let parsed = parse_config(layer, addon, &path)?;
                 let (config, transformer, command_path) = match parsed {
                     AddonConfig::Exec(config) => (config, None, format!("{path}.config")),
@@ -131,6 +168,14 @@ impl Runtime {
                 "ExecAddonInterrupted",
                 format!("interrupted by signal {signal}"),
             )),
+        }
+    }
+    pub async fn interrupted(&self) -> Error {
+        loop {
+            if let Err(error) = self.check_cancelled() {
+                return error;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
     }
     pub fn exit_code(&self) -> Option<u8> {

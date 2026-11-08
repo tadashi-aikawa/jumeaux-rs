@@ -208,6 +208,7 @@ impl<S: Stage> Chain<S> {
         invocation: exec::Invocation,
         log: &dyn Fn(usize, &str, log::AddonLog),
     ) -> Result<S::Payload> {
+        self.runtime.check_cancelled()?;
         for (index, executor) in self.executors.iter().enumerate() {
             self.runtime.check_cancelled()?;
             payload = if let Some(executor) = executor {
@@ -218,6 +219,7 @@ impl<S: Stage> Chain<S> {
                 S::external(&self.runtime, index, payload, reference, invocation)?
             };
         }
+        self.runtime.check_cancelled()?;
         Ok(payload)
     }
 }
