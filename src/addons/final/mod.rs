@@ -57,6 +57,7 @@ pub struct Execution {
 pub struct Pipeline {
     configs: Vec<AddonConfig>,
     engine: TemplateEngine,
+    runtime: std::sync::Arc<super::exec::Runtime>,
 }
 impl Pipeline {
     pub fn build(addons: &[Addon]) -> Result<Self> {
@@ -77,7 +78,15 @@ impl Pipeline {
                 Ok(config)
             })
             .collect::<Result<_>>()?;
-        Ok(Self { configs, engine })
+        Ok(Self {
+            configs,
+            engine,
+            runtime: super::exec::Runtime::prepare_layer(Layer::Final, addons)?,
+        })
+    }
+    pub fn with_runtime(mut self, runtime: std::sync::Arc<super::exec::Runtime>) -> Self {
+        self.runtime = runtime;
+        self
     }
 
     /// stdoutの書き込み先は呼出元で指定する。ログは戻り値に保持する。
@@ -129,7 +138,17 @@ impl Pipeline {
             notifications: vec![],
             exit_code: None,
         };
-        for config in &self.configs {
+        for (index, config) in self.configs.iter().enumerate() {
+            self.runtime.check_cancelled()?;
+            if matches!(config, AddonConfig::Exec(_)) {
+                result.payload = self.runtime.payload::<super::Final>(
+                    index,
+                    result.payload,
+                    reference,
+                    Default::default(),
+                )?;
+                continue;
+            }
             self.apply(config, &mut result, reference, context, &mut stdout, logs)
                 .await?;
             if result.exit_code.is_some() {

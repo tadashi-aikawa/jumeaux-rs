@@ -1,0 +1,19 @@
+addons:
+  reqs2reqs:
+    - name: exec
+      config:
+        command: [python3, addon_sample/reqs2reqs/add_path.py]
+        options:
+          path: /hogehoge
+  judgement:
+    - name: exec
+      config:
+        command: [python3, addon_sample/judgement/ignore_values.py]
+        options:
+          values: [apple, orange]
+  final:
+    - name: exec
+      config:
+        command: [python3, addon_sample/final/table.py]
+        options:
+          columns: [seq, name, path, status]

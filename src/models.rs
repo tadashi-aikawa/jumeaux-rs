@@ -99,6 +99,7 @@ impl Default for Request {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Response {
     pub body: Arc<[u8]>,
     pub encoding: Option<String>,
@@ -232,7 +233,7 @@ pub struct Addon {
     #[serde(default = "executor_class", deserialize_with = "null_executor_class")]
     pub cls_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(serialize_with = "owl_option")]
+    #[serde(serialize_with = "addon_config")]
     pub config: Option<Object>,
     #[serde(
         default,
@@ -474,6 +475,22 @@ fn owl_option<T: Serialize, S: serde::Serializer>(
     let mut value = serde_json::to_value(value).map_err(serde::ser::Error::custom)?;
     omit_nulls(&mut value);
     value.serialize(serializer)
+}
+fn addon_config<S: serde::Serializer>(
+    value: &Option<Object>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let external = value.as_ref().is_some_and(|v| {
+        v.contains_key("command")
+            || v.get("transformer")
+                .and_then(|t| t.get("command"))
+                .is_some()
+    });
+    if external {
+        value.serialize(serializer)
+    } else {
+        owl_option(value, serializer)
+    }
 }
 fn omit_nulls(value: &mut Value) {
     match value {

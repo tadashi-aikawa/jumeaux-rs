@@ -11,11 +11,11 @@ macro_rules! register {
     ($($layer:ident, $module:ident { $($variant:ident: $name:literal => $config:ident),+ $(,)? });+ $(;)?) => {
         #[derive(Debug, Clone, serde::Serialize)]
         #[serde(untagged)]
-        pub enum AddonConfig { $($( $variant(super::$module::$config::Config), )+)+ }
+        pub enum AddonConfig { Exec(super::exec::Config), $($( $variant(super::$module::$config::Config), )+)+ }
 
         impl Layer {
             pub fn names(self) -> &'static [&'static str] {
-                match self { $( Self::$layer => &[$($name),+], )+ }
+                match self { $( Self::$layer => &["exec", $($name),+], )+ }
             }
         }
 
@@ -23,13 +23,28 @@ macro_rules! register {
             validate_registration(layer, addon, path)?;
             let value = Value::Object(addon.config.clone().unwrap_or_default());
             let path = format!("{path}.config");
+            if layer == Layer::Res2Res && addon.name == "json" {
+                if let Some(key) = value.as_object().unwrap().keys().find(|key| !["transformer", "when", "default_encoding"].contains(&key.as_str())) {
+                    return Err(invalid(&format!("{path}.{key}"), format!("unknown field `{key}`")));
+                }
+                for key in ["module", "function"] {
+                    if value.get("transformer").and_then(|v| v.get(key)).is_some() {
+                        return Err(invalid(&format!("{path}.transformer.{key}"), format!(
+                            "Python transformerのmodule/function指定は使用できません。transformer.commandへ置き換えてください。whenとdefault_encodingはそのまま使えます。変換結果をJSON文字列としてstdoutへ返してください。\n{}", super::exec::MIGRATION)));
+                    }
+                }
+            }
+            if addon.name == "exec" {
+                let config: super::exec::Config = deserialize(&value, &path)?;
+                config.validate(&path)?;
+                return Ok(AddonConfig::Exec(config));
+            }
             let config = match (layer, addon.name.as_str()) {
                 $($( (Layer::$layer, $name) => AddonConfig::$variant(deserialize(&value, &path)?), )+)+
                 _ => return Err(invalid(&path, "unsupported addon")),
             };
-            if matches!(&config, AddonConfig::Res2ResJson(_)) {
-                return Err(invalid(&format!("{path}.transformer"),
-                    "Python transformer is unsupported; external command contract is undecided"));
+            if let AddonConfig::Res2ResJson(c) = &config {
+                c.transformer.validate(&format!("{path}.transformer"))?;
             }
             if let AddonConfig::FinalMiroir(config) = &config {
                 config.validate()?;

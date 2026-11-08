@@ -45,6 +45,10 @@ pub struct RetryArgs {
     #[arg(value_name = "report")]
     pub report: String,
 
+    /// Allow external addon commands saved in the report, including validation
+    #[arg(long)]
+    pub allow_exec: bool,
+
     #[command(flatten)]
     pub options: ReportArgs,
 }

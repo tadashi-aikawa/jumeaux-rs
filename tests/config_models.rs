@@ -540,6 +540,8 @@ fn check_layer<const N: usize>() {
     let entries: Vec<_> = names
         .iter()
         .rev()
+        // 外部通信の順序と型はexec_addonで検証する。このfactoryは組み込みの登録表用。
+        .filter(|name| **name != "exec")
         .filter(|name| !(layer == Layer::Res2Res && **name == "json"))
         .filter(|name| cfg!(feature = "miroir") || !(layer == Layer::Final && **name == "miroir"))
         .map(|name| {

@@ -13,6 +13,24 @@ use std::io::Write;
 #[derive(Clone, Copy)]
 pub struct Logger(pub u8);
 impl Logger {
+    pub fn external(&self, event: &jumeaux::addons::exec::Stderr) {
+        let mut stderr = std::io::stderr().lock();
+        if !event.continued {
+            let trial = event
+                .trial_seq
+                .map(|n| format!(" trial={n}"))
+                .unwrap_or_default();
+            let side = event.side.map(|s| format!(" {s}")).unwrap_or_default();
+            let _ = write!(
+                stderr,
+                "[{}[{}]{trial}{side}] ",
+                event.layer.name(),
+                event.index
+            );
+        }
+        let _ = stderr.write_all(event.text.as_bytes());
+        let _ = stderr.flush();
+    }
     fn enabled(&self, level: Verbosity) -> bool {
         let required = match level {
             Verbosity::Verbose => 1,

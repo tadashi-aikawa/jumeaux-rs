@@ -41,6 +41,7 @@ pub struct Execution {
 }
 pub struct Pipeline {
     configs: Vec<AddonConfig>,
+    runtime: std::sync::Arc<super::exec::Runtime>,
 }
 impl Pipeline {
     pub fn build(addons: &[Addon]) -> Result<Self> {
@@ -75,7 +76,14 @@ impl Pipeline {
                 Ok(c)
             })
             .collect::<Result<_>>()?;
-        Ok(Self { configs })
+        Ok(Self {
+            configs,
+            runtime: super::exec::Runtime::prepare_layer(Layer::Reqs2Reqs, addons)?,
+        })
+    }
+    pub fn with_runtime(mut self, runtime: std::sync::Arc<super::exec::Runtime>) -> Self {
+        self.runtime = runtime;
+        self
     }
     pub async fn exec(
         &self,
@@ -89,8 +97,21 @@ impl Pipeline {
             logs: Vec::new(),
             exit_code: None,
         };
-        for c in &self.configs {
+        for (index, c) in self.configs.iter().enumerate() {
+            self.runtime.check_cancelled()?;
             result.requests = match c {
+                AddonConfig::Exec(_) => {
+                    self.runtime
+                        .payload::<super::Reqs2Reqs>(
+                            index,
+                            super::payload::Reqs2ReqsPayload {
+                                requests: result.requests,
+                            },
+                            config,
+                            Default::default(),
+                        )?
+                        .requests
+                }
                 AddonConfig::Reqs2ReqsHead(c) => c.apply(result.requests),
                 AddonConfig::Reqs2ReqsAdd(c) => c.apply(result.requests),
                 AddonConfig::Reqs2ReqsFilter(c) => c.apply(result.requests)?,

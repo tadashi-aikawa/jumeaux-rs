@@ -398,6 +398,15 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - Rust版: 空のlog2reqsでは必須nameの欠落を通知する。includeの解決は宣言元で1段に限定する。
 - Pythonカスタムアドオンと `res2res/json` のPython transformerは外部コマンド方式で代替する。
   - 規則: 機能は廃止しない。Pythonモジュール名を暗黙に直接実行しない。
+  - 契約: 9レイヤー共通の `exec` と `res2res/json.transformer.command`。1呼び出し1プロセスでJSON文書を交換し、bytesはBase64、Optionalはnullで渡す。
+  - 起動前: 全実効設定のホスト検証後、各コマンドを `mode: "validate"` で1回呼ぶ。
+  - retry: `--allow-exec` がなければvalidateを含めて外部コマンドを起動しない。許可はreportへ保存しない。
+  - 設定保存: 外部コマンドのenv内のnullとoptions内のnullは保持する。
+    - 理由: retryで環境変数の削除と任意JSONの意味を再現するため。
+  - 対象OS: macOS・Linux。Windowsでの外部コマンド動作は対象外。
+  - 旧指定: Pythonモジュール名・非Executorのcls_name・transformer.module/functionは移行案内付きエラーとする。
+  - 雛形: ignore_valuesは現行のdiffs_by_cognitionへ移植し、ヘッダ判定を保持する。tableはreferenceを受ける共通envelopeに対応し、タブ区切りでstderrへ出す。
+  - 詳細: [外部コマンド方式のアドオン仕様](exec-addon-spec.md)
 - 並列実装方式は変えてよい。concurrencyの出力は前述の規則を保つ。
 - `head.size: true` など、boolをintとして渡す設定はRustでは型エラーにする。
 
@@ -1449,7 +1458,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 接続拒否: `NewConnectionError`の接続先・errno・理由・パス・クエリを維持する。既定3回では両側から計6行を出し、残り回数は各側2・1・0。`max_retries=0`では出さない。
 - initは16テンプレートとAPIファイルをバイナリへ埋め込む。
   - 一覧: ソート順。config.yml・requests・apiの作成ログはPythonと一致する。
-  - addon: 外部コマンド方式の契約が未決のため、案内と終了コード1で停止する。
+  - addon: `addon_sample/` へ3つのPython標準ライブラリ製雛形と設定例・READMEを生成する。transformer例はREADMEに掲載する。既存ディレクトリは上書きせず終了コード1とする。
 - serverはカレントディレクトリを静的配信する。
   - POST: JSON・form・plainをContent-Typeに従ってログ表示し、GETと同じファイルを返す。
   - 検証: GET・HEAD・POST、MIME、URLデコード、ディレクトリへのredirect、404をローカルプロセスで確認する。
@@ -1540,9 +1549,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 
-### その他の未決
-
-- 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
+外部コマンドアドオンの契約と移行方法は確定済み。[外部コマンド方式のアドオン仕様](exec-addon-spec.md)を参照する。
 
 ## 受入の段階
 

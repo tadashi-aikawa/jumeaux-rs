@@ -232,18 +232,21 @@ impl Config {
     }
 
     pub fn from_run_args(args: &RunArgs) -> Result<Self> {
+        Self::from_run_args_with_sources(args).map(|(config, _)| config)
+    }
+    pub fn from_run_args_with_sources(args: &RunArgs) -> Result<(Self, IndexMap<String, String>)> {
         let paths = if args.config.is_empty() {
             vec!["config.yml".into()]
         } else {
             args.config.clone()
         };
-        let mut config = load(&paths, &args.skip_addon_tag)?;
+        let (mut config, sources) = load_with_sources(&paths, &args.skip_addon_tag)?;
         config.merge_args(&MergedArgs {
             files: Some(args.files.clone()),
             ..MergedArgs::from_cli(&args.options)
         });
         config.concurrency()?;
-        Ok(config)
+        Ok((config, sources))
     }
 }
 
@@ -327,6 +330,12 @@ pub(crate) fn deserialize<T: serde::de::DeserializeOwned>(value: &Value, path: &
 }
 
 pub fn load<P: AsRef<Path>>(paths: &[P], skip_tags: &[String]) -> Result<Config> {
+    load_with_sources(paths, skip_tags).map(|(config, _)| config)
+}
+pub fn load_with_sources<P: AsRef<Path>>(
+    paths: &[P],
+    skip_tags: &[String],
+) -> Result<(Config, IndexMap<String, String>)> {
     let mut merged = Map::new();
     let mut merged_addons = Map::new();
     let mut sources = IndexMap::<String, String>::new();
@@ -415,7 +424,7 @@ pub fn load<P: AsRef<Path>>(paths: &[P], skip_tags: &[String]) -> Result<Config>
         }
         Ok(config)
     })();
-    result.map_err(|mut error: Error| {
+    let config = result.map_err(|mut error: Error| {
         if let Some((_, source)) = sources
             .iter()
             .filter(|(path, _)| {
@@ -428,7 +437,8 @@ pub fn load<P: AsRef<Path>>(paths: &[P], skip_tags: &[String]) -> Result<Config>
             error.message = format!("{source}: {}", error.message);
         }
         error
-    })
+    })?;
+    Ok((config, sources))
 }
 
 fn validate_output(output: &OutputSummary) -> Result<()> {
