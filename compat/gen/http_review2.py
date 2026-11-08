@@ -63,15 +63,12 @@ def cases(binary=None):
                             expected = {"send_error": type(error).__name__,
                                         "challenge": "failure" if "value" in trial else trial["error"]}
                     case = {"name": "ca-" + label, "input": {"bundle": label}, "expected": expected}
-                    if label == "unreadable":
-                        case["rust_expected"] = {"send_error": "OSError", "challenge": "OSError"}
-                        case["difference"] = "docs/compat-spec.md: CAの読込失敗をOSErrorとして伝播する"
                     if binary:
                         endpoint = {"name": "one", "host": host}
                         sent = rust_probe(binary, endpoint, [{"path": "/"}], ca_bundle=str(bundle))["results"][0]
                         trial = rust_probe(binary, endpoint, [{"path": "/"}], ca_bundle=str(bundle), action="challenge")["results"][0]
                         actual = {"send_error": sent["error"], "challenge": trial.get("error", trial.get("status"))}
-                        assert actual == case.get("rust_expected", expected), (label, actual, expected)
+                        assert actual == expected, (label, actual, expected)
                     result.append(case)
                 finally:
                     if label == "unreadable":
@@ -87,23 +84,17 @@ def cases(binary=None):
                 with patch.dict(os.environ, {"SLACK_INCOMING_WEBHOOKS_URL": host + path}, clear=True):
                     error = create_notification_handler(Notifier.from_dict(notifier)).notify("status fixture").get()
                     expected = {"ok": error is None, "notification_error": error}
-                    response = requests.Response()
-                    response.status_code = status
-                    rust_expected = {"ok": response.ok, "notification_error": None if response.ok else error}
                     python_record = records[-1]
                     python_record.pop("user_agent")
                     if binary:
                         actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": path}], action="notify",
                                             notifier=notifier, message="status fixture")["results"][0]
-                        assert actual == rust_expected, (version, status, actual, rust_expected)
+                        assert actual == expected, (version, status, actual, expected)
                         rust_record = records[-1]
                         assert rust_record.pop("user_agent").startswith("jumeaux/"), rust_record
                         assert rust_record == python_record, (version, status, rust_record, python_record)
                 case = {"name": f"notify-v{version}-{status}", "input": {"notifier": notifier, "status": status},
                         "expected": {**expected, "record": python_record}}
-                if rust_expected != expected:
-                    case["rust_expected"] = {**rust_expected, "record": python_record}
-                    case["difference"] = "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
                 result.append(case)
     return result
 
@@ -116,7 +107,6 @@ if __name__ == "__main__":
     if args.rust:
         golden = json.loads((ROOT / "compat/fixtures/http-review2.json").read_text())
         assert observed == golden, "Python観測値が保存済みfixtureと異なる"
-        differences = sum("rust_expected" in case for case in observed)
-        print(f"HTTP review2: {len(observed)}/{len(observed)}期待値一致、{differences}件の指定差異を検証")
+        print(f"HTTP review2: {len(observed)}/{len(observed)} Python一致")
     else:
         print(json.dumps(observed, ensure_ascii=False, indent=2))

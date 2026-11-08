@@ -70,8 +70,9 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 順序: 各レイヤーは設定配列の先頭からreduceし、戻り値を次へ渡す。エラーで停止する。
   - 設定: 各Config型は `addons/<layer>/<name>.rs` に置く。名前・設定型・生成は1つの登録表から選ぶ。`serde_path_to_error` で必須キー・型・未知キーを検証する。
   - 生成: FactoryへAddon全体を渡す。スケルトンは登録表から生成した型付きConfigを保持する。保存用のAddonではNoneと空configを区別する。
+  - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
   - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
-  - 残件: その他のレイヤーの本体は別タスクで接続する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
+  - 残件: その他のレイヤーの本体は別タスクで接続する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。HTTPのchallenge統合では実装済みレイヤーのFactoryを明示して`Chain::build`する。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
@@ -102,6 +103,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 整数: i64・u64の範囲を超えても、i128・u128で読める値はarbitrary_precisionのJSON numberとして桁を落とさず保持する。
   - 独自タグ: `!foo x`などのローカルタグはConstructorErrorにする。標準タグの解釈差は「許容した差異」に記載する。
 - reqs2reqsは設定順に実行する。filter・replace・renameのwhenはRequest.to_dict相当をルートへ渡す。
+  - 検査: 条件式の前にRequestをCheckedContextへ変換する。json・form内の非有限数や、f64変換で非有限になる巨大整数はValueErrorにする。addで追加したRequestも後続条件式で同じ検査を通す。
   - 条件: 未設定のnameなどは未定義値になる。テンプレート描画後のliteral_eval相当の値をtruthinessで判定する。
   - head: 負数もPythonのslice終端として扱う。
   - repeat: 0と負数は空配列になる。
@@ -124,7 +126,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - 通知のHTTP送信はasyncのreqwestを使う専用関数へ閉じる。
   - runtime: ライブラリ内でruntimeを生成・block_onしない。HTTP転送側のtokio runtime内からそのままawaitできる。クライアント共有は統合タスクで接続する。
   - 本文: Python同様にキーを再帰ソートし、UTF-8のJSON bytesを送る。Content-Typeは自動付与しない。
-  - 結果: requests.Response.okに合わせてHTTP 400未満を成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
+  - 結果: 基準Jumeauxのmodels.Response.okに合わせてHTTP 200だけを成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
   - User-Agent: 転送と同じ`jumeaux/<version>`を使う。
 - SLACK_INCOMING_WEBHOOKS_URLが無い場合は送信をスキップし、3件のwarningログをOutcome.logsへ返す。
   - 検証順: notifierのversionを先に検証する。未対応のversionはWebhook未設定でも`Type slack@vN is not valid.`でエラーにする。
@@ -172,7 +174,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 内容: 属性 `@attr`、本文 `#text`、空要素null、同名要素のリスト、名前空間、CDATA、エンティティ。
 - APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
   - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
-  - 境界: encoding、force、適用判断とCLI接続は後続タスク。条件式付き2fixtureは生成dictの参照と比較を検証し、条件式エンジン自体の統合は含めない。
+  - 境界: res2dictがencoding、force、適用判断を担当する。CLI接続は後続タスク。
 - table内テキストの移動と不正なインラインタグの複製は修正済み。
   - 検証: 以前の4差異fixtureもPython期待値と一致する。
 - コメント前後の空白とSVG・MathML名の大小は修正済み。
@@ -203,6 +205,57 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - `candidate_for_url_encodings`、`dump/encoding`、`output.encoding` を保つ。
 - Response.textと保存時の変換は `errors="replace"`。
 - 入力ファイル読み込みと `dump/encoding` は変換失敗をエラーにする。
+
+### 応答変換とjudgement
+
+- 実行入口は`addons::res2res::Factory`、`addons::res2dict::Factory`、`addons::judgement::Factory`。
+  - 接続: `Chain::<Res2Res>::build(&config.addons, &res2res::Factory)`の形でレイヤーごとに構築する。
+  - 設定検証: 条件式と正規表現はFactory生成時にコンパイルする。未実行分岐の不正な設定もエラーとする。
+- res2res/typeは最初にwhenが真になる条件だけを適用する。
+  - 省略: whenなし・空文字は無条件にする。
+  - 式入力: `req`と`res`はPythonの`to_dict()`相当。`res.text`・`res.ok`などのプロパティは公開しない。`res.headers`の参照は大小を無視する。
+- json_sortはtypeが`json`のときだけ適用する。
+  - 条件: itemsを設定順に処理し、whenにはRequestの`to_dict()`をルートとして渡す。
+  - 対象: 子の配列から先に処理する。targetsで最初にpathが完全一致した設定だけを使う。
+  - ソート: sort_keysは複数キーの辞書順。未指定のdict・list要素は挿入順を保ったJSON文字列をキーとする。同じキーの順序は保つ。
+  - 数値: 多倍長整数の比較では丸めない。boolと数値、整数と小数の等値はPythonに合わせる。
+  - 本文: `json.dumps(ensure_ascii=False)`の区切り空白と小数表記に合わせ、元のencodingでreplaceエンコードする。項目なし・whenがすべて偽でも再シリアライズする。
+  - タグ: JSON値の内容・配列順が変わったときだけfootprints_tagを末尾へ追加する。既存タグとの重複は除かない。
+  - パス: json_sortはPython同様にキーをそのまま`root<'key'>`へ埋め込む。DeepDiffのエスケープ済みパスとは区別する。
+- res2dictのjson・xml・htmlはResponse.typeの完全一致で適用する。
+  - Content-Type: HTTP側でtypeへ変換した結果を使う。アドオン内ではContent-Typeを再解釈しない。`problem+json`や`JSON`を`json`とは扱わない。
+  - force: trueならtypeを無視して変換し、既存resultも上書きする。
+  - スキップ: resultが既にあればforce=falseでスキップする。空dict・空listも既存resultとみなす。
+  - 空値: JSONのルートnull・空文字はresultなしとなる。入れ子のnullと、ルートのfalse・0は保持する。
+- blockはtypeを問わず変換する。
+  - 分割: Pythonのsplitlinesと同じ改行を使い、空行と末尾でレコードを確定する。空白だけの行は区切りにしない。
+  - 正規表現: header・recordのfindallがちょうど1件の行だけ採る。headerを先に判定する。
+  - グループ: recordが複数グループなら先頭2つをキーと値にする。1グループまたはグループなしならマッチ文字列の先頭2文字を使う。値がなければnull。
+  - 上書き: 同じレコードキー・ブロック名は後勝ち。ヘッダがないブロックのJSONキーは`"null"`。
+- judgementの初期値は`judgement::initial_payload`で組み立てる。
+  - エラー伝播: `initial_payload`と`diff::diff`は`compat::Result`を返す。呼び出し元は`?`で入力エラーを伝播する。
+  - 停止: `initial_payload`のErrは他のアドオンのエラーと同じく実行を停止する。LimitExceededは本文bytesが同じ場合にも返る。
+  - 変換なし: 片側でもdictなしならdiffs_by_cognitionは未設定。本文bytesで比較する。
+  - 変換あり: 本文bytesが同じなら差分計算を省略する。それ以外は`diff::diff`でunknownを組み立てる。
+  - 空差分: unknownが空なら空dictを保持し、regard_as_same_bodyをtrueにする。
+  - ヘッダ: 判定有効時は名前と除外キーのASCII大小を無視する。値は完全一致。無効時はregard_as_same_headerをtrueにする。
+- ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
+  - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
+  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
+  - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。Rustは`any`・`flat_map`・`map`をまだ実装していない。
+  - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
+  - whenの入口: TemplateInputは検査済みの`CheckedContext`とその参照だけに実装する。生のserde_json::Value・MiniJinja Valueをwhenへ直接渡すとコンパイルエラーになる。
+  - 構築: JSONは`values::from_json_for_when`、MiniJinja値は`values::checked_context`で一度検査する。検査済みの値の結合には`CheckedContext::from_pairs`を使い、各whenでは再検査しない。renderは別のRenderInputで従来の表示互換を保つ。
+- ignoreはunknownの差分をtitleへ移す。
+  - 条件: conditions[].whenが偽なら、その条件から分類を作らない。addedだけの条件はchanged・removedに影響しない。
+  - 値参照: caseのpathが完全一致したあと、差分パスから引いた値をone・otherとしてcase.whenへ渡す。片側に値がなければNone。
+  - 順序: 同じignore内の全条件は分類前のunknownを参照する。条件間で重複一致したパスはtitle内にも重複して残る。次のignoreは分類後のunknownを参照する。
+  - 統合: 同じtitleは連結する。最後に空の分類を除き、unknownが空ならregard_as_same_bodyをtrueにする。
+  - 未設定と空: diffs_by_cognition未設定はスキップ。空dictかつbody=falseを直接渡すとPython同様KeyError。初期化関数が作る空dictはbody=trueなのでスキップする。
+  - 特殊キー: 既に決定した差分パス修正を適用する。Pythonで値取得できなかった7ケースはPython観測値とRust期待値を別々に保持する。
+    - 追加ケース: パス`root`単独はPythonでNone、Rustで入力全体。キー`rooted`はPythonで値なし、Rustでキーの値を取得する。
+- sameはwhen_anyの最初の真でregard_as_same_bodyをtrueにする。
+  - 短絡: 以降の式は評価しない。diffs_by_cognitionはそのまま保持する。
 
 ## 比較除外と許容差
 
@@ -247,15 +300,24 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - `.netrc`由来のAuthorizationは自動付与しない。
   - Python版: trust_envがtrueならnetrcから認証情報を取得する。
   - Rust版: 設定・Requestで明示したAuthorizationを使う。
-- CA bundleの読取権限がない場合もOSErrorとしてchallengeの外へ返す。
-  - Python実測: 存在しないパスはOSError。存在するが読めないファイルはSSLErrorとなりfailureのTrialになる。
-  - Rust版: 指定方針に従いファイル読込失敗をOSErrorへ統一する。空・不正なPEMはSSLErrorのまま扱う。
 - 通知のUser-Agentを`jumeaux/<version>`にする。
   - Python版: `python-requests/<version>`を送る。
   - 比較: 通知のUser-Agentだけを除外し、他の自動ヘッダと本文は比較する。
-- 通知の成功判定をrequests.Response.okに合わせて400未満にする。
-  - Python実測: 基準Jumeauxの通知は独自のmodels.Response.okを使い、200だけを成功とする。
-  - Rust版: 指定方針に従い201・204・302・399も成功とする。redirectは通常どおり追跡し、最終応答で判定する。
+- RustのOptionは`is_some()`を追加で公開する。
+  - Python版: TOptionには存在しない。互換の値参照には`value`・`get()`・`get_or()`を使う。
+- 非有限数はRustで表せない入力として拒否する。
+  - 対象: `NaN`・`Infinity`・`-Infinity`と、`1e400`等のf64オーバーフロー。配列・辞書内部も同じ扱い。
+  - エラー: json_sort・res2dict/json・whenの入力値と結果・diffは、`ValueError: non-finite numbers are not supported`を返す。
+  - Python版: 非有限floatとして受理する。fixtureは非有限値を`nonfinite`タグに置き換えて観測値を保存する。
+  - 連結: 旧Rust実装はjson_sortが`Infinity`を書き出し、後続res2dict/jsonが拒否する場合があった。現在はjson_sortの入口で拒否し、この出力を作らない。
+  - 整数: JSONの整数はBigInt相当の精度で保持する。when入力へのf64変換で非有限値になる巨大整数も、whenの入口で同じエラーとする。
+  - 小文字: JSON中の`nan`・`inf`・`infinity`はPython同様JSONDecodeErrorとする。whenの描画結果に現れる非有限floatの`nan`・`inf`はValueErrorとする。
+- lone surrogateを含むJSONはRustで表せない入力としてJSONDecodeErrorにする。
+  - 例: `"\ud800"`。Pythonは受理し、json_sortではエンコード時に`?`へ置換する。
+- JSONの配列・辞書の深さ上限は1,000コンテナとする。
+  - 読み込み: serde_jsonの既定の128段制限を解除する。文字列内のブラケットを除外して構築前に検査し、1,001段は`LimitExceeded`にする。
+  - 再帰処理: 深さ64超の読み込み・json_sort・diffは32MiBの専用スタックで実行する。直接渡されたValueにも上限を適用する。
+  - Python版: ランタイムの再帰上限に依存する。Rustは固定上限とし、配列・辞書・混在の1,000段を検証する。
 - Slack v1もWebhook未設定時は警告して送信をスキップする。
   - Python版: SLACK_INCOMING_WEBHOOKS_URLが無いとKeyErrorになる。
   - Rust版: v2と同じ3件のwarningログを返す。ライブラリから直接ログを出さない。
@@ -309,6 +371,13 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - Python版: HTTPでは送らない。Rustのcookie_storeはループバックをsecureな宛先として扱う。
 - macOSのシステムproxy設定は取得しない。
   - Rust版: AccessPoint.proxyまたはproxy環境変数を使用する。
+- Optionをそのまま条件式に置く`when_any: ["dict_one"]`は、PythonでSyntaxError、Rustで偽となる。
+- ignoreのcasesはRustでは最初の一致で評価を打ち切る。
+  - Python版: 全caseを評価してから判定する。差は後続caseのエラーが発生するかどうかだけで、正常時の分類は同じ。
+- whenへ渡すi128超の整数はf64へ丸める。json_sortは整数を丸めず、整数`-0`はPythonと同じ`0`へ正規化する。
+- blockのtupleヘッダはJSONへ保存できない。
+  - Python版: アドオン実行は成功し、prop fileのJSON保存時にTypeErrorとなる。
+  - Rust版: 保存前のblock実行時にTypeErrorとなる。fixtureは保存時の失敗までを境界契約とする。
 - JSON numberはserde_jsonで正規化した表記を使う。
   - 例: `1e2` は `1e+2`。Pythonの `100.0` とは一致しない。`1.2300` はRustで `1.2300`、Pythonで `1.23`。
   - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
@@ -1128,7 +1197,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 理由: native-tlsがmacOSで追加する有効期間・EKUの制限を持ち込まない。EKUなしの10年・1年証明書で転送と通知の成功を検証する。
   - ルート: Mozilla系のwebpki-rootsを使う。certifiと更新時期まで同一とは限らない。明示CA bundleを指定した場合は既定ルートを無効にする。
   - 読込: CA bundleはHTTPS接続時だけ読む。HTTPのみの実行は不正なbundleの影響を受けない。
-  - 読込エラー: 存在しない・読めないファイルはOSErrorとしてchallengeの外へ返す。存在しないパスはPythonと同じ停止範囲になる。権限エラーの差異は「意図的に変える差異」に記載する。
+  - 読込エラー: 存在しないパスはOSErrorとしてchallengeの外へ返す。読取権限のないファイルはSSLErrorとしてfailureにする。いずれもPython実測と同じ分類を維持する。
   - 内容エラー: 空・不正なPEMはSSLErrorとしてchallengeでfailureにする。
 - reqwestが返すTLS・proxyの接続失敗はConnectionError系へ写す。
   - 契約: Pythonの例外クラスの派生構造ではなく、failureになる範囲を維持する。ネイティブなエラー詳細はError.messageに保持する。
@@ -1150,8 +1219,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 実測: ヘッダの途中なら空本文、本文の途中なら展開できた部分を保持する。不正なフレームはContentDecodingErrorとする。
 - `http-review2.json`にCAの5ケースと通知の14ケースを保存する。
   - 採取: `compat/gen/http_review2.py`でPython実測をexpectedに保存する。ローカルのTLS受信先と通知受信先だけを使う。
-  - 指定差異: 読取権限のないCAの1件と通知201・204・302・399の8件はrust_expectedを別に保持する。
-  - 検証: 19件すべてをRust期待値と照合する。通知v1・v2の本文bytesとUser-Agent以外の自動ヘッダはPython記録と比較する。
+  - 検証: 19件すべてをPython観測値と照合する。通知v1・v2の本文bytesとUser-Agent以外の自動ヘッダはPython記録と比較する。
 - `http-request.json`の18ケースでpath置換の後方参照、queryの`/i`・削除・`$DATETIME`、CP932のURL、ヘッダ・本文を固定する。
   - URL: 既存のパーセントエンコードも`%HH`の大文字表記へそろえる。
   - query: overwriteとremoveの`/i`は元のqsから最初に一致したキーを選ぶ。追加したキーを再検索しない。

@@ -35,7 +35,12 @@ impl DiffKeys {
 }
 
 /// 2つのJSON値を比較する。`__`で始まる辞書キーはDeepDiffと同じく無視する。
-pub fn diff(one: &Value, other: &Value) -> DiffKeys {
+pub fn diff(one: &Value, other: &Value) -> crate::compat::Result<DiffKeys> {
+    let depth = crate::compat::json::validate(one)?.max(crate::compat::json::validate(other)?);
+    crate::compat::json::with_stack(depth, || Ok(diff_validated(one, other)))
+}
+
+fn diff_validated(one: &Value, other: &Value) -> DiffKeys {
     let mut result = DiffKeys::default();
     compare(one, other, "root", &mut result);
     for paths in [&mut result.added, &mut result.changed, &mut result.removed] {

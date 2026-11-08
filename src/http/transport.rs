@@ -235,8 +235,14 @@ fn client_builder(
             .flatten()
     });
     if let Some(path) = ca_bundle.filter(|_| https) {
-        let pem = std::fs::read(&path)
-            .map_err(|e| Error::new("OSError", format!("{}: {e}", path.display())))?;
+        let pem = std::fs::read(&path).map_err(|e| {
+            let kind = if e.kind() == std::io::ErrorKind::NotFound {
+                "OSError"
+            } else {
+                "SSLError"
+            };
+            Error::new(kind, format!("{}: {e}", path.display()))
+        })?;
         let certificates = reqwest::Certificate::from_pem_bundle(&pem)
             .map_err(|e| Error::new("SSLError", e.to_string()))?;
         if certificates.is_empty() {

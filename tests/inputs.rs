@@ -42,6 +42,62 @@ fn block_on<F: std::future::Future>(future: F) -> F::Output {
         .block_on(future)
 }
 
+#[test]
+fn conditional_addons_reject_nonfinite_request_contexts() {
+    let context = Context {
+        webhook_url: None,
+        thread_ts: None,
+    };
+    let config = config();
+    for number in ["1e400".to_owned(), "-1e400".to_owned(), "9".repeat(400)] {
+        let request = Request {
+            path: "/".into(),
+            json: Some(serde_json::from_str(&format!("{{\"a\":{number}}}")).unwrap()),
+            ..Request::default()
+        };
+        for expression in ["json.a > 1", "False"] {
+            for (name, settings) in [
+                ("filter", json!({"when":expression})),
+                (
+                    "rename",
+                    json!({"conditions":[{"when":expression,"name":"renamed"}]}),
+                ),
+                (
+                    "replace",
+                    json!({"items":[{"when":expression,"queries":{"x":["1"]}}]}),
+                ),
+            ] {
+                let pipeline =
+                    Pipeline::build(&[addon(&json!({"addon":name,"config":settings}))]).unwrap();
+                let error =
+                    block_on(pipeline.exec(vec![request.clone()], &config, &context)).unwrap_err();
+                assert_eq!(error.error.kind, "ValueError", "{name}: {expression}");
+                assert_eq!(error.error.message, "non-finite numbers are not supported");
+            }
+        }
+        // add自身にwhenはない。追加されたRequestも後続の条件式の入口で検査する。
+        let pipeline = Pipeline::build(&[
+            addon(&json!({"addon":"add","config":{"reqs":[request]}})),
+            addon(&json!({"addon":"filter","config":{"when":"json.a > 1"}})),
+        ])
+        .unwrap();
+        let error = block_on(pipeline.exec(vec![], &config, &context)).unwrap_err();
+        assert_eq!(error.error.kind, "ValueError");
+    }
+    let request: Request = serde_json::from_value(json!({"path":"/", "json":{"a":2}})).unwrap();
+    let pipeline = Pipeline::build(&[addon(
+        &json!({"addon":"filter","config":{"when":"json.a > 1"}}),
+    )])
+    .unwrap();
+    assert_eq!(
+        block_on(pipeline.exec(vec![request], &config, &context))
+            .unwrap()
+            .requests
+            .len(),
+        1
+    );
+}
+
 fn run_cli(config: &Value, webhook: Option<&str>) -> std::process::Output {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let directory = std::env::temp_dir().join(format!(
@@ -325,7 +381,7 @@ fn notification_http_errors_are_returned() {
 }
 
 #[test]
-fn notification_status_fixtures_match_requests_ok() {
+fn notification_status_fixtures_match_jumeaux_ok() {
     let cases: Vec<Value> =
         serde_json::from_str(include_str!("../compat/fixtures/http-review2.json")).unwrap();
     for case in cases
@@ -335,7 +391,7 @@ fn notification_status_fixtures_match_requests_ok() {
         let notifier = serde_json::from_value(case["input"]["notifier"].clone()).unwrap();
         let (context, rx, handle) = receiver(case["input"]["status"].as_u64().unwrap() as u16);
         let result = block_on(notification::notify(&notifier, "status fixture", &context)).unwrap();
-        let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        let expected = &case["expected"];
         assert_eq!(
             json!({"ok": result.error.is_none(), "notification_error": result.error}),
             json!({"ok": expected["ok"], "notification_error": expected["notification_error"]}),

@@ -161,7 +161,7 @@ async fn send(url: &str, payload: &Value) -> Result<Outcome> {
         .send()
         .await
         .map_err(|e| Error::new("ConnectionError", e.to_string()))?;
-    let ok = response.status().as_u16() < 400;
+    let ok = response.status().as_u16() == 200;
     let error = if ok {
         None
     } else {

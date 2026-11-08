@@ -74,7 +74,7 @@ fn options() -> TransportOptions {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn ca_file_errors_propagate_but_invalid_contents_become_failure() {
+async fn ca_errors_match_python_failure_classification() {
     use std::os::unix::fs::PermissionsExt;
     let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("target")
@@ -121,7 +121,7 @@ async fn ca_file_errors_propagate_but_invalid_contents_become_failure() {
         if label == "unreadable" {
             std::fs::set_permissions(&bundle, std::fs::Permissions::from_mode(0o600)).unwrap();
         }
-        let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        let expected = &case["expected"];
         assert_eq!(
             sent.unwrap_err().kind,
             expected["send_error"].as_str().unwrap()
@@ -155,7 +155,10 @@ async fn pair_runs_both_endpoints_and_headers_are_case_insensitive_in_templates(
         TemplateEngine::new()
             .when(
                 "res.headers['X-TeSt'] == 'A, B'",
-                minijinja::context!(res => one.to_template_value())
+                jumeaux::compat::values::checked_context(
+                    minijinja::context!(res => one.to_template_value())
+                )
+                .unwrap()
             )
             .unwrap()
             .to_json()

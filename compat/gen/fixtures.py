@@ -359,7 +359,9 @@ def main():
         def literal_type():
             value = utils.when_filter(expression, {})
             return {"type": type(value).__name__, "truthy": bool(value)}
-        add("template", "literal-type-" + rendered, {"operation": "when_type", "expression": expression}, literal_type)
+        add("template", "literal-type-" + rendered, {"operation": "when_type", "expression": expression}, literal_type,
+            rust_expected={"error": "ValueError"} if rendered == "1e999" else None,
+            difference="compat-spec.md: 非有限数は入口でValueError" if rendered == "1e999" else None)
     for expression in ("response.byte", "response.url", "response.type", "response.elapsed_sec", "response.elapsed.total_seconds()", "response.elapsed.seconds", "response.headers['Content-Type']", "response.content_type.get()", "response.mime_type.get()", "response.charset.get()", "response.charset", "response.encoding.get()"):
         res = response("日本語".encode())
         # 文字列プロパティもliteral_evalを通せるようtojsonで引用する。

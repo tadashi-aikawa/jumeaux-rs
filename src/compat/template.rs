@@ -12,7 +12,10 @@ use minijinja::{
 use rustpython_parser::{Parse, ast};
 use serde_json::Value as Json;
 
-use super::{Error, Result, regex, values::TemplateInput};
+use super::{
+    Error, Result, regex,
+    values::{RenderInput, TemplateInput},
+};
 
 pub struct TemplateEngine {
     env: RwLock<Environment<'static>>,
@@ -170,7 +173,7 @@ impl TemplateEngine {
             .map_err(template_error)
     }
 
-    pub fn render(&self, template: &str, data: impl TemplateInput) -> Result<String> {
+    pub fn render(&self, template: &str, data: impl RenderInput) -> Result<String> {
         self.load(template)?;
         self.env
             .read()
@@ -183,6 +186,8 @@ impl TemplateEngine {
 
     /// boolに即時変換しない。数値・リストなどは後続の呼び出し元がtruthinessを判定する。
     pub fn when(&self, expression: &str, data: impl TemplateInput) -> Result<LiteralValue> {
+        super::json::scan_expression(expression)?;
+        let data = data.into_when_value();
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }
@@ -703,7 +708,7 @@ fn python_display(value: &Value, nested: bool) -> String {
     }
 }
 
-fn python_float_repr(value: f64) -> String {
+pub(crate) fn python_float_repr(value: f64) -> String {
     if value.is_nan() {
         return "nan".into();
     }
@@ -880,9 +885,34 @@ impl LiteralValue {
 }
 
 pub fn literal_eval(text: &str) -> Result<LiteralValue> {
+    super::json::scan_literal(text)?;
     let expr = ast::Expr::parse(text.trim_start_matches([' ', '\t']), "<when>")
         .map_err(|e| Error::new("SyntaxError", e.to_string()))?;
-    literal(&expr)
+    let value = literal(&expr)?;
+    validate_literal(&value)?;
+    Ok(value)
+}
+
+fn validate_literal(value: &LiteralValue) -> Result<()> {
+    match value {
+        LiteralValue::Float(n) if !n.is_finite() => return Err(super::json::nonfinite_error()),
+        LiteralValue::Complex { real, imag } if !real.is_finite() || !imag.is_finite() => {
+            return Err(super::json::nonfinite_error());
+        }
+        LiteralValue::List(v) | LiteralValue::Tuple(v) | LiteralValue::Set(v) => {
+            for value in v {
+                validate_literal(value)?;
+            }
+        }
+        LiteralValue::Dict(v) => {
+            for (key, value) in v {
+                validate_literal(key)?;
+                validate_literal(value)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 fn literal(expr: &ast::Expr) -> Result<LiteralValue> {
