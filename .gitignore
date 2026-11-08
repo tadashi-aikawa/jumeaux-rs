@@ -7,3 +7,4 @@ compat/actual/
 /.venv/
 /.cache/
 /site/
+/dist/
