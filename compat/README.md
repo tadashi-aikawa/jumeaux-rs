@@ -89,9 +89,12 @@ cargo test --test challenge_e2e -- --ignored --nocapture
 - レビュー回帰fixtureは15件。保存先作成6件と進捗ログ9件がPythonと一致する。
   - 比較: ログの実測時間だけを0.0秒へ正規化する。構造化ログから名前なし・失敗・保存エラー時の行とverbosityを復元する。
 - E2Eは記録用受信先を動的なローカルportで起動する。
-  - 対象: 22ケース、Trial 43件、本文・prop 94ファイル。
+  - 対象: 既存22ケースとverbose_2・verbose_3の計24ケース、Trial 47件、本文・prop 102ファイル。
   - 比較: 既存python-baselineのtrialと保存bytes。Report書き出し・final・CLIは後続タスク。
   - processes: 公開APIの既定値PerTrialで検証する。threadsではCookieを共有し、processesではtrialごとに分離する。
+- verbose_2の33行・verbose_3の45行に必要なデータとレベルを構造化イベントで検証する。
+  - 比較: trial開始からDid challengeまでのアプリ側の行。計測時間・動的port・User-Agentのversionだけを正規化する。
+  - ストリーミング: `exec_with_progress`の通知がHTTP前・sleep中に届くことと、成功・失敗時のlogsに同じ順で保持されることを検証する。
 - Python基準の.venvが必要なE2Eだけ通常のcargo testではignoredとする。
   - 実行: 上記の`--ignored`付きコマンドで明示的に動かす。
 

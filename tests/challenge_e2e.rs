@@ -1,5 +1,7 @@
 //! ローカル記録用受信先とPython保存済み基準による統合比較。
 //! 実行: cargo test --test challenge_e2e -- --ignored --nocapture
+#[path = "support/progress.rs"]
+mod progress;
 use jumeaux::{
     addons::log2reqs,
     config,
@@ -167,6 +169,8 @@ async fn templates_match_python_saved_trials_and_files() {
         "output_encoding",
         "header_ignore_case",
         "header_condition_case",
+        "verbose_2",
+        "verbose_3",
     ] {
         let case = baseline.join(name);
         let work = temp.join(name);
@@ -234,6 +238,14 @@ async fn templates_match_python_saved_trials_and_files() {
             "{name} concurrency"
         );
         assert_eq!(result.comparison, config.comparison());
+        if name.starts_with("verbose_") {
+            progress::assert_verbose_materials(
+                &result.logs,
+                &std::fs::read_to_string(case.join("run.stderr")).unwrap(),
+                if name == "verbose_2" { 2 } else { 3 },
+                port,
+            );
+        }
         let mut actual_trials = json!(result.trials);
         let mut expected_trials = expected["trials"].clone();
         normalize(&mut actual_trials, port);

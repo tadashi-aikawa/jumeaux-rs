@@ -74,7 +74,16 @@ impl Executor {
 }
 impl AddonExecutor<Res2Res> for Executor {
     fn exec(&self, payload: Res2ResPayload, _: &()) -> Result<Res2ResPayload> {
+        self.exec_with_log(payload, &(), &|_| {})
+    }
+    fn exec_with_log(
+        &self,
+        payload: Res2ResPayload,
+        _: &(),
+        log: &dyn Fn(crate::addons::log::AddonLog),
+    ) -> Result<Res2ResPayload> {
         if payload.response.response_type != "json" {
+            log(crate::addons::log::AddonLog::JsonSortSkipped);
             return Ok(payload);
         }
         let text = payload.response.text()?;

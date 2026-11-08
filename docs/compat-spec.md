@@ -301,6 +301,10 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 
 ## 意図的に変える差異
 
+- trial例外後の後続trialへの着手数はPythonと一致させない。
+  - Python版: エラーが入力順のresult_iteratorへ届くまで、worker数に応じて後続trialへ先行着手することがある。
+  - Rust版: Errを受け取った時点で新しいspawnを止める。既に実行中のtrialは保存・sleepまで完了を待つ。
+  - 比較: 停止時の送信件数・保存件数の差を許容する。入力順の最初のエラーを返す契約は維持する。
 - `.netrc`由来のAuthorizationは自動付与しない。
   - Python版: trust_envがtrueならnetrcから認証情報を取得する。
   - Rust版: 設定・Requestで明示したAuthorizationを使う。
@@ -1269,9 +1273,22 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 出力: `LoggedResult<Execution, Progress>`。Executionは`trials`・`logs`・`started_at`・`ended_at`・`concurrency`・`comparison`を持つ。Report集計・final・CLIは実行しない。
   - 単体入口: `challenge`は1trialのHTTPを実行する。`finish`はHTTPのResponsePairを注入し、同期アドオンと保存を実行する。
 - logsはCLIの進捗行を組み立てる構造化データを観測順で保持する。
-  - 材料: seq・全件数・元のRequest.name・path・method・status・両側のstatus_codeとresponse_sec。nameなし・空文字はNoneを維持する。
-  - 表示: 正常応答は`name.unwrap_or(path)`を使う。通信失敗の`💀`行はnameなしを`None`と表示する。sameはverbosity 2、differentとfailureはverbosity 1相当。
-  - タイミング: 正常応答はjudgement後・store_criterion前、通信失敗はfailure生成時に記録する。保存や後続アドオンが失敗しても、それ以前のログと実行中trialのログを`Failure { error, logs }`で返す。prepareと同じLoggedResultの形を使い、実際の出力・書式はCLIの責務とする。
+  - 形式: `Progress { seq, total, level, event }`。色・接頭辞・文字列の書式は含めない。
+  - 開始: `Started`に元のRequestを保持する。nameなし・空文字はNoneを維持する。
+  - HTTP: カスタマイズ後のURL、設定のproxy host、追加headersとraw・form・json、大文字小文字を保持したマージ後headersを送信前に記録する。URLの動的queryはログ用に再計算しない。
+  - 応答: res2res前のstatus_code・response_sec・本文byte数・Content-Typeを両側とも記録する。encodingやtypeの変換で停止した場合もHTTP結果を保持する。
+  - 計測: res2resとres2dictの両側、Diff diagnosis、Judgement、Store criterion、Did challengeの8段階をDurationで保持する。Store criterionはdumpと保存を含む。失敗した段階の完了イベントは出さない。
+  - アドオン: レイヤーとone/otherに相当するstage、設定内のindex、name、選んだ分岐の素の値を保持する。条件式をログ用に再評価しない。
+  - 保存: 保存可否と、書き込み済みの各ファイルのside・本文/prop種別・パス・byte数・encodingを保持する。
+  - 結果: `Judged`はjudgement後・store_criterion前に記録する。`ConnectionFailed`は通信失敗時、`Failed`はtrialを停止するErrの発生時に記録する。
+  - 表示材料: `Progress::summary()`で既定・-vの結果行に必要なTrialProgressを取り出せる。正常応答は`name.unwrap_or(path)`、通信失敗の名前なしは`None`と表示する。
+  - レベル: Normalは既定、Verboseは-v、VeryVerboseは-vv、Debugは-vvvに対応する。Warning・Errorはverbosityによらず表示できる。
+- `exec_with_progress`はイベントをコールバックへ実行中に通知する。
+  - 順序: コールバックの呼び出しを直列化し、成功時のExecution.logsと失敗時のFailure.logsにも同じイベント列を保持する。
+  - コールバック: worker上で呼ぶため、短時間で戻りpanicしないこと。channelへ送ってCLI側で処理してもよい。
+  - 停止: 保存・後続アドオンが失敗しても、実行中trialの完了までイベントを通知し続ける。
+  - 互換入口: `exec`は通知先を省略した入口。単体のchallenge・finishも直接出力しない。
+  - 責務: 起動見出し・prepare・finalの出力は各呼出側に残す。urllib3の接続・応答ログは既存の比較除外に従う。
 - 実行時刻はタイムゾーン付きの`started_at`と`ended_at`に保持する。
   - start: 保存ディレクトリ作成後・trial開始前。
   - end: 全trial完了後・latestの張り替え前。保存とdid_challenge/sleepの時間を含む。
@@ -1319,7 +1336,9 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - 受入は`compat/fixtures/challenge.json`の104件。
   - 結果: Python完全一致102件。ゼロ除算の2件は既存の承認済み例外差異を適用し、TypeErrorで一致する。
   - 内容: store_criterion 24件、dump 41件、tag 9件、sleep 5件、prop 7件、key 8件、ファイル名4件、HTTP以降の統合6件。
-  - ローカルHTTP: 22ケースのTrial 43件と本文・prop 94ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
+  - ローカルHTTP: 既存22ケースとverbose_2・verbose_3を合わせた24ケースのTrial 47件と本文・prop 102ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
+  - verbose: verbose_2の33行・verbose_3の45行に必要な値とレベルをイベントから復元して比較する。計測時間・動的port・User-Agentのversionを正規化する。実際のCLI書式はCLI統合時に比較する。
+  - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。通知列とlogsの完全一致を成功時・エラー時の両方で確認する。
   - 追加fixture: `compat/fixtures/challenge-review.json`の15件はPythonと一致する。保存先作成6件とログ9件を比較する。ログの実測時間だけを0.0秒へ正規化する。
   - 追加検証: 並行数と順序、Cookie共有・分離の既定、failureのスキップ、例外時の新規投入停止・実行中trial完了待ち・latest維持、空のkeyディレクトリ再使用と既存サブディレクトリ拒否、リンク張り替え、実行時刻、実sleepをRustテストで固定する。
 

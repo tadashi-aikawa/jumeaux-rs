@@ -27,14 +27,26 @@ impl AddonExecutor<DidChallenge> for Config {
     fn exec(
         &self,
         payload: DidChallengePayload,
+        reference: &DidChallengeReference,
+    ) -> Result<DidChallengePayload> {
+        self.exec_with_log(payload, reference, &|_| {})
+    }
+    fn exec_with_log(
+        &self,
+        payload: DidChallengePayload,
         _: &DidChallengeReference,
+        log: &dyn Fn(crate::addons::log::AddonLog),
     ) -> Result<DidChallengePayload> {
         let bits = std::collections::hash_map::RandomState::new()
             .build_hasher()
             .finish();
         let unit = (bits >> 11) as f64 / ((1u64 << 53) as f64);
         // challengeはこの同期Chain全体をspawn_blocking内で実行する。
-        std::thread::sleep(self.seconds(unit)?);
+        log(crate::addons::log::AddonLog::Sleep {
+            seconds: self.min + (self.max - self.min) * unit,
+        });
+        let duration = self.seconds(unit)?;
+        std::thread::sleep(duration);
         Ok(payload)
     }
 }

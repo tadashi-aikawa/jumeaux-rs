@@ -7,8 +7,47 @@ pub use transport::{HttpTransport, TransportOptions};
 
 use crate::{
     compat::{Error, Result},
-    models::{Request, Response, ResponseSummary, Status, Trial},
+    models::{Headers, Request, Response, ResponseSummary, Status, Trial},
+    notification::Verbosity,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    One,
+    Other,
+}
+#[derive(Debug, Clone, PartialEq)]
+pub enum HttpEvent {
+    Url {
+        side: Side,
+        url: String,
+    },
+    /// 設定のproxy host。CLIはSomeならhttp/httpsの辞書として表示できる。
+    Proxy {
+        side: Side,
+        host: Option<String>,
+    },
+    RequestDetails(Box<Request>),
+    RequestHeaders {
+        side: Side,
+        headers: Headers,
+    },
+    Response {
+        side: Side,
+        status_code: u16,
+        response_sec: f64,
+        bytes: usize,
+        content_type: Option<String>,
+    },
+}
+impl HttpEvent {
+    pub fn level(&self) -> Verbosity {
+        match self {
+            Self::Proxy { .. } | Self::RequestHeaders { .. } => Verbosity::Debug,
+            _ => Verbosity::VeryVerbose,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum ChallengeOutcome {
@@ -58,22 +97,58 @@ fn request_time(now: chrono::DateTime<chrono::FixedOffset>) -> String {
 impl HttpTransport {
     /// 両側の通信完了を待つ。片側が成功してもConnectionErrorなら両側summaryを省略する。
     pub async fn challenge(&self, seq: u64, request: &Request) -> Result<ChallengeOutcome> {
+        self.challenge_with_events(seq, request, &|_| {}).await
+    }
+
+    pub async fn challenge_with_events(
+        &self,
+        seq: u64,
+        request: &Request,
+        log: &(dyn Fn(HttpEvent) + Sync),
+    ) -> Result<ChallengeOutcome> {
         let one = prepare(&self.one.access, request)?;
         let other = prepare(&self.other.access, request)?;
         let url_one = one.original_url.clone();
         let url_other = other.original_url.clone();
+        for (side, url, access) in [
+            (Side::One, &url_one, &self.one.access),
+            (Side::Other, &url_other, &self.other.access),
+        ] {
+            log(HttpEvent::Url {
+                side,
+                url: url.clone(),
+            });
+            log(HttpEvent::Proxy {
+                side,
+                host: access.proxy.clone(),
+            });
+        }
+        log(HttpEvent::RequestDetails(Box::new(request.clone())));
+        for (side, access) in [
+            (Side::One, &self.one.access),
+            (Side::Other, &self.other.access),
+        ] {
+            log(HttpEvent::RequestHeaders {
+                side,
+                headers: request::merge_headers_preserving_case(&access.headers, &request.headers),
+            });
+        }
         let request_time = request_time(chrono::Local::now().fixed_offset());
         let (r_one, r_other) = tokio::join!(
             self.send_prepared(&self.one, one),
             self.send_prepared(&self.other, other)
         );
         match r_one.and_then(|a| r_other.map(|b| (a, b))) {
-            Ok((one, other)) => Ok(ChallengeOutcome::Responses(Box::new(ResponsePair {
-                one: one.into_response(self.one.access.default_response_encoding.as_deref())?,
-                other: other
-                    .into_response(self.other.access.default_response_encoding.as_deref())?,
-                request_time,
-            }))),
+            Ok((one, other)) => {
+                log(one.event(Side::One));
+                log(other.event(Side::Other));
+                Ok(ChallengeOutcome::Responses(Box::new(ResponsePair {
+                    one: one.into_response(self.one.access.default_response_encoding.as_deref())?,
+                    other: other
+                        .into_response(self.other.access.default_response_encoding.as_deref())?,
+                    request_time,
+                })))
+            }
             Err(error) if is_connection_error(&error) => {
                 Ok(ChallengeOutcome::Failure(Box::new(Trial {
                     seq,

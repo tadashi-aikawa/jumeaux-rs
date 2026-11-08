@@ -32,8 +32,16 @@ impl Executor {
 impl AddonExecutor<StoreCriterion> for Executor {
     fn exec(
         &self,
+        payload: StoreCriterionPayload,
+        reference: &StoreCriterionReference,
+    ) -> Result<StoreCriterionPayload> {
+        self.exec_with_log(payload, reference, &|_| {})
+    }
+    fn exec_with_log(
+        &self,
         mut payload: StoreCriterionPayload,
         reference: &StoreCriterionReference,
+        log: &dyn Fn(crate::addons::log::AddonLog),
     ) -> Result<StoreCriterionPayload> {
         if payload.stored {
             return Ok(payload);
@@ -65,6 +73,9 @@ impl AddonExecutor<StoreCriterion> for Executor {
         ]))?;
         for expression in expressions {
             if self.engine.when(expression, &context)?.truthy() {
+                log(crate::addons::log::AddonLog::Stored {
+                    expression: expression.clone(),
+                });
                 payload.stored = true;
                 break;
             }

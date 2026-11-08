@@ -32,6 +32,16 @@ pub enum Level {
     Warning,
     Error,
 }
+/// Pythonのinfo_lv1〜3とDEBUGに対応する。色や接頭辞は含めない。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verbosity {
+    Normal,
+    Verbose,
+    VeryVerbose,
+    Debug,
+    Warning,
+    Error,
+}
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Log {
     pub level: Level,

@@ -28,7 +28,7 @@ pub(crate) fn optional_string<'de, D: serde::Deserializer<'de>>(
     Ok(Option::<String>::deserialize(deserializer)?.filter(|s| !s.is_empty()))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
     #[serde(

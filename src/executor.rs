@@ -1,20 +1,24 @@
 //! HTTPからTrial・レスポンス保存までの統合。Report集計とfinalは呼出元の責務。
+mod progress;
 use crate::{
     addons::{
         self, Chain, DidChallenge, Dump, Judgement, Res2Dict, Res2Res, StoreCriterion, payload::*,
     },
     compat::{Error, Result},
     config::{Config, HeaderJudgementSettings},
-    http::{ChallengeOutcome, HttpTransport, ResponsePair},
+    http::{ChallengeOutcome, HttpTransport, ResponsePair, Side},
     models::{
         Concurrency, HttpMethod, OutputSummary, Request, Response, ResponseSummary, Status, Trial,
     },
     notification::{Failure, LoggedResult},
 };
+pub use progress::{Event, Progress, SavedKind, Stage};
+use progress::{Stream, TrialEvents};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
+    time::Instant,
 };
 
 /// processesは既定でtrialごとにCookieを分離する。threadsは常に共有する。
@@ -27,7 +31,7 @@ pub enum ProcessCookieScope {
 
 /// CLIの進捗行の材料。出力・書式・verbosityの選択は呼出側が担う。
 #[derive(Debug, Clone, PartialEq)]
-pub struct Progress {
+pub struct TrialProgress {
     pub seq: u64,
     pub total: usize,
     /// Trial.nameのseq補完前の値。通信失敗の名前なしはNoneとして表示する。
@@ -55,7 +59,7 @@ impl From<&ResponseSummary> for ProgressResponse {
 #[derive(Debug)]
 pub struct Execution {
     pub trials: Vec<Trial>,
-    /// 判断・通信失敗を観測した順。保存などで停止した場合もFailure.logsへ返す。
+    /// 全イベントを通知順に保持する。保存などで停止した場合もFailure.logsへ返す。
     pub logs: Vec<Progress>,
     pub started_at: chrono::DateTime<chrono::FixedOffset>,
     pub ended_at: chrono::DateTime<chrono::FixedOffset>,
@@ -95,6 +99,20 @@ impl Pipeline {
         key: &str,
         process_cookies: Option<ProcessCookieScope>,
     ) -> LoggedResult<Execution, Progress> {
+        self.exec_with_progress(transport, requests, key, process_cookies, |_| {})
+            .await
+    }
+
+    /// イベントは発生時に通知する。コールバックはworker上で直列に呼び、logsにも同じ順で残す。
+    /// コールバックは短時間で戻り、panicしないこと。channelへ送ってCLI側で整形してもよい。
+    pub async fn exec_with_progress(
+        self: &Arc<Self>,
+        transport: Arc<HttpTransport>,
+        requests: Vec<Request>,
+        key: &str,
+        process_cookies: Option<ProcessCookieScope>,
+        observer: impl FnMut(&Progress) + Send + 'static,
+    ) -> LoggedResult<Execution, Progress> {
         let concurrency = self.config.concurrency()?;
         let processes = self.config.processes.is_some_and(|n| n != 0);
         let isolated =
@@ -117,7 +135,7 @@ impl Pipeline {
         let mut running = tokio::task::JoinSet::new();
         let mut indices = HashMap::new();
         let mut completed = Vec::new();
-        let logs = Arc::new(Mutex::new(Vec::new()));
+        let logs = Stream::new(observer);
         let mut stopped = false;
         loop {
             while !stopped && running.len() < limit {
@@ -133,29 +151,15 @@ impl Pipeline {
                 };
                 let logs = Arc::clone(&logs);
                 let seq = index as u64 + 1;
-                let (name, path, method) =
-                    (request.name.clone(), request.path.clone(), request.method);
                 let handle = running.spawn(async move {
-                    pipeline
-                        .challenge_with_log(
-                            &transport,
-                            seq,
-                            request,
-                            storage,
-                            move |status, one, other| {
-                                logs.lock().unwrap().push(Progress {
-                                    seq,
-                                    total,
-                                    name,
-                                    path,
-                                    method,
-                                    status,
-                                    one: one.into(),
-                                    other: other.into(),
-                                });
-                            },
-                        )
-                        .await
+                    let events = TrialEvents::new(seq, total, logs);
+                    let result = pipeline
+                        .challenge_with_log(&transport, seq, request, storage, events.clone())
+                        .await;
+                    if let Err(error) = &result {
+                        events.emit(Event::Failed(error.clone()));
+                    }
+                    result
                 });
                 indices.insert(handle.id(), index);
             }
@@ -171,7 +175,7 @@ impl Pipeline {
             completed.push((indices.remove(&id).unwrap(), result));
         }
         let ended_at = chrono::Local::now().fixed_offset();
-        let logs = std::mem::take(&mut *logs.lock().unwrap());
+        let logs = logs.take();
         completed.sort_by_key(|(index, _)| *index);
         let trials = completed
             .into_iter()
@@ -206,7 +210,7 @@ impl Pipeline {
         request: Request,
         storage: Arc<Storage>,
     ) -> Result<Trial> {
-        self.challenge_with_log(transport, seq, request, storage, |_, _, _| {})
+        self.challenge_with_log(transport, seq, request, storage, TrialEvents::silent(seq))
             .await
     }
 
@@ -216,17 +220,21 @@ impl Pipeline {
         seq: u64,
         request: Request,
         storage: Arc<Storage>,
-        log: impl FnOnce(Status, &ResponseSummary, &ResponseSummary) + Send + 'static,
+        events: TrialEvents,
     ) -> Result<Trial> {
-        match transport.challenge(seq, &request).await? {
+        events.emit(Event::Started(Box::new(request.clone())));
+        match transport
+            .challenge_with_events(seq, &request, &|event| events.emit(Event::Http(event)))
+            .await?
+        {
             ChallengeOutcome::Failure(trial) => {
-                log(trial.status, &trial.one, &trial.other);
+                events.outcome(&request, trial.status, &trial.one, &trial.other);
                 Ok(*trial)
             }
             ChallengeOutcome::Responses(pair) => {
                 let pipeline = Arc::clone(self);
                 tokio::task::spawn_blocking(move || {
-                    pipeline.finish_with_log(seq, request, *pair, &storage, log)
+                    pipeline.finish_with_log(seq, request, *pair, &storage, &events)
                 })
                 .await
                 .map_err(join_error)?
@@ -242,7 +250,7 @@ impl Pipeline {
         pair: ResponsePair,
         storage: &Storage,
     ) -> Result<Trial> {
-        self.finish_with_log(seq, request, pair, storage, |_, _, _| {})
+        self.finish_with_log(seq, request, pair, storage, &TrialEvents::silent(seq))
     }
 
     fn finish_with_log(
@@ -251,10 +259,13 @@ impl Pipeline {
         request: Request,
         pair: ResponsePair,
         storage: &Storage,
-        log: impl FnOnce(Status, &ResponseSummary, &ResponseSummary),
+        events: &TrialEvents,
     ) -> Result<Trial> {
         let name = request.name.clone().unwrap_or_else(|| seq.to_string());
-        let one = self.res2res.exec(
+        let start = Instant::now();
+        let one = events.chain(
+            Stage::Res2Res(Side::One),
+            &self.res2res,
             Res2ResPayload {
                 response: pair.one,
                 req: request.clone(),
@@ -262,7 +273,11 @@ impl Pipeline {
             },
             &(),
         )?;
-        let other = self.res2res.exec(
+        events.elapsed(Stage::Res2Res(Side::One), start);
+        let start = Instant::now();
+        let other = events.chain(
+            Stage::Res2Res(Side::Other),
+            &self.res2res,
             Res2ResPayload {
                 response: pair.other,
                 req: request.clone(),
@@ -270,9 +285,12 @@ impl Pipeline {
             },
             &(),
         )?;
-        let dict_one = self
-            .res2dict
-            .exec(
+        events.elapsed(Stage::Res2Res(Side::Other), start);
+        let start = Instant::now();
+        let dict_one = events
+            .chain(
+                Stage::Res2Dict(Side::One),
+                &self.res2dict,
                 Res2DictPayload {
                     response: one.response.clone(),
                     result: None,
@@ -280,9 +298,12 @@ impl Pipeline {
                 &(),
             )?
             .result;
-        let dict_other = self
-            .res2dict
-            .exec(
+        events.elapsed(Stage::Res2Dict(Side::One), start);
+        let start = Instant::now();
+        let dict_other = events
+            .chain(
+                Stage::Res2Dict(Side::Other),
+                &self.res2dict,
                 Res2DictPayload {
                     response: other.response.clone(),
                     result: None,
@@ -290,6 +311,7 @@ impl Pipeline {
                 &(),
             )?
             .result;
+        events.elapsed(Stage::Res2Dict(Side::Other), start);
         let reference = JudgementReference {
             name: name.clone(),
             path: request.path.clone(),
@@ -300,12 +322,18 @@ impl Pipeline {
             dict_one: dict_one.clone(),
             dict_other: dict_other.clone(),
         };
-        let initial = addons::judgement::initial_payload(
-            &reference,
-            self.config.judge_response_header,
-            &self.config.ignore_response_header_keys,
-        )?;
-        let judged = self.judgement.exec(initial, &reference)?;
+        let diffs = events.timed(Stage::DiffDiagnosis, || {
+            addons::judgement::diagnose_diff(&reference)
+        })?;
+        let judged = events.timed(Stage::Judgement, || {
+            let initial = addons::judgement::payload_from_diff(
+                &reference,
+                self.config.judge_response_header,
+                &self.config.ignore_response_header_keys,
+                diffs,
+            );
+            events.chain(Stage::Judgement, &self.judgement, initial, &reference)
+        })?;
         let status = if judged.regard_as_same() {
             Status::Same
         } else {
@@ -313,7 +341,8 @@ impl Pipeline {
         };
         let mut summary_one = summary(&one.response, self.config.judge_response_header);
         let mut summary_other = summary(&other.response, self.config.judge_response_header);
-        log(status, &summary_one, &summary_other);
+        events.outcome(&request, status, &summary_one, &summary_other);
+        let store_start = Instant::now();
         let store_req = Request {
             name: Some(name.clone()),
             path: request.path.clone(),
@@ -321,9 +350,10 @@ impl Pipeline {
             headers: request.headers.clone(),
             ..Request::default()
         };
-        let stored = self
-            .store
-            .exec(
+        let stored = events
+            .chain(
+                Stage::StoreCriterion,
+                &self.store,
                 StoreCriterionPayload { stored: false },
                 &StoreCriterionReference {
                     status,
@@ -333,27 +363,45 @@ impl Pipeline {
                 },
             )?
             .stored;
+        events.emit(Event::StorageDecision { stored });
         if stored {
             summary_one.file = Some(response_file("one", seq, &name));
             summary_other.file = Some(response_file("other", seq, &name));
             // Pythonと同じくoneのdump・書込を終えてからotherへ進む。
-            self.save_response(storage, summary_one.file.as_deref().unwrap(), &one.response)?;
+            self.save_response(
+                storage,
+                summary_one.file.as_deref().unwrap(),
+                &one.response,
+                Side::One,
+                events,
+            )?;
             self.save_response(
                 storage,
                 summary_other.file.as_deref().unwrap(),
                 &other.response,
+                Side::Other,
+                events,
             )?;
-            for (side, props, summary) in [
-                ("one", &dict_one, &mut summary_one),
-                ("other", &dict_other, &mut summary_other),
+            for (side, label, props, summary) in [
+                (Side::One, "one", &dict_one, &mut summary_one),
+                (Side::Other, "other", &dict_other, &mut summary_other),
             ] {
                 if let Some(props) = props {
-                    let file = prop_file(side, seq, &name);
-                    storage.write(&file, &prop_bytes(props)?)?;
+                    let file = prop_file(label, seq, &name);
+                    let body = prop_bytes(props)?;
+                    storage.write(&file, &body)?;
+                    events.emit(Event::Saved {
+                        side,
+                        kind: SavedKind::Props,
+                        path: storage.root.join(&file),
+                        bytes: body.len(),
+                        encoding: Some("utf-8".into()),
+                    });
                     summary.prop_file = Some(file);
                 }
             }
         }
+        events.elapsed(Stage::StoreCriterion, store_start);
         let mut tags = one.tags;
         tags.extend(other.tags);
         let mut unique = Vec::new();
@@ -379,22 +427,34 @@ impl Pipeline {
             status,
             diffs_by_cognition: judged.diffs_by_cognition,
         };
-        Ok(self
-            .did
-            .exec(
-                DidChallengePayload { trial },
-                &DidChallengeReference {
-                    res_one: one.response,
-                    res_other: other.response,
-                    res_one_props: dict_one,
-                    res_other_props: dict_other,
-                },
-            )?
+        Ok(events
+            .timed(Stage::DidChallenge, || {
+                events.chain(
+                    Stage::DidChallenge,
+                    &self.did,
+                    DidChallengePayload { trial },
+                    &DidChallengeReference {
+                        res_one: one.response,
+                        res_other: other.response,
+                        res_one_props: dict_one,
+                        res_other_props: dict_other,
+                    },
+                )
+            })?
             .trial)
     }
 
-    fn save_response(&self, storage: &Storage, file: &str, response: &Response) -> Result<()> {
-        let dumped = self.dump.exec(
+    fn save_response(
+        &self,
+        storage: &Storage,
+        file: &str,
+        response: &Response,
+        side: Side,
+        events: &TrialEvents,
+    ) -> Result<()> {
+        let dumped = events.chain(
+            Stage::Dump(side),
+            &self.dump,
             DumpPayload {
                 response: response.clone(),
                 body: response.body.to_vec(),
@@ -402,7 +462,15 @@ impl Pipeline {
             },
             &(),
         )?;
-        storage.write(file, &dumped.body)
+        storage.write(file, &dumped.body)?;
+        events.emit(Event::Saved {
+            side,
+            kind: SavedKind::Body,
+            path: storage.root.join(file),
+            bytes: dumped.body.len(),
+            encoding: dumped.encoding,
+        });
+        Ok(())
     }
 }
 

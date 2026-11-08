@@ -43,8 +43,16 @@ impl Executor {
 impl AddonExecutor<DidChallenge> for Executor {
     fn exec(
         &self,
+        payload: DidChallengePayload,
+        reference: &DidChallengeReference,
+    ) -> Result<DidChallengePayload> {
+        self.exec_with_log(payload, reference, &|_| {})
+    }
+    fn exec_with_log(
+        &self,
         mut payload: DidChallengePayload,
         reference: &DidChallengeReference,
+        log: &dyn Fn(crate::addons::log::AddonLog),
     ) -> Result<DidChallengePayload> {
         let trial = serde_json::to_value(&payload.trial)
             .map_err(|e| Error::new("SerializeError", e.to_string()))?;
@@ -73,6 +81,7 @@ impl AddonExecutor<DidChallenge> for Executor {
         ]);
         let checked = values::checked_context(context.clone())?;
         // 同じtag内の全条件・テンプレートは追加前のtrialを参照する。
+        let tags_before = payload.trial.tags.len();
         for condition in &self.config.conditions {
             let matched = match condition.when.as_deref() {
                 None | Some("") => true,
@@ -84,6 +93,9 @@ impl AddonExecutor<DidChallenge> for Executor {
                     .tags
                     .push(self.engine.render(&condition.tag, &context)?);
             }
+        }
+        if payload.trial.tags.len() == tags_before {
+            log(crate::addons::log::AddonLog::NoMatchingTags);
         }
         Ok(payload)
     }

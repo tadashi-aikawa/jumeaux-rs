@@ -148,8 +148,16 @@ impl Executor {
 impl AddonExecutor<Judgement> for Executor {
     fn exec(
         &self,
+        payload: JudgementPayload,
+        reference: &JudgementReference,
+    ) -> Result<JudgementPayload> {
+        self.exec_with_log(payload, reference, &|_| {})
+    }
+    fn exec_with_log(
+        &self,
         mut payload: JudgementPayload,
         reference: &JudgementReference,
+        log: &dyn Fn(crate::addons::log::AddonLog),
     ) -> Result<JudgementPayload> {
         if payload.regard_as_same_body || payload.diffs_by_cognition.is_none() {
             return Ok(payload);
@@ -193,6 +201,7 @@ impl AddonExecutor<Judgement> for Executor {
                 .get("unknown")
                 .ok_or_else(|| Error::new("KeyError", "unknown"))?,
         );
+        log(crate::addons::log::AddonLog::CognitionDiffs(diffs.clone()));
         diffs.retain(|_, diff| !super::is_empty(diff));
         Ok(payload)
     }

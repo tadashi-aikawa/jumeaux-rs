@@ -28,8 +28,16 @@ impl Executor {
 impl AddonExecutor<Judgement> for Executor {
     fn exec(
         &self,
+        payload: JudgementPayload,
+        reference: &JudgementReference,
+    ) -> Result<JudgementPayload> {
+        self.exec_with_log(payload, reference, &|_| {})
+    }
+    fn exec_with_log(
+        &self,
         mut payload: JudgementPayload,
         reference: &JudgementReference,
+        log: &dyn Fn(crate::addons::log::AddonLog),
     ) -> Result<JudgementPayload> {
         if payload.regard_as_same_body {
             return Ok(payload);
@@ -37,6 +45,9 @@ impl AddonExecutor<Judgement> for Executor {
         let context = super::context(reference)?;
         for expression in &self.config.when_any {
             if self.engine.when(expression, &context)?.truthy() {
+                log(crate::addons::log::AddonLog::RegardAsSame {
+                    expression: expression.clone(),
+                });
                 payload.regard_as_same_body = true;
                 break;
             }

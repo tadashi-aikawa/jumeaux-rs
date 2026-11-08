@@ -34,6 +34,16 @@ pub fn initial_payload(
     judge_response_header: bool,
     ignore_response_header_keys: &[String],
 ) -> Result<JudgementPayload> {
+    let diffs = diagnose_diff(reference)?;
+    Ok(payload_from_diff(
+        reference,
+        judge_response_header,
+        ignore_response_header_keys,
+        diffs,
+    ))
+}
+
+pub(crate) fn diagnose_diff(reference: &JudgementReference) -> Result<Option<DiffKeys>> {
     for value in [&reference.dict_one, &reference.dict_other]
         .into_iter()
         .flatten()
@@ -41,15 +51,25 @@ pub fn initial_payload(
         crate::compat::json::validate(value)?;
     }
     let same_bytes = reference.res_one.body == reference.res_other.body;
-    let diffs = match (&reference.dict_one, &reference.dict_other) {
+    Ok(match (&reference.dict_one, &reference.dict_other) {
         (Some(one), Some(other)) => Some(if same_bytes {
             DiffKeys::default()
         } else {
             diff::diff(one, other)?
         }),
         _ => None,
-    };
-    let regard_as_same_body = diffs.as_ref().map_or(same_bytes, is_empty);
+    })
+}
+
+pub(crate) fn payload_from_diff(
+    reference: &JudgementReference,
+    judge_response_header: bool,
+    ignore_response_header_keys: &[String],
+    diffs: Option<DiffKeys>,
+) -> JudgementPayload {
+    let regard_as_same_body = diffs
+        .as_ref()
+        .map_or(reference.res_one.body == reference.res_other.body, is_empty);
     let diffs_by_cognition = diffs.map(|diffs| {
         let mut result = CognitionDiffs::new();
         if !is_empty(&diffs) {
@@ -57,7 +77,7 @@ pub fn initial_payload(
         }
         result
     });
-    Ok(JudgementPayload {
+    JudgementPayload {
         diffs_by_cognition,
         regard_as_same_body,
         regard_as_same_header: !judge_response_header
@@ -66,7 +86,7 @@ pub fn initial_payload(
                 &reference.res_other.headers,
                 ignore_response_header_keys,
             ),
-    })
+    }
 }
 
 /// 名前・除外キーはASCII大小無視、値は完全一致。

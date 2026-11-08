@@ -3,6 +3,7 @@ pub mod did_challenge;
 pub mod dump;
 pub mod r#final;
 pub mod judgement;
+pub mod log;
 pub mod log2reqs;
 pub mod payload;
 mod registry;
@@ -83,6 +84,14 @@ pub trait Stage: Send + Sync + 'static {
 }
 pub trait AddonExecutor<S: Stage>: Send + Sync {
     fn exec(&self, payload: S::Payload, reference: &S::Reference) -> Result<S::Payload>;
+    fn exec_with_log(
+        &self,
+        payload: S::Payload,
+        reference: &S::Reference,
+        _log: &dyn Fn(log::AddonLog),
+    ) -> Result<S::Payload> {
+        self.exec(payload, reference)
+    }
 }
 macro_rules! stages {
     ($($stage:ident: $payload:ty, $reference:ty);+ $(;)?) => {$(
@@ -128,6 +137,7 @@ impl<S: Stage> Factory<S> for SkeletonFactory {
 }
 pub struct Chain<S: Stage> {
     executors: Vec<Box<dyn AddonExecutor<S>>>,
+    names: Vec<String>,
 }
 impl<S: Stage> Chain<S> {
     pub fn build(addons: &Addons, factory: &impl Factory<S>) -> Result<Self> {
@@ -144,12 +154,29 @@ impl<S: Stage> Chain<S> {
                 factory.create(addon)
             })
             .collect::<Result<_>>()?;
-        Ok(Self { executors })
+        Ok(Self {
+            executors,
+            names: S::LAYER
+                .configured(addons)
+                .iter()
+                .map(|a| a.name.clone())
+                .collect(),
+        })
     }
     /// Pythonのreduceと同じ順序。直前の戻り値を次へ渡し、最初のエラーで停止する。
-    pub fn exec(&self, mut payload: S::Payload, reference: &S::Reference) -> Result<S::Payload> {
-        for executor in &self.executors {
-            payload = executor.exec(payload, reference)?;
+    pub fn exec(&self, payload: S::Payload, reference: &S::Reference) -> Result<S::Payload> {
+        self.exec_with_log(payload, reference, &|_, _, _| {})
+    }
+    pub fn exec_with_log(
+        &self,
+        mut payload: S::Payload,
+        reference: &S::Reference,
+        log: &dyn Fn(usize, &str, log::AddonLog),
+    ) -> Result<S::Payload> {
+        for (index, executor) in self.executors.iter().enumerate() {
+            payload = executor.exec_with_log(payload, reference, &|event| {
+                log(index, &self.names[index], event)
+            })?;
         }
         Ok(payload)
     }

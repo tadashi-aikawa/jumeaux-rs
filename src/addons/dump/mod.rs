@@ -21,7 +21,15 @@ impl crate::addons::Factory<Dump> for Factory {
 }
 struct Executor(AddonConfig);
 impl AddonExecutor<Dump> for Executor {
-    fn exec(&self, mut payload: DumpPayload, _: &()) -> Result<DumpPayload> {
+    fn exec(&self, payload: DumpPayload, _: &()) -> Result<DumpPayload> {
+        self.exec_with_log(payload, &(), &|_| {})
+    }
+    fn exec_with_log(
+        &self,
+        mut payload: DumpPayload,
+        _: &(),
+        log: &dyn Fn(crate::addons::log::AddonLog),
+    ) -> Result<DumpPayload> {
         let (default, force, kind) = match &self.0 {
             AddonConfig::DumpJson(c) => (&c.default_encoding, c.force, "json"),
             AddonConfig::DumpXml(c) => (&c.default_encoding, c.force, "xml"),
@@ -44,7 +52,13 @@ impl AddonExecutor<Dump> for Executor {
                 "json" => {
                     crate::compat::json::dumps(&crate::compat::json::parse(&text)?, Some(4), true)?
                 }
-                "xml" => crate::markup::xml::pretty(&text).map_err(markup_error)?,
+                "xml" => {
+                    let formatted = crate::markup::xml::pretty(&text).map_err(markup_error)?;
+                    log(crate::addons::log::AddonLog::XmlParsed {
+                        success: !formatted.starts_with("Include invalid token\n"),
+                    });
+                    formatted
+                }
                 "html" => crate::markup::html::pretty(&text).map_err(markup_error)?,
                 _ => unreachable!(),
             };

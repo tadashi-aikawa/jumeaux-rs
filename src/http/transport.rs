@@ -59,6 +59,15 @@ pub(super) struct ReceivedResponse {
 }
 
 impl ReceivedResponse {
+    pub(super) fn event(&self, side: super::Side) -> super::HttpEvent {
+        super::HttpEvent::Response {
+            side,
+            status_code: self.status_code,
+            response_sec: (self.elapsed * 100.0).round_ties_even() / 100.0,
+            bytes: self.body.len(),
+            content_type: self.headers.get("content-type").cloned(),
+        }
+    }
     /// 両側の通信成功後にモデルへ変換する。encodingエラーより通信失敗を先に判定する。
     pub(super) fn into_response(self, default_encoding: Option<&str>) -> Result<Response> {
         let ct = self.headers.get("content-type").map(String::as_str);

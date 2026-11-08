@@ -68,6 +68,13 @@ pub fn query_string(
 }
 
 pub fn merge_headers(endpoint: &Headers, request: &Headers) -> Headers {
+    merge_headers_preserving_case(endpoint, request)
+        .into_iter()
+        .map(|(k, v)| (k.to_ascii_lowercase(), v))
+        .collect()
+}
+
+pub(super) fn merge_headers_preserving_case(endpoint: &Headers, request: &Headers) -> Headers {
     let mut headers = Headers::from([(
         "User-Agent".into(),
         format!("jumeaux/{}", env!("CARGO_PKG_VERSION")),
@@ -76,9 +83,6 @@ pub fn merge_headers(endpoint: &Headers, request: &Headers) -> Headers {
     headers.extend(request.clone());
     // Pythonの通常dictによるassignの後、requestsが大小無視dictへ変換する。
     headers
-        .into_iter()
-        .map(|(k, v)| (k.to_ascii_lowercase(), v))
-        .collect()
 }
 
 fn python_str(value: &Value) -> String {

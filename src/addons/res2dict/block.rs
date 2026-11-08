@@ -84,7 +84,21 @@ impl Executor {
 }
 
 impl AddonExecutor<Res2Dict> for Executor {
-    fn exec(&self, mut payload: Res2DictPayload, _: &()) -> Result<Res2DictPayload> {
+    fn exec(&self, payload: Res2DictPayload, _: &()) -> Result<Res2DictPayload> {
+        self.exec_with_log(payload, &(), &|_| {})
+    }
+    fn exec_with_log(
+        &self,
+        mut payload: Res2DictPayload,
+        _: &(),
+        log: &dyn Fn(crate::addons::log::AddonLog),
+    ) -> Result<Res2DictPayload> {
+        log(crate::addons::log::conversion(
+            "block",
+            self.force,
+            payload.result.is_some(),
+            &payload.response.response_type,
+        ));
         if payload.result.is_none() || self.force {
             payload.result = Some(self.to_dict(&payload.response.text()?)?);
         }

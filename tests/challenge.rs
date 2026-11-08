@@ -333,6 +333,10 @@ impl Server {
                         bytes.push(byte[0]);
                     }
                     let text = String::from_utf8(bytes).unwrap();
+                    let length = text.lines().filter_map(|line| line.split_once(':'))
+                        .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
+                        .map_or(0, |(_, value)| value.trim().parse::<usize>().unwrap());
+                    stream.read_exact(&mut vec![0; length]).unwrap();
                     let path = text.split_whitespace().nth(1).unwrap().to_owned();
                     let cookie = text.to_ascii_lowercase().contains("cookie: token=ok");
                     records.lock().unwrap().push((path.clone(), cookie));
@@ -500,7 +504,7 @@ async fn addon_error_keeps_previous_latest_and_failure_skips_addons() {
         .await;
     let failure = result.unwrap_err();
     assert_eq!(failure.error.kind, "JSONDecodeError");
-    assert!(failure.logs.is_empty());
+    assert!(summaries(&failure.logs).is_empty());
     assert!(files(&temp.0.join("invalid")).is_empty());
     assert_eq!(
         std::fs::read_link(temp.0.join("latest")).unwrap(),
@@ -524,10 +528,11 @@ async fn addon_error_keeps_previous_latest_and_failure_skips_addons() {
         .await
         .unwrap();
     assert_eq!(result.trials[0].status, Status::Failure);
-    assert_eq!(result.logs.len(), 1);
-    assert_eq!(result.logs[0].name, None);
-    assert_eq!(result.logs[0].status, Status::Failure);
-    assert_eq!(result.logs[0].one.status_code, None);
+    let progress = summaries(&result.logs);
+    assert_eq!(progress.len(), 1);
+    assert_eq!(progress[0].name, None);
+    assert_eq!(progress[0].status, Status::Failure);
+    assert_eq!(progress[0].one.status_code, None);
     assert_eq!(
         json!(result.trials[0].one),
         json!({"url":format!("{}/a?",config.one.host), "type":"unknown"})
@@ -568,9 +573,10 @@ async fn storage_error_stops_pending_trials_and_drains_running_trials() {
                 .message
                 .contains(temp.0.join("error/one/(1)a/b").to_str().unwrap())
         );
-        assert_eq!(failure.logs.len(), threads as usize);
+        let progress = summaries(&failure.logs);
+        assert_eq!(progress.len(), threads as usize);
         assert!(failure.logs.iter().all(|log| log.total == 8));
-        assert_eq!(failure.logs[0].name.as_deref(), Some("a/b"));
+        assert_eq!(progress[0].name.as_deref(), Some("a/b"));
         let records = server.cookies.lock().unwrap().clone();
         assert_eq!(records.len(), threads as usize * 2);
         assert!(
@@ -618,8 +624,8 @@ async fn first_error_in_input_order_wins_even_if_it_finishes_later() {
         .await
         .unwrap_err();
     assert_eq!(failure.error.kind, "FileNotFoundError");
-    assert_eq!(failure.logs.len(), 1);
-    assert_eq!(failure.logs[0].seq, 1);
+    assert_eq!(summaries(&failure.logs).len(), 1);
+    assert_eq!(summaries(&failure.logs)[0].seq, 1);
     assert_eq!(server.cookies.lock().unwrap().len(), 4);
     assert!(files(&temp.0.join("errors")).is_empty());
     assert!(!temp.0.join("latest").exists());
@@ -659,7 +665,7 @@ async fn execution_times_cover_trials_after_storage_and_before_latest() {
                 .into();
         assert!(created <= execution.started_at);
         assert!(execution.ended_at <= linked);
-        assert_eq!(execution.logs.len(), execution.trials.len());
+        assert_eq!(summaries(&execution.logs).len(), execution.trials.len());
         if key == "one" {
             assert!((execution.ended_at - execution.started_at).num_milliseconds() >= 20);
         }
@@ -683,13 +689,18 @@ async fn latest_error_preserves_progress_logs() {
             .message
             .contains(temp.0.join("latest").to_str().unwrap())
     );
-    assert_eq!(failure.logs.len(), 1);
-    assert_eq!(failure.logs[0].seq, 1);
+    assert_eq!(summaries(&failure.logs).len(), 1);
+    assert_eq!(summaries(&failure.logs)[0].seq, 1);
     assert_eq!(files(&temp.0.join("key")).len(), 4);
 }
 
 // CLI実装前の比較用フォーマッタ。構造化ログだけでPythonの行とverbosityを復元する。
-fn progress_line(log: &executor::Progress) -> Value {
+fn summaries(logs: &[executor::Progress]) -> Vec<&executor::TrialProgress> {
+    logs.iter()
+        .filter_map(executor::Progress::summary)
+        .collect()
+}
+fn progress_line(log: &executor::TrialProgress) -> Value {
     use jumeaux::models::HttpMethod;
     let prefix = format!("[{} / {}]", log.seq, log.total);
     let message = if log.status == Status::Failure {
@@ -819,8 +830,8 @@ async fn python_review_fixtures() {
                 .await;
             let (error, logs) = match execution {
                 Ok(result) => {
-                    assert_eq!(result.logs.len(), 8);
-                    for (log, trial) in result.logs.iter().zip(&result.trials) {
+                    assert_eq!(summaries(&result.logs).len(), 8);
+                    for (log, trial) in summaries(&result.logs).into_iter().zip(&result.trials) {
                         assert_eq!(log.seq, trial.seq);
                         assert_eq!(log.total, 8);
                         assert_eq!(log.one.response_sec, trial.one.response_sec);
@@ -830,7 +841,7 @@ async fn python_review_fixtures() {
                 }
                 Err(failure) => (Some(failure.error.kind), failure.logs),
             };
-            json!({"error":error, "logs":logs.iter().take(1).map(progress_line).collect::<Vec<_>>()})
+            json!({"error":error, "logs":summaries(&logs).into_iter().take(1).map(progress_line).collect::<Vec<_>>()})
         };
         assert_eq!(actual, case["expected"], "{}", case["name"]);
     }
@@ -838,5 +849,278 @@ async fn python_review_fixtures() {
         "challenge review fixtures: {}/{} matched",
         cases.len(),
         cases.len()
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn events_stream_before_http_and_during_sleep_and_match_retained_logs() {
+    use jumeaux::{
+        addons::log::AddonLog,
+        executor::{Event, Stage},
+        http::{HttpEvent, Side},
+        notification::Verbosity,
+    };
+    use std::{
+        sync::{Arc, mpsc},
+        time::Duration,
+    };
+    let temp = Temp::new();
+    let server = Server::start();
+    let mut config = server.config(&temp.0);
+    config.one.headers.insert("X-Endpoint".into(), "one".into());
+    config
+        .other
+        .headers
+        .insert("X-Endpoint".into(), "other".into());
+    config.one.proxy = Some(server.address.strip_prefix("http://").unwrap().into());
+    config.addons.did_challenge = serde_json::from_value(json!([
+        {"name":"sleep","config":{"min":0.02,"max":0.02}}
+    ]))
+    .unwrap();
+    let input: Request = serde_json::from_value(json!({
+        "path":"/a", "name":"event-test", "method":"POST", "raw":"body",
+        "form":{"form":"value"}, "json":{"json":"value"}, "qs":{"q":["a b"]}, "headers":{"X-Local":"request"}
+    })).unwrap();
+    let (send, receive) = mpsc::channel();
+    let (resume, pause) = mpsc::channel();
+    let pipeline = Arc::new(Pipeline::build(&config).unwrap());
+    let transport = server.transport(&config);
+    let job = tokio::spawn(async move {
+        pipeline
+            .exec_with_progress(transport, vec![input], "stream", None, move |event| {
+                send.send(event.clone()).unwrap();
+                if matches!(
+                    event.event,
+                    Event::Started(_)
+                        | Event::Addon {
+                            log: AddonLog::Sleep { .. },
+                            ..
+                        }
+                ) {
+                    pause.recv_timeout(Duration::from_secs(5)).unwrap();
+                }
+            })
+            .await
+    });
+    let first = receive.recv_timeout(Duration::from_secs(5)).unwrap();
+    assert!(
+        matches!(&first.event, Event::Started(request) if request.name.as_deref() == Some("event-test"))
+    );
+    assert_eq!(first.level, Verbosity::VeryVerbose);
+    assert!(!job.is_finished());
+    assert!(
+        server.cookies.lock().unwrap().is_empty(),
+        "start is delivered before HTTP"
+    );
+    assert!(files(&temp.0.join("stream")).is_empty());
+    resume.send(()).unwrap();
+    let mut streamed = vec![first];
+    loop {
+        let event = receive
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap_or_else(|error| panic!("{error}: {streamed:#?}"));
+        let sleep = matches!(
+            event.event,
+            Event::Addon {
+                log: AddonLog::Sleep { .. },
+                ..
+            }
+        );
+        streamed.push(event);
+        if sleep {
+            break;
+        }
+    }
+    assert!(
+        !job.is_finished(),
+        "sleep event must be delivered before the stage returns"
+    );
+    assert_eq!(files(&temp.0.join("stream")).len(), 4);
+    resume.send(()).unwrap();
+    let result = job.await.unwrap().unwrap();
+    streamed.extend(receive.try_iter());
+    assert_eq!(result.logs, streamed);
+    assert!(streamed.iter().all(|p| p.seq == 1 && p.total == 1));
+    assert!(streamed.iter().any(|p| matches!(&p.event, Event::Http(HttpEvent::Url { side: Side::One, url }) if url == &format!("{}/a?q=a+b", server.address))));
+    assert!(streamed.iter().any(|p| matches!(&p.event, Event::Http(HttpEvent::Proxy { side: Side::One, host }) if host == &config.one.proxy)));
+    let details = streamed
+        .iter()
+        .find_map(|p| match &p.event {
+            Event::Http(HttpEvent::RequestDetails(req)) => Some(req),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(details.raw.as_deref(), Some("body"));
+    assert_eq!(details.form.as_ref().unwrap()["form"], "value");
+    assert_eq!(details.json.as_ref().unwrap()["json"], "value");
+    for endpoint in [Side::One, Side::Other] {
+        let headers = streamed
+            .iter()
+            .find_map(|p| match &p.event {
+                Event::Http(HttpEvent::RequestHeaders { side, headers }) if *side == endpoint => {
+                    Some(headers)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(headers["X-Local"], "request");
+        assert_eq!(
+            headers["X-Endpoint"],
+            if endpoint == Side::One {
+                "one"
+            } else {
+                "other"
+            }
+        );
+        assert!(headers.contains_key("User-Agent"));
+    }
+    let saved: Vec<_> = streamed
+        .iter()
+        .filter_map(|p| match &p.event {
+            Event::Saved {
+                path,
+                bytes,
+                encoding,
+                ..
+            } => Some((path, bytes, encoding)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(saved.len(), 4);
+    for (path, bytes, encoding) in saved {
+        assert_eq!(std::fs::read(path).unwrap().len(), *bytes);
+        assert_eq!(encoding.as_deref(), Some("utf-8"));
+    }
+    assert!(
+        matches!(&streamed.last().unwrap().event, Event::StageFinished { stage: Stage::DidChallenge, elapsed } if *elapsed >= Duration::from_millis(20))
+    );
+}
+
+#[tokio::test]
+async fn failure_stream_preserves_partial_events_and_all_running_trials() {
+    use jumeaux::executor::Event;
+    use std::sync::{Arc, Mutex};
+    let temp = Temp::new();
+    let server = Server::start();
+    let mut config = server.config(&temp.0);
+    config.threads = 2;
+    let observed = Arc::new(Mutex::new(Vec::new()));
+    let captured = Arc::clone(&observed);
+    let mut input = requests(&["/a", "/slow", "/never"]);
+    input[0].name = Some("a/b".into());
+    let failure = Arc::new(Pipeline::build(&config).unwrap())
+        .exec_with_progress(
+            server.transport(&config),
+            input,
+            "error",
+            None,
+            move |event| captured.lock().unwrap().push(event.clone()),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(failure.logs, *observed.lock().unwrap());
+    assert!(
+        failure
+            .logs
+            .iter()
+            .any(|p| matches!(&p.event, Event::Failed(e) if e == &failure.error))
+    );
+    assert!(!failure.logs.iter().any(|p| p.seq == 3));
+    assert!(
+        !failure
+            .logs
+            .iter()
+            .any(|p| p.seq == 1 && matches!(p.event, Event::Saved { .. }))
+    );
+    assert_eq!(
+        failure
+            .logs
+            .iter()
+            .filter(|p| p.seq == 2 && matches!(p.event, Event::Saved { .. }))
+            .count(),
+        4
+    );
+    assert_eq!(server.cookies.lock().unwrap().len(), 4);
+}
+
+#[test]
+fn addon_logs_record_the_selected_branch_without_reevaluating_conditions() {
+    use jumeaux::addons::{
+        Res2Dict, StoreCriterion,
+        log::{AddonLog, ConversionReason},
+    };
+    use std::cell::RefCell;
+    let addons: Addons = serde_json::from_value(json!({"log2reqs":{"name":"plain"},
+        "res2dict":[{"name":"xml"}, {"name":"json","config":{"force":true}}, {"name":"json"}],
+        "store_criterion":[{"name":"free","config":{"when_any":["False", "True", "1 / 0"]}}, {"name":"free","config":{"when_any":["1 / 0"]}}]
+    })).unwrap();
+    let res = response(
+        &json!({"body_hex":"7b2261223a317d","encoding":"utf-8","type":"json","headers":{},"url":"http://localhost/a","status_code":200,"elapsed":0.0,"elapsed_sec":0.0}),
+    );
+    let logs = RefCell::new(Vec::new());
+    Chain::<Res2Dict>::build(&addons, &addons::res2dict::Factory)
+        .unwrap()
+        .exec_with_log(
+            Res2DictPayload {
+                response: res.clone(),
+                result: None,
+            },
+            &(),
+            &|index, name, event| logs.borrow_mut().push((index, name.to_owned(), event)),
+        )
+        .unwrap();
+    assert_eq!(
+        *logs.borrow(),
+        vec![
+            (
+                0,
+                "xml".into(),
+                AddonLog::Conversion {
+                    format: "xml",
+                    reason: ConversionReason::DifferentType
+                }
+            ),
+            (
+                1,
+                "json".into(),
+                AddonLog::Conversion {
+                    format: "json",
+                    reason: ConversionReason::Forced
+                }
+            ),
+            (
+                2,
+                "json".into(),
+                AddonLog::Conversion {
+                    format: "json",
+                    reason: ConversionReason::AlreadyExists
+                }
+            ),
+        ]
+    );
+    logs.borrow_mut().clear();
+    let result = Chain::<StoreCriterion>::build(&addons, &addons::store_criterion::Factory)
+        .unwrap()
+        .exec_with_log(
+            StoreCriterionPayload { stored: false },
+            &StoreCriterionReference {
+                status: Status::Same,
+                req: Request::default(),
+                res_one: res.clone(),
+                res_other: res,
+            },
+            &|index, name, event| logs.borrow_mut().push((index, name.into(), event)),
+        )
+        .unwrap();
+    assert!(result.stored);
+    assert_eq!(
+        *logs.borrow(),
+        vec![(
+            0,
+            "free".into(),
+            AddonLog::Stored {
+                expression: "True".into()
+            }
+        )]
     );
 }

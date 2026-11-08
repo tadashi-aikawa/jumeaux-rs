@@ -9,9 +9,23 @@ pub struct Config {
 impl crate::addons::AddonExecutor<crate::addons::Res2Dict> for Config {
     fn exec(
         &self,
-        mut payload: crate::addons::payload::Res2DictPayload,
+        payload: crate::addons::payload::Res2DictPayload,
         _: &(),
     ) -> crate::compat::Result<crate::addons::payload::Res2DictPayload> {
+        self.exec_with_log(payload, &(), &|_| {})
+    }
+    fn exec_with_log(
+        &self,
+        mut payload: crate::addons::payload::Res2DictPayload,
+        _: &(),
+        log: &dyn Fn(crate::addons::log::AddonLog),
+    ) -> crate::compat::Result<crate::addons::payload::Res2DictPayload> {
+        log(crate::addons::log::conversion(
+            "xml",
+            self.force,
+            payload.result.is_some(),
+            &payload.response.response_type,
+        ));
         if payload.result.is_some() && !self.force {
             return Ok(payload);
         }
