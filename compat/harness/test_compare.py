@@ -19,6 +19,14 @@ RULES = load(HERE / "comparison.json")
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_stage_elapsed_normalization_requires_microsecond_precision(self):
+        for duration in ("0.0", "0.057", "1.23"):
+            line = f"[1 / 2] ⏰ Judgement:   {duration}ms\n".encode()
+            self.assertEqual(text(line, [], RULES), "[1 / 2] ⏰ Judgement:   <elapsed_sec>\n")
+        for duration in ("0", "0.057123", "1.0000", "-0.1", "1e-5"):
+            line = f"[1 / 2] ⏰ Judgement:   {duration}ms\n".encode()
+            self.assertEqual(text(line, [], RULES), line.decode())
+
     def test_rust_comparison_settings_are_required_and_checked(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "simple"

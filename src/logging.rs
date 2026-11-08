@@ -52,7 +52,13 @@ impl Logger {
             return;
         }
         for line in progress_lines(p) {
-            self.log(p.level, line);
+            // urllib3のWARNINGはJumeaux Loggerの色・接頭辞を持たない。
+            let level = if matches!(p.event, Event::Http(HttpEvent::Retrying { .. })) {
+                Verbosity::Normal
+            } else {
+                p.level
+            };
+            self.log(level, line);
         }
     }
 }
@@ -85,6 +91,18 @@ fn progress_lines(p: &Progress) -> Vec<String> {
         Event::Http(HttpEvent::Url { side: s, url }) => {
             vec![format!("{prefix} {:5} URL:   {url}", side(*s))]
         }
+        Event::Http(HttpEvent::Retrying {
+            remaining,
+            reason,
+            path,
+        }) => vec![format!(
+            "Retrying (Retry(total={remaining}, connect=None, read=None, redirect=None, status=None)) after connection broken by '{}({})': {path}",
+            reason.kind,
+            {
+                let list = repr(&json!([reason.message]));
+                list[1..list.len() - 1].to_owned()
+            }
+        )],
         Event::Http(HttpEvent::Proxy { side: s, host }) => vec![format!(
             "{prefix} {:5} PROXY: {}",
             side(*s),
@@ -146,8 +164,8 @@ fn progress_lines(p: &Progress) -> Vec<String> {
                 Stage::Dump(_) => return vec![],
             };
             vec![format!(
-                "{prefix} ⏰ {label}:   {}ms",
-                elapsed.as_secs_f64() * 1000.0
+                "{prefix} ⏰ {label}:   {:?}ms",
+                elapsed.as_micros() as f64 / 1000.0
             )]
         }
         Event::Judged(r) => vec![format!(
@@ -222,9 +240,7 @@ pub fn config_yaml(config: &jumeaux::config::Config) -> Result<String> {
             Value::String(s) if s.contains(['\n', '\r']) => {
                 Ok(serde_json::to_string(s).expect("string JSON"))
             }
-            Value::String(s) => serde_yaml_ng::to_string(s)
-                .map(|s| s.trim_end_matches('\n').to_string())
-                .map_err(|e| Error::new("ValueError", e.to_string())),
+            Value::String(s) => yaml_string(s),
             _ => Ok(v.to_string()),
         }
     }
@@ -272,4 +288,126 @@ pub fn config_yaml(config: &jumeaux::config::Config) -> Result<String> {
     let mut out = String::new();
     emit(&value, 0, &mut out)?;
     Ok(out)
+}
+
+fn yaml_string(s: &str) -> Result<String> {
+    // PyYAML resolver.pyのYAML 1.1 implicit resolvers。日付は範囲検証ではなく構文で判定する。
+    static IMPLICIT: std::sync::LazyLock<regex::RegexSet> = std::sync::LazyLock::new(|| {
+        regex::RegexSet::new([
+            r"\A(?:yes|Yes|YES|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF)\z",
+            r"\A(?:~|null|Null|NULL|)\z",
+            r"\A(?:[-+]?[0-9][0-9_]*\.[0-9_]*(?:[eE][-+][0-9]+)?|\.[0-9][0-9_]*(?:[eE][-+][0-9]+)?|[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN))\z",
+            r"\A(?:[-+]?0b[0-1_]+|[-+]?0[0-7_]+|[-+]?(?:0|[1-9][0-9_]*)|[-+]?0x[0-9a-fA-F_]+|[-+]?[1-9][0-9_]*(?::[0-5]?[0-9])+)\z",
+            r"\A(?:[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)\z",
+            r"\A(?:<<|=)\z",
+        ]).expect("PyYAML implicit resolvers")
+    });
+    if IMPLICIT.is_match(s) {
+        return Ok(format!("'{}'", s.replace('\'', "''")));
+    }
+    // serde_yamlの構文上のクォートは使うが、YAML 1.2だけが数値とみなす文字列は外す。
+    if (s.parse::<f64>().is_ok()
+        || matches!(
+            serde_yaml_ng::from_str::<Value>(s),
+            Ok(Value::Number(_) | Value::Bool(_) | Value::Null)
+        ))
+        && !s.contains(char::is_whitespace)
+        && !s.starts_with(['!', '&', '*', '\'', '"'])
+    {
+        return Ok(s.into());
+    }
+    serde_yaml_ng::to_string(s)
+        .map(|s| s.trim_end_matches('\n').to_string())
+        .map_err(|e| Error::new("ValueError", e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn yaml_strings_match_pyyaml_implicit_resolution() {
+        // Python基準環境のyaml.safe_dumpで観測。キーと値で共通のスカラー規則。
+        for s in [
+            "yes",
+            "NO",
+            "2001-01-01",
+            "1.5e-7",
+            "00",
+            "0b10",
+            "0x10",
+            "1_000",
+            "1:20",
+            "12:00:00",
+            ".5",
+            "+12",
+            "~",
+            "null",
+            "Null",
+            "NULL",
+            "true",
+            "True",
+            "TRUE",
+            "on",
+            "Off",
+            "OFF",
+            "1.0",
+            ".inf",
+            "-.Inf",
+            ".NaN",
+            "2001-1-1T1:02:03Z",
+            "2001-13-40",
+            "2001-01-01t01:02:03.1+01:00",
+            "<<",
+            "=",
+        ] {
+            assert_eq!(yaml_string(s).unwrap(), format!("'{s}'"), "{s}");
+        }
+        for s in [
+            "1e3",
+            "1.5e7",
+            "0o77",
+            "08",
+            "01:20",
+            "-.5",
+            "nUlL",
+            "TrUe",
+            "Y",
+            "N",
+            "2001-1-1",
+            "a:b",
+            "a,b",
+            "日本語",
+        ] {
+            assert_eq!(yaml_string(s).unwrap(), s, "{s}");
+        }
+        for s in ["a: b", "a # b", " leading", "trailing ", "[x]"] {
+            assert_eq!(yaml_string(s).unwrap(), format!("'{s}'"), "{s}");
+        }
+    }
+
+    #[test]
+    fn stage_elapsed_truncates_to_microseconds_and_keeps_float_notation() {
+        for (nanos, expected) in [
+            (0, "0.0"),
+            (999, "0.0"),
+            (57_999, "0.057"),
+            (1_000_999, "1.0"),
+            (12_345_678, "12.345"),
+        ] {
+            let progress = Progress {
+                seq: 1,
+                total: 2,
+                level: Verbosity::VeryVerbose,
+                event: Event::StageFinished {
+                    stage: Stage::Judgement,
+                    elapsed: std::time::Duration::from_nanos(nanos),
+                },
+            };
+            assert_eq!(
+                progress_lines(&progress),
+                [format!("[1 / 2] ⏰ Judgement:   {expected}ms")]
+            );
+        }
+    }
 }

@@ -315,6 +315,47 @@ fn send_error(error: reqwest::Error, method: HttpMethod, max_retries: u64) -> Er
     Error::new(kind, format!("{error:?}"))
 }
 
+fn retry_reason(error: &reqwest::Error, url: &reqwest::Url) -> Error {
+    let mut cause: &dyn std::error::Error = error;
+    let mut os_error = None;
+    loop {
+        if let Some(io) = cause.downcast_ref::<std::io::Error>() {
+            os_error = Some(io);
+        }
+        match cause.source() {
+            Some(source) => cause = source,
+            None => break,
+        }
+    }
+    let detail = match os_error.and_then(|e| e.raw_os_error()) {
+        Some(code) => {
+            let text = std::io::Error::from_raw_os_error(code).to_string();
+            let text = text
+                .strip_suffix(&format!(" (os error {code})"))
+                .unwrap_or(&text);
+            format!("[Errno {code}] {text}")
+        }
+        None => cause.to_string(),
+    };
+    if error.is_connect() {
+        let connection = if url.scheme() == "https" {
+            "HTTPSConnection"
+        } else {
+            "HTTPConnection"
+        };
+        Error::new(
+            "NewConnectionError",
+            format!(
+                "{connection}(host='{}', port={}): Failed to establish a new connection: {detail}",
+                url.host_str().unwrap_or(""),
+                url.port_or_known_default().unwrap_or(80)
+            ),
+        )
+    } else {
+        Error::new("ProtocolError", detail)
+    }
+}
+
 fn retry_after(value: &HeaderValue) -> Result<Duration> {
     let text = value
         .to_str()
@@ -446,6 +487,7 @@ impl HttpTransport {
         endpoint: &Endpoint,
         prepared: &PreparedRequest,
         headers: &HeaderMap,
+        log: &(dyn Fn(super::HttpEvent) + Sync),
     ) -> Result<reqwest::Response> {
         let mut retries = 0;
         let client = if prepared.url.scheme() == "https" {
@@ -496,6 +538,14 @@ impl HttpTransport {
                         && (error.is_connect() || prepared.method == HttpMethod::Get);
                     if retryable && retries < self.max_retries {
                         retries += 1;
+                        log(super::HttpEvent::Retrying {
+                            remaining: self.max_retries - retries,
+                            reason: retry_reason(&error, &prepared.url),
+                            path: match prepared.url.query() {
+                                Some(query) => format!("{}?{query}", prepared.url.path()),
+                                None => prepared.url.path().to_owned(),
+                            },
+                        });
                         continue;
                     }
                     return Err(send_error(error, prepared.method, self.max_retries));
@@ -507,7 +557,17 @@ impl HttpTransport {
     pub(super) async fn send_prepared(
         &self,
         endpoint: &Endpoint,
+        prepared: PreparedRequest,
+    ) -> Result<ReceivedResponse> {
+        self.send_prepared_with_events(endpoint, prepared, &|_| {})
+            .await
+    }
+
+    pub(super) async fn send_prepared_with_events(
+        &self,
+        endpoint: &Endpoint,
         mut prepared: PreparedRequest,
+        log: &(dyn Fn(super::HttpEvent) + Sync),
     ) -> Result<ReceivedResponse> {
         let mut headers = header_map(&prepared.headers)?;
         for redirects in 0..=30 {
@@ -529,7 +589,7 @@ impl HttpTransport {
                 }
             }
             let start = Instant::now();
-            let response = self.send_hop(endpoint, &prepared, &headers).await?;
+            let response = self.send_hop(endpoint, &prepared, &headers, log).await?;
             let elapsed = start.elapsed().as_secs_f64();
             let url = response.url().clone();
             let status_code = response.status().as_u16();
