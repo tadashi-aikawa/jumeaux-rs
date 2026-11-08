@@ -79,10 +79,22 @@ impl Diagnostics<'_> {
                 self.emit(true);
             } else if self.pending.len() >= 8192 {
                 // UTF-8の途中だけを次のチャンクへ持ち越す。
-                let split = match std::str::from_utf8(&self.pending) {
-                    Err(e) if e.error_len().is_none() => e.valid_up_to(),
-                    _ => self.pending.len(),
-                };
+                let mut split = 0;
+                while split < self.pending.len() {
+                    match std::str::from_utf8(&self.pending[split..]) {
+                        Ok(_) => {
+                            split = self.pending.len();
+                            break;
+                        }
+                        Err(e) => {
+                            split += e.valid_up_to();
+                            match e.error_len() {
+                                Some(n) => split += n,
+                                None => break,
+                            }
+                        }
+                    }
+                }
                 let rest = self.pending.split_off(split);
                 self.emit(false);
                 self.pending = rest;

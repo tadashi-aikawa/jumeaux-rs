@@ -192,31 +192,189 @@ fn each_layer_rejects_exit_invalid_json_timeout_missing_command_and_validate_fai
 }
 #[test]
 fn stderr_stream_is_complete_bounded_and_not_retained_as_execution_logs() {
-    let mut addons: Addons =
-        serde_json::from_value(json!({"log2reqs":{"name":"plain"},"dump":[]})).unwrap();
-    addons.dump.push(addon("stderr"));
-    let events = Arc::new(Mutex::new(Vec::new()));
-    let captured = Arc::clone(&events);
-    let rt = Runtime::prepare(&addons, 3, move |e| {
-        captured.lock().unwrap().push(e.clone())
-    })
-    .unwrap();
-    rt.invoke(
-        Layer::Dump,
-        0,
-        "payload",
-        json!({}),
-        Value::Null,
-        Default::default(),
-        Ok,
-    )
-    .unwrap();
-    let events = events.lock().unwrap();
-    let text: String = events.iter().map(|e| e.text.as_str()).collect();
-    assert_eq!(text, format!("{}終端\n", "x".repeat(100000)));
-    assert!(!events[0].continued);
-    assert!(events[1].continued);
-    assert!(events.iter().all(|e| e.text.len() <= 8195));
+    for (action, expected) in [
+        ("stderr", format!("{}終端\n", "x".repeat(100000))),
+        ("mixed_stderr", format!("�{}あ\n次\n", "x".repeat(8189))),
+    ] {
+        let mut addons: Addons =
+            serde_json::from_value(json!({"log2reqs":{"name":"plain"},"dump":[]})).unwrap();
+        addons.dump.push(addon(action));
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let captured = Arc::clone(&events);
+        let rt = Runtime::prepare(&addons, 3, move |e| {
+            captured.lock().unwrap().push(e.clone())
+        })
+        .unwrap();
+        rt.invoke(
+            Layer::Dump,
+            0,
+            "payload",
+            json!({}),
+            Value::Null,
+            Default::default(),
+            Ok,
+        )
+        .unwrap();
+        let events = events.lock().unwrap();
+        let text: String = events.iter().map(|e| e.text.as_str()).collect();
+        assert_eq!(text, expected);
+        assert!(!events[0].continued);
+        assert!(events[1].continued);
+        assert!(events.iter().all(|e| e.text.len() <= 8195));
+    }
+}
+
+#[test]
+fn stderr_tail_and_stdout_limit_are_independent_of_streaming() {
+    for limit in [0, 7, 65536] {
+        let mut a = addon("stderr_failure");
+        a.config
+            .as_mut()
+            .unwrap()
+            .insert("max_stderr_bytes".into(), json!(limit));
+        let rt = Runtime::prepare_layer(Layer::Dump, &[a]).unwrap();
+        let error = rt
+            .invoke(
+                Layer::Dump,
+                0,
+                "payload",
+                json!({}),
+                Value::Null,
+                Default::default(),
+                Ok,
+            )
+            .unwrap_err();
+        if limit == 0 {
+            assert!(!error.message.contains("stderr末尾"));
+        } else {
+            let tail = error
+                .message
+                .split("重複する場合があります）:\n")
+                .nth(1)
+                .unwrap();
+            assert_eq!(tail.len(), limit);
+            assert!(tail.ends_with("tail"));
+            assert!(!tail.contains("prefix"));
+        }
+    }
+    let mut a = addon("output");
+    let config = a.config.as_mut().unwrap();
+    config.insert("max_stdout_bytes".into(), json!(16));
+    config.insert(
+        "options".into(),
+        json!({"action":"output","text":"x".repeat(17)}),
+    );
+    let error = Runtime::prepare_layer(Layer::Dump, &[a])
+        .unwrap()
+        .invoke(
+            Layer::Dump,
+            0,
+            "payload",
+            json!({}),
+            Value::Null,
+            Default::default(),
+            Ok,
+        )
+        .unwrap_err();
+    assert!(error.message.contains("max_stdout_bytes"));
+}
+
+#[test]
+fn environment_cwd_relative_path_and_literal_arguments_follow_config() {
+    use std::os::unix::fs::symlink;
+    let dir = std::env::temp_dir().join(format!("jumeaux-exec-env-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("bin")).unwrap();
+    let python = std::process::Command::new("python3")
+        .args(["-c", "import sys; print(sys.executable)"])
+        .output()
+        .unwrap();
+    let executable = String::from_utf8(python.stdout).unwrap();
+    symlink(executable.trim(), dir.join("bin/python-fixture")).unwrap();
+    let mut a = addon("environment");
+    let cfg = a.config.as_mut().unwrap();
+    cfg.insert("cwd".into(), json!(dir));
+    cfg.insert(
+        "command".into(),
+        json!([
+            "python-fixture",
+            format!("{}/tests/fixtures/exec.py", env!("CARGO_MANIFEST_DIR")),
+            "",
+            "a b",
+            "$HOME",
+            "$(echo no)"
+        ]),
+    );
+    cfg.insert(
+        "env".into(),
+        json!({"PATH":"bin", "HOME":null, "JUMEAUX_TEST":"value"}),
+    );
+    for inherit in [true, false] {
+        a.config
+            .as_mut()
+            .unwrap()
+            .insert("inherit_env".into(), json!(inherit));
+        let rt = Runtime::prepare_layer(Layer::Dump, &[a.clone()]).unwrap();
+        rt.validate().unwrap();
+        let result = rt
+            .invoke(
+                Layer::Dump,
+                0,
+                "payload",
+                json!({}),
+                Value::Null,
+                Default::default(),
+                Ok,
+            )
+            .unwrap();
+        assert_eq!(
+            std::fs::canonicalize(result["cwd"].as_str().unwrap()).unwrap(),
+            std::fs::canonicalize(&dir).unwrap()
+        );
+        assert_eq!(result["args"], json!(["", "a b", "$HOME", "$(echo no)"]));
+        assert_eq!(result["env"]["PATH"], "bin");
+        assert_eq!(result["env"]["JUMEAUX_TEST"], "value");
+        assert!(result["env"].get("HOME").is_none());
+        if !inherit {
+            assert!(result["env"].get("USER").is_none());
+        }
+    }
+    a.config
+        .as_mut()
+        .unwrap()
+        .insert("env".into(), json!({"PATH":null}));
+    assert!(
+        Runtime::prepare_layer(Layer::Dump, &[a])
+            .err()
+            .unwrap()
+            .message
+            .contains("PATH is unset")
+    );
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn validate_accepts_only_the_exact_success_object() {
+    for output in [
+        "true",
+        "{}",
+        "{\"valid\":false}",
+        "{\"valid\":true,\"extra\":1}",
+        "{\"valid\":1}",
+    ] {
+        let mut a = addon("output");
+        a.config
+            .as_mut()
+            .unwrap()
+            .insert("options".into(), json!({"action":"output","text":output}));
+        assert_eq!(
+            Runtime::prepare_layer(Layer::Dump, &[a])
+                .unwrap()
+                .validate()
+                .unwrap_err()
+                .kind,
+            "ConfigError"
+        );
+    }
 }
 #[test]
 fn protocol_rejects_invalid_documents_and_preserves_number_lexemes() {
@@ -252,6 +410,10 @@ fn typed_protocol_rejects_unknown_fields_invalid_base64_and_nonfinite_inputs() {
     assert!(DumpPayload::from_wire(payload).is_err());
     assert!(StoreCriterionPayload::from_wire(json!({"stored":true,"extra":1})).is_err());
     assert!(StoreCriterionPayload::from_wire(json!({})).is_err());
+    let error = StoreCriterionPayload::from_wire(json!({"stored":"secret-body"})).unwrap_err();
+    assert!(error.message.contains("$.stored"));
+    assert!(error.message.contains("expected a boolean"));
+    assert!(!error.message.contains("secret-body"));
     let mut r = response();
     r.elapsed = f64::NAN;
     assert!(r.wire().is_err());

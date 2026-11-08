@@ -78,6 +78,25 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+### 外部コマンドアドオンの受入
+
+```sh
+cargo test --test exec_addon --test exec_cli
+cargo test --test exec_samples -- --ignored --nocapture
+```
+
+- `exec_addon`は9レイヤーのモデル・Base64往復と各レイヤーの異常系を検証する。
+  - 対象: 終了コード、不正JSON、タイムアウト、存在しないコマンド、validate失敗。
+  - 境界: null・大整数・非有限数・重複キー・stderr全量表示と末尾保持・stdout上限・環境変数・cwd・PATH・空引数。
+- `exec_cli`は起動前検証、retryの拒否と明示許可、雛形、SIGINT・SIGTERMを検証する。
+  - 停止: validate・並列trial・finalの所有プロセスを回収し、終了コード130・143と後続finalの未実行を確認する。
+  - 雛形: 特殊diffパス、既存分類とheader判定の保持、64 KiB超の表、非有限数の出力拒否を含む。
+- `exec_samples`はPython版の`.venv`とローカル記録用受信先を使う。
+  - 比較: 生成した3雛形とPython版addon_sampleのTrial 3件、本文・prop 12ファイル、HTTPリクエスト6件。
+  - 正規化: request_timeとresponse_secだけを除外する。保存bytesとリクエストのメソッド・URL・本文は一致を要求する。
+  - 補正: Python版は`exec_sample_python.py`でignore_valuesの現行モデル対応とfinal/tableのreference引数対応だけを適用する。Pythonリポジトリは変更しない。
+  - 詳細: [外部コマンドアドオン仕様](../docs/exec-addon-spec.md)。
+
 ### challenge・保存の受入
 
 ```sh

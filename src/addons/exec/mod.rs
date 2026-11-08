@@ -245,6 +245,7 @@ impl Runtime {
         S::Payload: Wire,
         S::Reference: Wire,
     {
+        self.check_cancelled()?;
         if let Some(transformer) = self
             .commands
             .iter()

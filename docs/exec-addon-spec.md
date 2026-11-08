@@ -415,6 +415,7 @@ validateも外部コマンド実行に含まれます。
   - 機密: 継承した環境、Requestのヘッダ、Response、Config、Notifierは外部プロセスに見える。
   - 限界: `inherit_env: false` は環境の継承を止めるだけ。payloadやファイルへのアクセスを制限しない。
 - reportにはcommand・cwd・options・明示envを既存のaddons設定として保存する。
+  - null: 外部コマンド設定内ではenvの削除指定とoptions内のnullを保持する。retryでも同じ指定を復元する。
   - 保存しないもの: 継承した環境の全内容、解決済み実行ファイルのホスト固有パス、context。
   - 運用: 秘密は設定のenvやoptionsへ直書きせず、実行環境で渡す。
   - retry: `--allow-exec` 指定時だけ保存したコマンドを再実行する。相対パスはretry時の起動ディレクトリ基準になる。

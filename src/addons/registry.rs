@@ -24,6 +24,9 @@ macro_rules! register {
             let value = Value::Object(addon.config.clone().unwrap_or_default());
             let path = format!("{path}.config");
             if layer == Layer::Res2Res && addon.name == "json" {
+                if let Some(key) = value.as_object().unwrap().keys().find(|key| !["transformer", "when", "default_encoding"].contains(&key.as_str())) {
+                    return Err(invalid(&format!("{path}.{key}"), format!("unknown field `{key}`")));
+                }
                 for key in ["module", "function"] {
                     if value.get("transformer").and_then(|v| v.get(key)).is_some() {
                         return Err(invalid(&format!("{path}.transformer.{key}"), format!(

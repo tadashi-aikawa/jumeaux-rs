@@ -17,22 +17,20 @@ fn value<T: Serialize + ?Sized>(v: &T) -> Result<Value> {
     serde_json::to_value(v).map_err(|_| protocol("$: cannot encode model"))
 }
 pub fn decode<T: DeserializeOwned>(value: Value) -> Result<T> {
-    serde_path_to_error::deserialize(&value).map_err(|e| {
-        protocol(format!(
-            "$.{}: expected declared model fields and types ({})",
-            e.path(),
-            reason(e.inner())
-        ))
-    })
+    serde_path_to_error::deserialize(&value)
+        .map_err(|e| protocol(format!("$.{}: {}", e.path(), reason(e.inner()))))
 }
-fn reason(e: &serde_json::Error) -> &str {
+fn reason(e: &serde_json::Error) -> String {
     let text = e.to_string();
+    // 不正な値そのものは転載せず、serdeが示す期待型と必須フィールドだけを残す。
     if text.starts_with("missing field") {
-        "missing required field"
+        text
     } else if text.starts_with("unknown field") {
-        "unknown model field"
+        "unexpected model field".into()
+    } else if let Some((_, expected)) = text.rsplit_once(", expected ") {
+        format!("expected {expected}")
     } else {
-        "invalid value or type"
+        "expected declared model fields and types".into()
     }
 }
 fn nulls(v: &mut Value, fields: &[&str]) {
