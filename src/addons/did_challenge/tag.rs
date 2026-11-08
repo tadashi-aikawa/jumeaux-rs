@@ -15,3 +15,76 @@ pub struct Condition {
     )]
     pub when: Option<String>,
 }
+
+use crate::{
+    addons::{
+        AddonExecutor, DidChallenge,
+        payload::{DidChallengePayload, DidChallengeReference},
+    },
+    compat::{Error, Result, template::TemplateEngine, values},
+};
+
+pub struct Executor {
+    config: Config,
+    engine: TemplateEngine,
+}
+impl Executor {
+    pub fn new(config: Config) -> Result<Self> {
+        let engine = TemplateEngine::new();
+        for condition in &config.conditions {
+            if let Some(expression) = &condition.when {
+                engine.load(&format!("{{{{{expression}}}}}"))?;
+            }
+            engine.load(&condition.tag)?;
+        }
+        Ok(Self { config, engine })
+    }
+}
+impl AddonExecutor<DidChallenge> for Executor {
+    fn exec(
+        &self,
+        mut payload: DidChallengePayload,
+        reference: &DidChallengeReference,
+    ) -> Result<DidChallengePayload> {
+        let trial = serde_json::to_value(&payload.trial)
+            .map_err(|e| Error::new("SerializeError", e.to_string()))?;
+        let context = minijinja::Value::from_pairs([
+            ("trial", values::from_json(&trial)),
+            ("res_one", reference.res_one.to_dict_value()),
+            ("res_other", reference.res_other.to_dict_value()),
+            (
+                "res_one_props",
+                values::from_json(
+                    reference
+                        .res_one_props
+                        .as_ref()
+                        .unwrap_or(&serde_json::Value::Null),
+                ),
+            ),
+            (
+                "res_other_props",
+                values::from_json(
+                    reference
+                        .res_other_props
+                        .as_ref()
+                        .unwrap_or(&serde_json::Value::Null),
+                ),
+            ),
+        ]);
+        let checked = values::checked_context(context.clone())?;
+        // 同じtag内の全条件・テンプレートは追加前のtrialを参照する。
+        for condition in &self.config.conditions {
+            let matched = match condition.when.as_deref() {
+                None | Some("") => true,
+                Some(expression) => self.engine.when(expression, &checked)?.truthy(),
+            };
+            if matched {
+                payload
+                    .trial
+                    .tags
+                    .push(self.engine.render(&condition.tag, &context)?);
+            }
+        }
+        Ok(payload)
+    }
+}

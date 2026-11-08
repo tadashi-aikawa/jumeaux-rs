@@ -26,24 +26,17 @@ pub async fn prepare(
     context: &crate::notification::Context,
 ) -> crate::notification::LoggedResult<super::reqs2reqs::Execution> {
     let pipeline = super::reqs2reqs::Pipeline::build(&config.addons.reqs2reqs)?;
-    let reader = super::Chain::<Log2Reqs>::build(&config.addons, &InputFactory)?;
+    let reader = parse_config(Layer::Log2Reqs, &config.addons.log2reqs, "addons.log2reqs")?;
     let files = config
         .input_files
         .as_ref()
         .ok_or_else(|| Error::new("RequiredError", "input_files is required"))?;
     let mut requests = Vec::new();
     for file in files {
-        requests.extend(
-            reader
-                .exec(
-                    Log2ReqsPayload {
-                        file: file.clone(),
-                        requests: Vec::new(),
-                    },
-                    &(),
-                )?
-                .requests,
-        );
+        let body = tokio::fs::read(file)
+            .await
+            .map_err(|e| Error::new("IOError", format!("{file}: {e}")))?;
+        requests.extend(read_config(&reader, &body)?);
     }
     pipeline.exec(requests, config, context).await
 }

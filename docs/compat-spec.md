@@ -72,7 +72,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 生成: FactoryへAddon全体を渡す。スケルトンは登録表から生成した型付きConfigを保持する。保存用のAddonではNoneと空configを区別する。
   - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
   - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
-  - 残件: その他のレイヤーの本体は別タスクで接続する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。HTTPのchallenge統合では実装済みレイヤーのFactoryを明示して`Chain::build`する。
+  - 保存系: store_criterion/free、dumpの4種、did_challengeの2種も各レイヤーのFactoryから生成する。`executor::Pipeline`が実装済み6レイヤーを`Chain::build`で接続する。
+  - 残件: final本体は後続タスク。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
@@ -341,7 +342,7 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - 保存: `summary.comparison: {judge_response_header, ignore_response_header_keys}` を追加する。
   - 旧report: comparisonがなければ `false` と `["Content-Length", "Date"]` を補い、警告を返す。
   - モデル: comparisonは省略可能とし、旧reportの単純な読込・再出力では追加しない。retry用Config生成時に補完する。
-  - 接続: 新しい実行のreportには `Config::comparison()` の結果を保存する。保存の呼出は後続の「challengeの統合と保存」「Report集計・final・CLI」で実装する。
+  - 接続: `executor::Execution.comparison`に`Config::comparison()`の結果を返す。後続のReport組み立てで`summary.comparison`へ保存する。
 - 差分パスの値取得でキーに `root` やブラケットなどを含む場合の不具合を直す。
   - 検証: キーとindexの構造を辿った値を期待値にする。
   - 生成: キー内部の `[`・`]` を置換しない。引用符・バックスラッシュ・制御文字はエスケープし、生成したパスから元のキーを参照できるようにする。
@@ -1155,7 +1156,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 比較: メソッド、URL、自動・明示ヘッダ、本文bytes、再試行回数、エラー分類。
 - `compat/harness/http_acceptance.py`で既存31ケースのAPI記録124リクエストも比較する。
   - 入力: 基準Pythonの入力アドオンが生成したRequestをRustへ渡す。one/otherは並行送信する。
-  - 制限: HTTP部品の受入。製品CLIのアドオン・保存処理との接続は全体統合で行う。
+  - 接続: `executor::Pipeline::challenge`がHTTPの結果をアドオン・Trial・保存へ接続する。製品CLIとReportの書き出しは後続タスク。
 
 ### HTTPモジュールのAPI
 
@@ -1259,16 +1260,65 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - TLSのSSLErrorとProxyErrorもConnectionErrorの派生型。
   - 検証: ローカルCAの未信頼とホスト名不一致を拒否し、challengeのfailureへ変換することを確認する。
 
+## challengeの統合と保存
+
+- 入口は`executor::Pipeline::build`と`Arc<Pipeline>::exec`。
+  - 入力: `log2reqs::prepare`でreqs2reqsまで適用したRequest配列、共有HttpTransport、key、processes時のCookieスコープ。
+  - 出力: `Execution { trials, concurrency, comparison }`。Report集計・final・CLIは実行しない。
+  - 単体入口: `challenge`は1trialのHTTPを実行する。`finish`はHTTPのResponsePairを注入し、同期アドオンと保存を実行する。
+- 成功時の順序はHTTPのone/other同時送信、res2resのone→other、res2dictのone→other、差分、judgement、store_criterion、dumpと保存、did_challenge。
+  - 参照: judgement・store_criterion・did_challengeへres2res適用後のResponseを渡す。
+  - 通信失敗: HTTPのChallengeOutcome::Failureをそのまま返す。後続アドオンと保存をスキップする。
+  - エラー: initial_payloadを含むアドオンのErrは停止として返す。failureへ置換しない。既に完了した保存は巻き戻さない。
+- threadsとprocesses相当の並行数は`Config::concurrency()`から決める。
+  - 制限: HTTP、アドオン、保存、sleepを含めて同時実行trial数を制限する。
+  - 結果: 完了順に依存せず入力順へ並べる。エラーが複数ある場合も入力順の最初を返す。
+  - runtime: HTTPはasync、同期アドオン・保存・sleepはspawn_blocking内で実行する。prepareの入力ファイル読み込みはtokio::fsを使う。
+  - クライアント: HttpTransportのendpointをArcで共有する。`isolated_cookies()`でもreqwestのClientとHTTPS初期化状態を再利用する。
+- store_criterion/freeはstored=trueなら短絡する。
+  - 未指定: freeのwhen_anyがNoneなら保存する。空配列なら保存しない。レイヤー自体が空なら保存しない。
+  - 条件: when_anyを先頭から評価し、最初の真で保存する。式には辞書を渡す。Responseのtext・ok等のプロパティは公開しない。
+  - req: Pythonのchallengeが渡すname・path・qs・headersからRequestを再構築する。methodはGET、raw・form・jsonはNone、url_encodingはutf-8になる。元リクエストがPOSTの場合もこの形を維持する。
+- dumpはpayload.bodyとpayload.encodingを順に変換する。Response本体とTrialのencoding・byteは変更しない。
+  - json: キーを再帰ソートし、4スペースindent、ensure_ascii=False、Pythonの数値表記で保存する。
+  - xml・html: 既存markupのprettyを使う。force・type・default_encodingの判定を各アドオン境界で行う。
+  - encoding: 元encodingでstrict decodeし、指定encodingでstrict encodeする。元encodingがNoneならTypeError。
+  - 通常整形: decode・encodeはreplace。スキップしてもpayload.encodingにdefault_encodingを補う。
+- did_challenge/tagは条件に一致したタグを設定順で追加する。
+  - 参照: 同じtagアドオン内ではすべて追加前のTrialを見る。後続tagアドオンは追加後のTrialを見る。
+  - 重複: res2resのone・otherタグは最初の出現順で重複除外する。did_challengeによる追加タグは重複除外しない。
+  - 辞書: Responseはto_dict相当、propsは生のdict/listまたはNone。Trialには保存済みfile・prop_fileが入る。
+- did_challenge/sleepは`min + (max - min) * unit`秒待つ。
+  - 範囲: unitは0以上1未満。max < minでもPython同様に計算する。負値・非有限値はエラー。
+  - 検証: fixtureで乱数を固定した計算と、Rustテストで固定0.02秒以上の実待機を確認する。乱数列そのものは比較しない。
+- 保存先は`responses/<key>/{one,other,one-props,other-props}`。
+  - ファイル名: 本文は`(seq)name`、propは`(seq)name.json`。name未指定・空文字はseq。日本語・空白・括弧・拡張子をそのまま使う。
+  - スラッシュ: 名前に含まれる場合もサニタイズや中間ディレクトリ作成をしない。Python同様に保存エラーとなる。
+  - 順序: oneのdumpと書き込み、otherのdumpと書き込み、one-props、other-props。propは解析結果がある側だけ保存する。
+  - prop: owlmixin同様に入れ子のnullも除外し、再帰キーソートと区切り`(',', ': ')`を適用する。`1E2`→`100.0`、`-0`→`0`等は保存時だけ正規化する。res2dictの値は書き換えない。
+  - encoding: 本文はdumpの指定、propは固定UTF-8。propはoutputのwriterをUTF-8で使う。output.encodingは後続Report・summary・stdout等の設定として保持する。
+  - scalar: propのルートがdict/list以外ならPythonと同じTypeError。本文2ファイルが既に保存されている場合も消さない。
+  - ディレクトリ: 4サブディレクトリのmodeはUnixで0777。既存keyの再使用はエラー。
+- keyは`sha256((str(now()) + args_str).encode('utf-8')).hexdigest()`。
+  - 時刻: 空白区切り、タイムゾーン付き、マイクロ秒は0なら省略・非0なら6桁。`hash_from_args_at`で時刻固定のfixtureを比較する。
+- latestは全trialが正常に返った後に相対リンクを張り替える。
+  - failure: 通信失敗Trialも正常な戻り値なので更新する。アドオン例外では以前のlatestを維持する。
+  - 既存リンク: リンク先が存在しなくても張り替える。過去のkeyディレクトリは削除しない。
+- HTMLの最初の開始タグが途中で切れた場合、libxml2が作る親要素を空DOMへ補う。
+  - 実測: `<bad`・`<p`・`<img`・属性途中はhtml/body、`<head`はhtmlのみ。`<html`・空文字・不完全コメント・DOCTYPE・終了タグはAttributeError。`<`単独は本文テキストとなる。
+- 受入は`compat/fixtures/challenge.json`の104件。
+  - 結果: Python完全一致102件。ゼロ除算の2件は既存の承認済み例外差異を適用し、TypeErrorで一致する。
+  - 内容: store_criterion 24件、dump 41件、tag 9件、sleep 5件、prop 7件、key 8件、ファイル名4件、HTTP以降の統合6件。
+  - ローカルHTTP: 22ケースのTrial 43件と本文・prop 94ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
+  - 追加検証: 並行数と順序、Cookie共有・分離、failureのスキップ、例外時latest維持、既存key拒否、リンク張り替え、実sleepをRustテストで固定する。
+
 ## 未決
 
-- challenge全体統合での並行数とCookieのスコープ。
-  - threads: 指定数に従ってtrialを並行実行し、出力のtrial順は入力順を維持する。
+- processes時のCookieスコープの既定。
+  - 実装済み: threadsは指定数の並行実行・入力順の結果・Cookie共有を維持する。
   - processes: PythonはtrialごとにSessionを複製するためCookieをtrial間で共有しない。
-  - 案: threadsではHttpTransportを共有し、processes相当の経路ではtrialごとに生成する。one/other内の共有は維持する。
-
-- asyncの入力処理内にある同期ファイルI/O。
-  - 現実装: prepareが呼ぶInputFactoryでstd::fs::readを使う。
-  - 申し送り: challenge統合時にtokio::fsまたはspawn_blockingへ移し、HTTP転送のruntimeをファイル読み込みでブロックしないようにする。
+  - 推奨案: `ProcessCookieScope::PerTrial`を採用する。クライアントはArcで共有し、Cookieだけtrialごとに分離する。one/other内のCookie共有は維持する。
+  - 判断待ち: 公開execはprocesses有効時にShared・PerTrialの明示を必須とする。未指定なら保存・送信前にエラー。受入試験ではPerTrialを明示する。CLIの既定値としては未採用。
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
 - `-vv` のconfig YAMLダンプ。

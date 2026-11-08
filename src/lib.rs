@@ -3,6 +3,7 @@ pub mod cli;
 pub mod compat;
 pub mod config;
 pub mod diff;
+pub mod executor;
 pub mod http;
 pub mod markup;
 pub mod models;

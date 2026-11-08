@@ -576,9 +576,29 @@ pub fn pretty(input: &str) -> Result<String, Error> {
         input,
     );
     let document = sink.sink.sink.finish();
-    let root = convert(document.root_element(), 0, &mut HashSet::new())?;
+    let mut root = convert(document.root_element(), 0, &mut HashSet::new())?;
     if !root.explicit && root.children.is_empty() {
-        return Err(Error::MissingHtml);
+        // libxml2は最初の開始タグが途中で終わっても、その親までを作る。
+        // HTML5 tokenizerはこのタグを捨てるため、空DOMの場合だけ親を補う。
+        let fragment = input.trim().strip_prefix('<').unwrap_or("");
+        let name = fragment
+            .split([' ', '\t', '\r', '\n', '/'])
+            .next()
+            .unwrap_or("");
+        if fragment.contains(['<', '>'])
+            || !name.starts_with(|c: char| c.is_ascii_alphabetic())
+            || name.eq_ignore_ascii_case("html")
+        {
+            return Err(Error::MissingHtml);
+        }
+        if !name.eq_ignore_ascii_case("head") {
+            root.children.push(Child::Element(Element {
+                name: "body".into(),
+                attrs: Vec::new(),
+                children: Vec::new(),
+                explicit: false,
+            }));
+        }
     }
     let mut output = String::new();
     render(&root, 0, false, &mut output);

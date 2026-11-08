@@ -44,8 +44,8 @@ pub(super) struct Endpoint {
 }
 
 pub struct HttpTransport {
-    pub(super) one: Endpoint,
-    pub(super) other: Endpoint,
+    pub(super) one: Arc<Endpoint>,
+    pub(super) other: Arc<Endpoint>,
     cookies: Mutex<cookie_store::CookieStore>,
     max_retries: u64,
 }
@@ -403,11 +403,21 @@ impl HttpTransport {
         options: TransportOptions,
     ) -> Result<Self> {
         Ok(Self {
-            one: build_endpoint(one, &options)?,
-            other: build_endpoint(other, &options)?,
+            one: Arc::new(build_endpoint(one, &options)?),
+            other: Arc::new(build_endpoint(other, &options)?),
             cookies: Mutex::new(cookie_store::CookieStore::default()),
             max_retries: max_retries.max(0) as u64,
         })
+    }
+
+    /// reqwestクライアントを共有し、Cookieだけをtrial単位に分離する。
+    pub fn isolated_cookies(&self) -> Self {
+        Self {
+            one: Arc::clone(&self.one),
+            other: Arc::clone(&self.other),
+            cookies: Mutex::new(cookie_store::CookieStore::default()),
+            max_retries: self.max_retries,
+        }
     }
 
     pub async fn send_one(&self, request: &Request) -> Result<Response> {

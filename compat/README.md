@@ -74,6 +74,23 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+### challenge・保存の受入
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/challenge.py > /tmp/jumeaux-challenge.json
+diff compat/fixtures/challenge.json /tmp/jumeaux-challenge.json
+cargo test --test challenge -- --nocapture
+cargo test --test challenge_e2e -- --ignored --nocapture
+```
+
+- 関数・コンポーネントfixtureは104件。Python完全一致102件、承認済み例外種別の差異2件。
+- E2Eは記録用受信先を動的なローカルportで起動する。
+  - 対象: 22ケース、Trial 43件、本文・prop 94ファイル。
+  - 比較: 既存python-baselineのtrialと保存bytes。Report書き出し・final・CLIは後続タスク。
+  - processes: Cookie分離案のPerTrialを明示して検証する。公開APIの既定契約は未決。
+- Python基準の.venvが必要なE2Eだけ通常のcargo testではignoredとする。
+  - 実行: 上記の`--ignored`付きコマンドで明示的に動かす。
+
 ### HTTP転送の受入
 
 ```sh

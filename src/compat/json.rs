@@ -158,3 +158,74 @@ pub fn parse(text: &str) -> Result<Value> {
         Ok(value)
     })
 }
+
+/// json.dumps(ensure_ascii=False, sort_keys=True)。数値の字句はここでだけ正規化する。
+/// compact_commasはowlmixinのseparators=(',', ': ')に対応する。
+pub fn dumps(value: &Value, indent: Option<usize>, compact_commas: bool) -> Result<String> {
+    let depth = validate(value)?;
+    with_stack(depth, || {
+        let mut output = String::new();
+        write_json(value, indent, compact_commas, 0, &mut output);
+        Ok(output)
+    })
+}
+
+fn write_json(value: &Value, indent: Option<usize>, compact: bool, level: usize, out: &mut String) {
+    match value {
+        Value::Number(n) => {
+            if n.as_str().contains(['.', 'e', 'E']) {
+                out.push_str(&super::template::python_float_repr(
+                    n.as_str().parse().unwrap(),
+                ));
+            } else {
+                out.push_str(
+                    &n.as_str()
+                        .parse::<num_bigint::BigInt>()
+                        .unwrap()
+                        .to_string(),
+                );
+            }
+        }
+        Value::Object(map) => {
+            let mut keys: Vec<_> = map.keys().collect();
+            keys.sort();
+            out.push('{');
+            for (i, key) in keys.iter().enumerate() {
+                separator(i, indent, compact, level + 1, out);
+                out.push_str(&serde_json::to_string(key).unwrap());
+                out.push_str(": ");
+                write_json(&map[*key], indent, compact, level + 1, out);
+            }
+            closing(!map.is_empty(), indent, level, out);
+            out.push('}');
+        }
+        Value::Array(list) => {
+            out.push('[');
+            for (i, item) in list.iter().enumerate() {
+                separator(i, indent, compact, level + 1, out);
+                write_json(item, indent, compact, level + 1, out);
+            }
+            closing(!list.is_empty(), indent, level, out);
+            out.push(']');
+        }
+        _ => out.push_str(&serde_json::to_string(value).unwrap()),
+    }
+}
+fn separator(i: usize, indent: Option<usize>, compact: bool, level: usize, out: &mut String) {
+    if i != 0 {
+        out.push(',');
+        if indent.is_none() && !compact {
+            out.push(' ');
+        }
+    }
+    if let Some(width) = indent {
+        out.push('\n');
+        out.push_str(&" ".repeat(width * level));
+    }
+}
+fn closing(nonempty: bool, indent: Option<usize>, level: usize, out: &mut String) {
+    if nonempty && let Some(width) = indent {
+        out.push('\n');
+        out.push_str(&" ".repeat(width * level));
+    }
+}

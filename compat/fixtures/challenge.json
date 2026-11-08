@@ -1,0 +1,3664 @@
+[
+  {
+    "name": "store-0",
+    "input": {
+      "layer": "store",
+      "config": {},
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-1",
+    "input": {
+      "layer": "store",
+      "config": {},
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-2",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": []
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": false
+    }
+  },
+  {
+    "name": "store-3",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": []
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-4",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "False"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": false
+    }
+  },
+  {
+    "name": "store-5",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "False"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-6",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "False",
+          "status == 'different'"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-7",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "False",
+          "status == 'different'"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-8",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "True",
+          "1 / 0"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-9",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "True",
+          "1 / 0"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-10",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "req.name == 'named' and req.path == '/a' and req.qs.q == ['1']"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-11",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "req.name == 'named' and req.path == '/a' and req.qs.q == ['1']"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-12",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "req.method == 'GET' and req.raw is none and req.url_encoding == 'utf8'"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": false
+    }
+  },
+  {
+    "name": "store-13",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "req.method == 'GET' and req.raw is none and req.url_encoding == 'utf8'"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-14",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "res_one.encoding == 'utf-8' and res_one.headers['content-TYPE'] == 'application/json'"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-15",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "res_one.encoding == 'utf-8' and res_one.headers['content-TYPE'] == 'application/json'"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-16",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "res_one.text is undefined"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-17",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "res_one.text is undefined"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-18",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "1 / 0"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "error": "ZeroDivisionError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "docs/compat-spec.md: 未定義値・異種比較の承認済み例外種別の差異"
+  },
+  {
+    "name": "store-19",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "1 / 0"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-20",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "''"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "error": "SyntaxError"
+    }
+  },
+  {
+    "name": "store-21",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "''"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "store-22",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "'yes'"
+        ]
+      },
+      "stored": false,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "store-23",
+    "input": {
+      "layer": "store",
+      "config": {
+        "when_any": [
+          "'yes'"
+        ]
+      },
+      "stored": true,
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      }
+    },
+    "expected": {
+      "ok": true
+    }
+  },
+  {
+    "name": "dump-json-utf-8",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a202020202261223a2022e697a5e69cac222c0a20202020227a223a205b0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e302c0a202020202020202031652d30372c0a202020202020202031652b32302c0a20202020202020203930303731393932353437343039393331323334352c0a20202020202020206e756c6c0a202020205d0a7d",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-json-cp932",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a2293fa967b227d",
+        "encoding": "cp932",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a2293fa967b227d",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a202020202261223a202293fa967b222c0a20202020227a223a205b0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e302c0a202020202020202031652d30372c0a202020202020202031652b32302c0a20202020202020203930303731393932353437343039393331323334352c0a20202020202020206e756c6c0a202020205d0a7d",
+        "encoding": "cp932"
+      }
+    }
+  },
+  {
+    "name": "dump-json-utf-16",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "fffe7b0022007a0022003a0020005b003100450032002c002d0030002c002d0030002e0030002c00310065002d0037002c0031006500320030002c003900300030003700310039003900320035003400370034003000390039003300310032003300340035002c006e0075006c006c005d002c002200610022003a002200e5652c6722007d00",
+        "encoding": "utf-16",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "fffe7b0022007a0022003a0020005b003100450032002c002d0030002c002d0030002e0030002c00310065002d0037002c0031006500320030002c003900300030003700310039003900320035003400370034003000390039003300310032003300340035002c006e0075006c006c005d002c002200610022003a002200e5652c6722007d00",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe7b000a0020002000200020002200610022003a0020002200e5652c6722002c000a00200020002000200022007a0022003a0020005b000a00200020002000200020002000200020003100300030002e0030002c000a002000200020002000200020002000200030002c000a00200020002000200020002000200020002d0030002e0030002c000a0020002000200020002000200020002000310065002d00300037002c000a0020002000200020002000200020002000310065002b00320030002c000a00200020002000200020002000200020003900300030003700310039003900320035003400370034003000390039003300310032003300340035002c000a00200020002000200020002000200020006e0075006c006c000a0020002000200020005d000a007d00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-json-None",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+        "encoding": null,
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a202020202261223a2022e697a5e69cac222c0a20202020227a223a205b0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e302c0a202020202020202031652d30372c0a202020202020202031652b32302c0a20202020202020203930303731393932353437343039393331323334352c0a20202020202020206e756c6c0a202020205d0a7d",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-json-skip",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "626164",
+        "encoding": null,
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "626164",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "626164",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-json-force",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json",
+          "config": {
+            "force": true
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a202020202261223a2022e697a5e69cac222c0a20202020227a223a205b0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e302c0a202020202020202031652d30372c0a202020202020202031652b32302c0a20202020202020203930303731393932353437343039393331323334352c0a20202020202020206e756c6c0a202020205d0a7d",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-json-invalid",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "3c626164",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c626164",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "JSONDecodeError"
+    }
+  },
+  {
+    "name": "dump-json-chain",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "utf-16"
+          }
+        },
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b227a223a205b3145322c2d302c2d302e302c31652d372c316532302c3930303731393932353437343039393331323334352c6e756c6c5d2c2261223a22e697a5e69cac227d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe7b000a0020002000200020002200610022003a0020002200e5652c6722002c000a00200020002000200022007a0022003a0020005b000a00200020002000200020002000200020003100300030002e0030002c000a002000200020002000200020002000200030002c000a00200020002000200020002000200020002d0030002e0030002c000a0020002000200020002000200020002000310065002d00300037002c000a0020002000200020002000200020002000310065002b00320030002c000a00200020002000200020002000200020003900300030003700310039003900320035003400370034003000390039003300310032003300340035002c000a00200020002000200020002000200020006e0075006c006c000a0020002000200020005d000a007d00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-utf-8",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+        "encoding": "utf-8",
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c3f786d6c2076657273696f6e3d22312e3022203f3e0a3c726f6f74207a3d2231223e0a202020203c613ee697a5e69cac3c2f613e0a202020203c656d7074792f3e0a3c2f726f6f743e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-cp932",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "3c726f6f74207a3d2231223e3c613e93fa967b3c2f613e3c656d7074792f3e3c2f726f6f743e",
+        "encoding": "cp932",
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c726f6f74207a3d2231223e3c613e93fa967b3c2f613e3c656d7074792f3e3c2f726f6f743e",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c3f786d6c2076657273696f6e3d22312e3022203f3e0a3c726f6f74207a3d2231223e0a202020203c613e93fa967b3c2f613e0a202020203c656d7074792f3e0a3c2f726f6f743e0a",
+        "encoding": "cp932"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-utf-16",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "fffe3c0072006f006f00740020007a003d002200310022003e003c0061003e00e5652c673c002f0061003e003c0065006d007000740079002f003e003c002f0072006f006f0074003e00",
+        "encoding": "utf-16",
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "fffe3c0072006f006f00740020007a003d002200310022003e003c0061003e00e5652c673c002f0061003e003c0065006d007000740079002f003e003c002f0072006f006f0074003e00",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe3c003f0078006d006c002000760065007200730069006f006e003d00220031002e003000220020003f003e000a003c0072006f006f00740020007a003d002200310022003e000a0020002000200020003c0061003e00e5652c673c002f0061003e000a0020002000200020003c0065006d007000740079002f003e000a003c002f0072006f006f0074003e000a00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-None",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+        "encoding": null,
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c3f786d6c2076657273696f6e3d22312e3022203f3e0a3c726f6f74207a3d2231223e0a202020203c613ee697a5e69cac3c2f613e0a202020203c656d7074792f3e0a3c2f726f6f743e0a",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-skip",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "626164",
+        "encoding": null,
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "626164",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "626164",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-force",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml",
+          "config": {
+            "force": true
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c3f786d6c2076657273696f6e3d22312e3022203f3e0a3c726f6f74207a3d2231223e0a202020203c613ee697a5e69cac3c2f613e0a202020203c656d7074792f3e0a3c2f726f6f743e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-invalid",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "3c626164",
+        "encoding": "utf-8",
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c626164",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "496e636c75646520696e76616c696420746f6b656e0a0a20202020202020203c6261640a2020202020202020",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-xml-chain",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "utf-16"
+          }
+        },
+        {
+          "name": "xml"
+        }
+      ],
+      "response": {
+        "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+        "encoding": "utf-8",
+        "type": "xml",
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c726f6f74207a3d2231223e3c613ee697a5e69cac3c2f613e3c656d7074792f3e3c2f726f6f743e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe3c003f0078006d006c002000760065007200730069006f006e003d00220031002e003000220020003f003e000a003c0072006f006f00740020007a003d002200310022003e000a0020002000200020003c0061003e00e5652c673c002f0061003e000a0020002000200020003c0065006d007000740079002f003e000a003c002f0072006f006f0074003e000a00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-html-utf-8",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c686561643e0a20203c7469746c653e0a202020e697a5e69cac0a20203c2f7469746c653e0a203c2f686561643e0a203c626f64793e0a20203c703e0a20202068656c6c6f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-cp932",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c3e3c686561643e3c7469746c653e93fa967b3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "encoding": "cp932",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c3e3c686561643e3c7469746c653e93fa967b3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "encoding": "cp932"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c686561643e0a20203c7469746c653e0a20202093fa967b0a20203c2f7469746c653e0a203c2f686561643e0a203c626f64793e0a20203c703e0a20202068656c6c6f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "cp932"
+      }
+    }
+  },
+  {
+    "name": "dump-html-utf-16",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "fffe3c00680074006d006c003e003c0068006500610064003e003c007400690074006c0065003e00e5652c673c002f007400690074006c0065003e003c002f0068006500610064003e003c0062006f00640079003e003c0070003e00680065006c006c006f003c002f0070003e003c002f0062006f00640079003e003c002f00680074006d006c003e00",
+        "encoding": "utf-16",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "fffe3c00680074006d006c003e003c0068006500610064003e003c007400690074006c0065003e00e5652c673c002f007400690074006c0065003e003c002f0068006500610064003e003c0062006f00640079003e003c0070003e00680065006c006c006f003c002f0070003e003c002f0062006f00640079003e003c002f00680074006d006c003e00",
+      "encoding": "utf-16"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe3c00680074006d006c003e000a0020003c0068006500610064003e000a00200020003c007400690074006c0065003e000a00200020002000e5652c670a00200020003c002f007400690074006c0065003e000a0020003c002f0068006500610064003e000a0020003c0062006f00640079003e000a00200020003c0070003e000a00200020002000680065006c006c006f000a00200020003c002f0070003e000a0020003c002f0062006f00640079003e000a003c002f00680074006d006c003e000a00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-html-None",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "encoding": null,
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c686561643e0a20203c7469746c653e0a202020e697a5e69cac0a20203c2f7469746c653e0a203c2f686561643e0a203c626f64793e0a20203c703e0a20202068656c6c6f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-skip",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "626164",
+        "encoding": null,
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "626164",
+      "encoding": null
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "626164",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-force",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html",
+          "config": {
+            "force": true
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c686561643e0a20203c7469746c653e0a202020e697a5e69cac0a20203c2f7469746c653e0a203c2f686561643e0a203c626f64793e0a20203c703e0a20202068656c6c6f0a20203c2f703e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-invalid",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c626164",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c626164",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-chain",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "utf-16"
+          }
+        },
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c3e3c686561643e3c7469746c653ee697a5e69cac3c2f7469746c653e3c2f686561643e3c626f64793e3c703e68656c6c6f3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "fffe3c00680074006d006c003e000a0020003c0068006500610064003e000a00200020003c007400690074006c0065003e000a00200020002000e5652c670a00200020003c002f007400690074006c0065003e000a0020003c002f0068006500610064003e000a0020003c0062006f00640079003e000a00200020003c0070003e000a00200020002000680065006c006c006f000a00200020003c002f0070003e000a0020003c002f0062006f00640079003e000a003c002f00680074006d006c003e000a00",
+        "encoding": "utf-16"
+      }
+    }
+  },
+  {
+    "name": "dump-encoding-none",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "utf-8"
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "6869",
+        "encoding": null,
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "6869",
+      "encoding": null
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "dump-encoding-invalid",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "ascii"
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "e697a5e69cac",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "e697a5e69cac",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "UnicodeEncodeError"
+    }
+  },
+  {
+    "name": "dump-encoding-decode-error",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "encoding",
+          "config": {
+            "encoding": "utf-8"
+          }
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "ff",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "UnicodeDecodeError"
+    }
+  },
+  {
+    "name": "dump-json-replace",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b2261223a22ff227d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a202020202261223a2022efbfbd220a7d",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-json-payload",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "json"
+        }
+      ],
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "7b22646966666572656e74223a747275657d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "7b0a2020202022646966666572656e74223a20747275650a7d",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-0",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-html-incomplete-1",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a2020266c743b0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-2",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68746d6c",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68746d6c",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-html-incomplete-3",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c68656164",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c68656164",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-4",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c70",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c70",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-5",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c696d67",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c696d67",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-6",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c7020617474723d22",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c7020617474723d22",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-7",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c7020617474723d227822",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c7020617474723d227822",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "ok": {
+        "body_hex": "3c68746d6c3e0a203c626f64793e0a203c2f626f64793e0a3c2f68746d6c3e0a",
+        "encoding": "utf-8"
+      }
+    }
+  },
+  {
+    "name": "dump-html-incomplete-8",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c212d2d",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c212d2d",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-html-incomplete-9",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c21444f4354595045",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c21444f4354595045",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-html-incomplete-10",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c3f786d6c",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c3f786d6c",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "dump-html-incomplete-11",
+    "input": {
+      "layer": "dump",
+      "steps": [
+        {
+          "name": "html"
+        }
+      ],
+      "response": {
+        "body_hex": "3c2f70",
+        "encoding": "utf-8",
+        "type": "html",
+        "headers": {
+          "Content-Type": "application/html"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "body_hex": "3c2f70",
+      "encoding": "utf-8"
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "tag-65",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": []
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-66",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "always"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "always"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-67",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "{{ trial.name }}",
+            "when": "trial.status == 'different'"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "named"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-68",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "no",
+            "when": "False"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-69",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "yes",
+            "when": ""
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "yes"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-70",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "base"
+          },
+          {
+            "tag": "{{ trial.tags|length }}"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "base",
+          "1"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-71",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "{{ res_one_props.n }}",
+            "when": "res_one.encoding == 'utf-8' and res_other_props is none"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "100.0"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-72",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "saved",
+            "when": "trial.one.file == 'one/(3)named' and res_one.text is undefined"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "ok": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base",
+          "saved"
+        ],
+        "headers": {},
+        "queries": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        },
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {}
+      }
+    }
+  },
+  {
+    "name": "tag-73",
+    "input": {
+      "layer": "tag",
+      "config": {
+        "conditions": [
+          {
+            "tag": "oops",
+            "when": "1 / 0"
+          }
+        ]
+      },
+      "trial": {
+        "seq": 3,
+        "name": "named",
+        "tags": [
+          "base"
+        ],
+        "headers": {},
+        "queries": {},
+        "method": "GET",
+        "path": "/a",
+        "request_time": "2000-01-01T00:00:00+09:00",
+        "status": "different",
+        "diffs_by_cognition": {},
+        "one": {
+          "url": "http://localhost/a",
+          "type": "json",
+          "file": "one/(3)named"
+        },
+        "other": {
+          "url": "http://localhost/b",
+          "type": "json"
+        }
+      },
+      "response": {
+        "body_hex": "7b227a223a312c2261223a22e697a5e69cac227d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "props": {
+        "n": 100.0
+      }
+    },
+    "expected": {
+      "error": "ZeroDivisionError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "docs/compat-spec.md: 未定義値・異種比較の承認済み例外種別の差異"
+  },
+  {
+    "name": "sleep-74",
+    "input": {
+      "layer": "sleep",
+      "config": {
+        "min": 0.0,
+        "max": 0.0
+      },
+      "unit": 0.5
+    },
+    "expected": {
+      "ok": 0.0
+    }
+  },
+  {
+    "name": "sleep-75",
+    "input": {
+      "layer": "sleep",
+      "config": {
+        "min": 0.125,
+        "max": 0.125
+      },
+      "unit": 0.7
+    },
+    "expected": {
+      "ok": 0.125
+    }
+  },
+  {
+    "name": "sleep-76",
+    "input": {
+      "layer": "sleep",
+      "config": {
+        "min": 1.0,
+        "max": 3.0
+      },
+      "unit": 0.25
+    },
+    "expected": {
+      "ok": 1.5
+    }
+  },
+  {
+    "name": "sleep-77",
+    "input": {
+      "layer": "sleep",
+      "config": {
+        "min": 3.0,
+        "max": 1.0
+      },
+      "unit": 0.25
+    },
+    "expected": {
+      "ok": 2.5
+    }
+  },
+  {
+    "name": "sleep-78",
+    "input": {
+      "layer": "sleep",
+      "config": {
+        "min": -1.0,
+        "max": -1.0
+      },
+      "unit": 0.5
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "props-79",
+    "input": {
+      "layer": "props",
+      "text": "{\"z\":[1E2,-0,-0.0,1e-7,1e20,1e16,1e-4,900719925474099312345],\"a\":\"日本\"}"
+    },
+    "expected": {
+      "ok": "7b2261223a2022e697a5e69cac222c227a223a205b3130302e302c302c2d302e302c31652d30372c31652b32302c31652b31362c302e303030312c3930303731393932353437343039393331323334355d7d"
+    }
+  },
+  {
+    "name": "props-80",
+    "input": {
+      "layer": "props",
+      "text": "{\"null\":null,\"list\":[null,{\"a\":null,\"b\":1}],\"empty\":[]}"
+    },
+    "expected": {
+      "ok": "7b22656d707479223a205b5d2c226c697374223a205b7b2262223a20317d5d7d"
+    }
+  },
+  {
+    "name": "props-81",
+    "input": {
+      "layer": "props",
+      "text": "[]"
+    },
+    "expected": {
+      "ok": "5b5d"
+    }
+  },
+  {
+    "name": "props-82",
+    "input": {
+      "layer": "props",
+      "text": "{}"
+    },
+    "expected": {
+      "ok": "7b7d"
+    }
+  },
+  {
+    "name": "props-83",
+    "input": {
+      "layer": "props",
+      "text": "false"
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "props-84",
+    "input": {
+      "layer": "props",
+      "text": "0"
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "props-85",
+    "input": {
+      "layer": "props",
+      "text": "\"x\""
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "key-86",
+    "input": {
+      "layer": "key",
+      "now": "2000-01-01T00:00:00+09:00",
+      "args": ""
+    },
+    "expected": {
+      "ok": "06ab69e99ef7a14c414801f0d97d82ddcd4136b64347f82f22db9498f49b8ef6"
+    }
+  },
+  {
+    "name": "key-87",
+    "input": {
+      "layer": "key",
+      "now": "2000-01-01T00:00:00+09:00",
+      "args": "Namespace(files=['日本'], threads=2)"
+    },
+    "expected": {
+      "ok": "b0c06e9c5e3b7ea0abfff139b4f53fc21c0d4e9542cf93cf275219a1c2deb932"
+    }
+  },
+  {
+    "name": "key-88",
+    "input": {
+      "layer": "key",
+      "now": "2000-01-01T00:00:00.000001+09:00",
+      "args": ""
+    },
+    "expected": {
+      "ok": "a2940bba8565670a2e137b56ff4265212b7d4db7494c814e42686703098c410a"
+    }
+  },
+  {
+    "name": "key-89",
+    "input": {
+      "layer": "key",
+      "now": "2000-01-01T00:00:00.000001+09:00",
+      "args": "Namespace(files=['日本'], threads=2)"
+    },
+    "expected": {
+      "ok": "c7a29dcf960f52aecf04bc5a89b45f3dc43a93264cdb2077936a45e1ac214849"
+    }
+  },
+  {
+    "name": "key-90",
+    "input": {
+      "layer": "key",
+      "now": "2026-11-08T12:34:56.123456+00:00",
+      "args": ""
+    },
+    "expected": {
+      "ok": "c23d91ffe98ac159875bc4bfbfd2c93ff9e0f651958e301d22219ca45994d637"
+    }
+  },
+  {
+    "name": "key-91",
+    "input": {
+      "layer": "key",
+      "now": "2026-11-08T12:34:56.123456+00:00",
+      "args": "Namespace(files=['日本'], threads=2)"
+    },
+    "expected": {
+      "ok": "d0ac417b42e90eb04db09645ef967a978c85a9bba179497805069018d881c33f"
+    }
+  },
+  {
+    "name": "key-92",
+    "input": {
+      "layer": "key",
+      "now": "1999-12-31T23:59:59.990000-05:30",
+      "args": ""
+    },
+    "expected": {
+      "ok": "1d4f9ba1303846789f1f0e0ceebccab5d5c76cda2c99bb9ecdcf399bab92e756"
+    }
+  },
+  {
+    "name": "key-93",
+    "input": {
+      "layer": "key",
+      "now": "1999-12-31T23:59:59.990000-05:30",
+      "args": "Namespace(files=['日本'], threads=2)"
+    },
+    "expected": {
+      "ok": "6d908b3019b3e69af69f1fabd8e72c9a1b254bb9216a5c91afea288ce88ba32b"
+    }
+  },
+  {
+    "name": "filename-1",
+    "input": {
+      "layer": "filename",
+      "seq": 1,
+      "name": null
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "1",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "one/(1)1",
+            "prop_file": "one-props/(1)1.json"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "other/(1)1",
+            "prop_file": "other-props/(1)1.json"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {}
+        },
+        "files": [
+          "one-props/(1)1.json",
+          "one/(1)1",
+          "other-props/(1)1.json",
+          "other/(1)1"
+        ]
+      }
+    }
+  },
+  {
+    "name": "filename-12",
+    "input": {
+      "layer": "filename",
+      "seq": 12,
+      "name": "名前 (a).json"
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 12,
+          "name": "名前 (a).json",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "one/(12)名前 (a).json",
+            "prop_file": "one-props/(12)名前 (a).json.json"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "other/(12)名前 (a).json",
+            "prop_file": "other-props/(12)名前 (a).json.json"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {}
+        },
+        "files": [
+          "one-props/(12)名前 (a).json.json",
+          "one/(12)名前 (a).json",
+          "other-props/(12)名前 (a).json.json",
+          "other/(12)名前 (a).json"
+        ]
+      }
+    }
+  },
+  {
+    "name": "filename-2",
+    "input": {
+      "layer": "filename",
+      "seq": 2,
+      "name": ""
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 2,
+          "name": "2",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "one/(2)2",
+            "prop_file": "one-props/(2)2.json"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 7,
+            "response_sec": 0.0,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "other/(2)2",
+            "prop_file": "other-props/(2)2.json"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {}
+        },
+        "files": [
+          "one-props/(2)2.json",
+          "one/(2)2",
+          "other-props/(2)2.json",
+          "other/(2)2"
+        ]
+      }
+    }
+  },
+  {
+    "name": "filename-4",
+    "input": {
+      "layer": "filename",
+      "seq": 4,
+      "name": "nested/name"
+    },
+    "expected": {
+      "error": "FileNotFoundError"
+    }
+  },
+  {
+    "name": "integration-typed-reference",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "res2dict": [
+          {
+            "name": "json"
+          }
+        ],
+        "store_criterion": [
+          {
+            "name": "free",
+            "config": {
+              "when_any": [
+                "status == 'same' and res_one.type == 'json' and req.method == 'GET' and req.raw is none"
+              ]
+            }
+          }
+        ],
+        "dump": [
+          {
+            "name": "json"
+          },
+          {
+            "name": "encoding",
+            "config": {
+              "encoding": "utf-16"
+            }
+          }
+        ],
+        "res2res": [
+          {
+            "name": "type",
+            "config": {
+              "conditions": [
+                {
+                  "type": "json",
+                  "when": "True"
+                }
+              ]
+            }
+          }
+        ],
+        "judgement": [
+          {
+            "name": "same",
+            "config": {
+              "when_any": [
+                "res_one.type == 'json' and res_other.type == 'json'"
+              ]
+            }
+          }
+        ],
+        "did_challenge": [
+          {
+            "name": "tag",
+            "config": {
+              "conditions": [
+                {
+                  "when": "trial.one.file is defined and res_one.type == 'json' and res_one_props.a == 100",
+                  "tag": "{{trial.name}}:{{res_one_props.a}}"
+                },
+                {
+                  "tag": "{{trial.tags|length}}"
+                }
+              ]
+            }
+          },
+          {
+            "name": "tag",
+            "config": {
+              "conditions": [
+                {
+                  "tag": "{{trial.tags|length}}"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "7b2261223a3145327d",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "7b2261223a3230307d",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "POST 日本",
+        "method": "POST",
+        "raw": "x",
+        "headers": {
+          "X-Test": "v"
+        },
+        "qs": {
+          "q": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      "headers": true
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "POST 日本",
+          "tags": [
+            "POST 日本:100.0",
+            "0",
+            "2"
+          ],
+          "headers": {
+            "X-Test": "v"
+          },
+          "queries": {
+            "q": [
+              "x",
+              "y"
+            ]
+          },
+          "raw": "x",
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 9,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8",
+            "file": "one/(1)POST 日本",
+            "prop_file": "one-props/(1)POST 日本.json",
+            "response_header": {
+              "Content-Type": "application/plain"
+            }
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 9,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8",
+            "file": "other/(1)POST 日本",
+            "prop_file": "other-props/(1)POST 日本.json",
+            "response_header": {
+              "Content-Type": "application/plain"
+            }
+          },
+          "method": "POST",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {
+            "unknown": {
+              "added": [],
+              "changed": [
+                "root<'a'>"
+              ],
+              "removed": []
+            }
+          }
+        },
+        "files": {
+          "one/(1)POST 日本": "fffe7b000a0020002000200020002200610022003a0020003100300030002e0030000a007d00",
+          "one-props/(1)POST 日本.json": "7b2261223a203130302e307d",
+          "other/(1)POST 日本": "fffe7b000a0020002000200020002200610022003a0020003200300030000a007d00",
+          "other-props/(1)POST 日本.json": "7b2261223a203230307d"
+        }
+      }
+    }
+  },
+  {
+    "name": "integration-deduplicate-tags",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "res2dict": [
+          {
+            "name": "json"
+          }
+        ],
+        "store_criterion": [
+          {
+            "name": "free"
+          }
+        ],
+        "dump": [
+          {
+            "name": "json"
+          }
+        ],
+        "res2res": [
+          {
+            "name": "json_sort",
+            "config": {
+              "footprints_tag": "sorted",
+              "items": [
+                {
+                  "when": "True",
+                  "targets": [
+                    {
+                      "path": "root"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "did_challenge": [
+          {
+            "name": "tag",
+            "config": {
+              "conditions": [
+                {
+                  "tag": "sorted"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "5b332c322c315d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "5b322c312c335d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "integration"
+      },
+      "headers": false
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "integration",
+          "tags": [
+            "sorted",
+            "sorted"
+          ],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 9,
+            "response_sec": 0.12,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "one/(1)integration",
+            "prop_file": "one-props/(1)integration.json"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 9,
+            "response_sec": 0.12,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "other/(1)integration",
+            "prop_file": "other-props/(1)integration.json"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {}
+        },
+        "files": {
+          "one/(1)integration": "5b0a20202020312c0a20202020322c0a20202020330a5d",
+          "one-props/(1)integration.json": "5b312c322c335d",
+          "other/(1)integration": "5b0a20202020312c0a20202020322c0a20202020330a5d",
+          "other-props/(1)integration.json": "5b312c322c335d"
+        }
+      }
+    }
+  },
+  {
+    "name": "integration-no-store-skips-dump",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "store_criterion": [],
+        "dump": [
+          {
+            "name": "json",
+            "config": {
+              "force": true
+            }
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "626164",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "626164",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "integration"
+      },
+      "headers": false
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "integration",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "plain",
+            "status_code": 200,
+            "byte": 3,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "plain",
+            "status_code": 200,
+            "byte": 3,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same"
+        },
+        "files": {}
+      }
+    }
+  },
+  {
+    "name": "integration-unparsed-body",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "store_criterion": [
+          {
+            "name": "free"
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "68656c6c6f",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "776f726c64",
+        "encoding": "utf-8",
+        "type": "plain",
+        "headers": {
+          "Content-Type": "application/plain"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "integration"
+      },
+      "headers": false
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "integration",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "plain",
+            "status_code": 200,
+            "byte": 5,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8",
+            "file": "one/(1)integration"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "plain",
+            "status_code": 200,
+            "byte": 5,
+            "response_sec": 0.12,
+            "content_type": "application/plain",
+            "mime_type": "application/plain",
+            "encoding": "utf-8",
+            "file": "other/(1)integration"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "different"
+        },
+        "files": {
+          "one/(1)integration": "68656c6c6f",
+          "other/(1)integration": "776f726c64"
+        }
+      }
+    }
+  },
+  {
+    "name": "integration-prop-null-and-numbers",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "res2dict": [
+          {
+            "name": "json"
+          }
+        ],
+        "store_criterion": [
+          {
+            "name": "free"
+          }
+        ],
+        "dump": [
+          {
+            "name": "json"
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "7b226e223a5b6e756c6c2c3145322c2d302c2d302e305d2c2261223a6e756c6c7d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "7b226e223a5b6e756c6c2c3145322c2d302c2d302e305d2c2261223a6e756c6c7d",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "integration"
+      },
+      "headers": false
+    },
+    "expected": {
+      "ok": {
+        "trial": {
+          "seq": 1,
+          "name": "integration",
+          "tags": [],
+          "headers": {},
+          "queries": {},
+          "one": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 33,
+            "response_sec": 0.12,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "one/(1)integration",
+            "prop_file": "one-props/(1)integration.json"
+          },
+          "other": {
+            "url": "http://localhost/a",
+            "type": "json",
+            "status_code": 200,
+            "byte": 33,
+            "response_sec": 0.12,
+            "content_type": "application/json",
+            "mime_type": "application/json",
+            "encoding": "utf-8",
+            "file": "other/(1)integration",
+            "prop_file": "other-props/(1)integration.json"
+          },
+          "method": "GET",
+          "path": "/a",
+          "request_time": "2000-01-01T00:00:00+09:00",
+          "status": "same",
+          "diffs_by_cognition": {}
+        },
+        "files": {
+          "one/(1)integration": "7b0a202020202261223a206e756c6c2c0a20202020226e223a205b0a20202020202020206e756c6c2c0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e300a202020205d0a7d",
+          "one-props/(1)integration.json": "7b226e223a205b3130302e302c302c2d302e305d7d",
+          "other/(1)integration": "7b0a202020202261223a206e756c6c2c0a20202020226e223a205b0a20202020202020206e756c6c2c0a20202020202020203130302e302c0a2020202020202020302c0a20202020202020202d302e300a202020205d0a7d",
+          "other-props/(1)integration.json": "7b226e223a205b3130302e302c302c2d302e305d7d"
+        }
+      }
+    }
+  },
+  {
+    "name": "integration-scalar-prop-error",
+    "input": {
+      "layer": "integrated",
+      "addons": {
+        "log2reqs": {
+          "name": "plain"
+        },
+        "res2dict": [
+          {
+            "name": "json"
+          }
+        ],
+        "store_criterion": [
+          {
+            "name": "free"
+          }
+        ],
+        "dump": [
+          {
+            "name": "json"
+          }
+        ]
+      },
+      "one": {
+        "body_hex": "3432",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "other": {
+        "body_hex": "3432",
+        "encoding": "utf-8",
+        "type": "json",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "url": "http://localhost/a",
+        "status_code": 200,
+        "elapsed": 0.123456,
+        "elapsed_sec": 0.12
+      },
+      "request": {
+        "path": "/a",
+        "name": "integration"
+      },
+      "headers": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  }
+]

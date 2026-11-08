@@ -42,10 +42,16 @@ def bind_server(address, handler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("workspace", type=Path)
+    parser.add_argument("--api-port", type=int)
+    parser.add_argument("--notification-port", type=int)
     args = parser.parse_args()
     workspace = args.workspace.resolve()
     rules = json.loads(Path(__file__).with_name("comparison.json").read_text())
     settings = rules["server"]
+    if args.api_port is not None:
+        settings["api_port"] = args.api_port
+    if args.notification_port is not None:
+        settings["notification_port"] = args.notification_port
     counts = Counter()
     lock = threading.Lock()
 
@@ -118,6 +124,8 @@ def main():
         with bind_server(("127.0.0.1", settings["notification_port"]), Webhook) as webhook:
             for server in (api, webhook):
                 threading.Thread(target=server.serve_forever, daemon=True).start()
+            if args.api_port is not None or args.notification_port is not None:
+                (workspace / "receiver.ports").write_text(f"{api.server_address[1]}\n{webhook.server_address[1]}\n")
             (workspace / "receiver.ready").touch()
             for line in sys.stdin:
                 workspace = Path(line.strip()).resolve()
