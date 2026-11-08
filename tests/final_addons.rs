@@ -20,6 +20,43 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 #[test]
+fn report_numbers_use_python_repr_without_rounding_big_integers() {
+    let mut report = report();
+    report.trials[0].json = Some(
+        serde_json::from_str(
+            r#"{"values":[1.5e-7,1e+2,0.00001,1.10,-0.0,18446744073709551617],"nested":{"x":1E2}}"#,
+        )
+        .unwrap(),
+    );
+    let expected: Value = serde_json::from_str(
+        r#"{"values":[1.5e-07,100.0,1e-05,1.1,-0.0,18446744073709551617],"nested":{"x":100.0}}"#,
+    )
+    .unwrap();
+    let input = report.trials[0].json.clone();
+    for indent in [None, Some(-1), Some(0), Some(2), Some(4)] {
+        let rendered = final_addons::json::Config {
+            sysout: false,
+            indent,
+        }
+        .render(&report)
+        .unwrap();
+        let parsed: Value = serde_json::from_str(&rendered).unwrap();
+        assert_eq!(parsed["trials"][0]["json"], expected);
+        assert!(rendered.contains("1.5e-07"));
+        assert!(rendered.contains("1e-05"));
+    }
+    let mut bytes = Vec::new();
+    report
+        .summary
+        .output
+        .write_report(&mut bytes, &report)
+        .unwrap();
+    let parsed: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(parsed["trials"][0]["json"], expected);
+    assert_eq!(report.trials[0].json, input);
+}
+
+#[test]
 fn python_final_fixtures() {
     let cases: Vec<Value> =
         serde_json::from_str(include_str!("../compat/fixtures/final-addons.json")).unwrap();

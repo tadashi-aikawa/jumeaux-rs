@@ -183,44 +183,5 @@ impl OutputSummary {
 
 /// OwlMixinのsort_keysとseparators。indent <= 0は改行だけを入れる。
 pub fn json_text(value: &serde_json::Value, indent: Option<i64>) -> Result<String> {
-    let mut value = value.clone();
-    sort_keys(&mut value);
-    let mut bytes = Vec::new();
-    if let Some(indent) = indent {
-        let spaces = vec![b' '; indent.max(0) as usize];
-        let formatter = serde_json::ser::PrettyFormatter::with_indent(&spaces);
-        serde::Serialize::serialize(
-            &value,
-            &mut serde_json::Serializer::with_formatter(&mut bytes, formatter),
-        )
-    } else {
-        serde::Serialize::serialize(
-            &value,
-            &mut serde_json::Serializer::with_formatter(&mut bytes, PythonFormatter),
-        )
-    }
-    .map_err(|e| Error::new("SerializeError", e.to_string()))?;
-    Ok(String::from_utf8(bytes).expect("JSON is UTF-8"))
-}
-struct PythonFormatter;
-impl serde_json::ser::Formatter for PythonFormatter {
-    fn begin_object_value<W: ?Sized + Write>(&mut self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(b": ")
-    }
-}
-fn sort_keys(value: &mut serde_json::Value) {
-    match value {
-        serde_json::Value::Object(map) => {
-            map.sort_keys();
-            for value in map.values_mut() {
-                sort_keys(value);
-            }
-        }
-        serde_json::Value::Array(list) => {
-            for value in list {
-                sort_keys(value);
-            }
-        }
-        _ => (),
-    }
+    crate::compat::json::dumps(value, indent.map(|n| n.max(0) as usize), true)
 }
