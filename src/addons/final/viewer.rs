@@ -5,7 +5,7 @@ pub struct Config {}
 
 pub const HTML: &[u8] = include_bytes!("../../../assets/viewer/index.html");
 
-pub fn save(root: &std::path::Path, logs: &mut Vec<super::Log>) -> crate::compat::Result<()> {
+pub fn save(root: &std::path::Path, logs: &mut impl super::LogSink) -> crate::compat::Result<()> {
     use crate::notification::Verbosity;
     let path = root.join("index.html");
     std::fs::write(&path, HTML).map_err(|e| super::io_error(&path, e))?;
