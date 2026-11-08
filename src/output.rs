@@ -174,17 +174,33 @@ impl OutputSummary {
         output.flush()
     }
     pub fn write_report<W: Write>(&self, writer: W, report: &Report) -> Result<()> {
-        let mut value = serde_json::to_value(report)
+        let value = serde_json::to_value(report)
             .map_err(|e| Error::new("SerializeError", e.to_string()))?;
-        // OwlMixinのsort_keys=Trueに合わせる。nullの除外はモデル側で行う。
-        sort_keys(&mut value);
-        let mut bytes = Vec::new();
-        let mut serializer = serde_json::Serializer::with_formatter(&mut bytes, PythonFormatter);
-        serde::Serialize::serialize(&value, &mut serializer)
-            .map_err(|e| Error::new("SerializeError", e.to_string()))?;
-        let text = String::from_utf8(bytes).expect("JSON is UTF-8");
+        let text = json_text(&value, None)?;
         self.write_summary(writer, &text)
     }
+}
+
+/// OwlMixinのsort_keysとseparators。indent <= 0は改行だけを入れる。
+pub fn json_text(value: &serde_json::Value, indent: Option<i64>) -> Result<String> {
+    let mut value = value.clone();
+    sort_keys(&mut value);
+    let mut bytes = Vec::new();
+    if let Some(indent) = indent {
+        let spaces = vec![b' '; indent.max(0) as usize];
+        let formatter = serde_json::ser::PrettyFormatter::with_indent(&spaces);
+        serde::Serialize::serialize(
+            &value,
+            &mut serde_json::Serializer::with_formatter(&mut bytes, formatter),
+        )
+    } else {
+        serde::Serialize::serialize(
+            &value,
+            &mut serde_json::Serializer::with_formatter(&mut bytes, PythonFormatter),
+        )
+    }
+    .map_err(|e| Error::new("SerializeError", e.to_string()))?;
+    Ok(String::from_utf8(bytes).expect("JSON is UTF-8"))
 }
 struct PythonFormatter;
 impl serde_json::ser::Formatter for PythonFormatter {

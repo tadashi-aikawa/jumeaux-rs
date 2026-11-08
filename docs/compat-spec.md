@@ -348,7 +348,7 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - 保存: `summary.comparison: {judge_response_header, ignore_response_header_keys}` を追加する。
   - 旧report: comparisonがなければ `false` と `["Content-Length", "Date"]` を補い、警告を返す。
   - モデル: comparisonは省略可能とし、旧reportの単純な読込・再出力では追加しない。retry用Config生成時に補完する。
-  - 接続: `executor::Execution.comparison`に`Config::comparison()`の結果を返す。後続のReport組み立てで`summary.comparison`へ保存する。
+  - 接続: `executor::Execution.comparison`に`Config::comparison()`の結果を返し、`report::create_report`で`summary.comparison`へ保存する。
 - 差分パスの値取得でキーに `root` やブラケットなどを含む場合の不具合を直す。
   - 検証: キーとindexの構造を辿った値を期待値にする。
   - 生成: キー内部の `[`・`]` を置換しない。引用符・バックスラッシュ・制御文字はエスケープし、生成したパスから元のキーを参照できるようにする。
@@ -1341,6 +1341,18 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。通知列とlogsの完全一致を成功時・エラー時の両方で確認する。
   - 追加fixture: `compat/fixtures/challenge-review.json`の15件はPythonと一致する。保存先作成6件とログ9件を比較する。ログの実測時間だけを0.0秒へ正規化する。
   - 追加検証: 並行数と順序、Cookie共有・分離の既定、failureのスキップ、例外時の新規投入停止・実行中trial完了待ち・latest維持、空のkeyディレクトリ再使用と既存サブディレクトリ拒否、リンク張り替え、実行時刻、実sleepをRustテストで固定する。
+
+## Report集計の実装
+
+- `report::create_report`はExecutionからstatus・time・concurrency・comparisonを集計する。
+  - 時刻: started_atとended_atをタイムゾーン付きISO日時へ変換する。小数部は0なら省略し、それ以外はマイクロ秒6桁。
+  - elapsed_sec: Pythonのtimedelta.secondsと同じく日数と小数秒を除く。
+  - 写し: endpoint・output・tags・notifiers・addons・retry_hashを保持する。title未指定はNo title。
+- `MergedArgs::args_str`でPythonのMergedArgs.to_jsonに相当する引数文字列を生成する。
+  - 省略: 未指定と空文字を省略し、0と空配列は残す。キーをソートし、区切りを`(',', ': ')`にする。
+  - key: 既存の`executor::hash_from_args`へ渡す。時刻固定のhash fixture8件を維持する。
+- `report::template_value`はfinal通知用にモデルの未指定フィールドをnullで公開する。
+  - 保持: Trialのjson・formとAddon.config内のnullは保存用Reportと異なり削除しない。
 
 ## 未決
 

@@ -88,6 +88,21 @@ impl Default for HeaderJudgementSettings {
     }
 }
 impl MergedArgs {
+    /// Python MergedArgs.to_json(): 未指定と空文字を省略し、キーをソートする。
+    pub fn args_str(&self) -> Result<String> {
+        let mut value = serde_json::json!({
+            "files": self.files,
+            "title": self.title.as_ref().filter(|s| !s.is_empty()),
+            "description": self.description.as_ref().filter(|s| !s.is_empty()),
+            "tag": self.tag,
+            "threads": self.threads,
+            "processes": self.processes,
+            "max_retries": self.max_retries,
+        });
+        value.as_object_mut().unwrap().retain(|_, v| !v.is_null());
+        crate::output::json_text(&value, None)
+    }
+
     pub fn from_cli(args: &ReportArgs) -> Self {
         Self {
             title: args.title.clone(),
