@@ -101,7 +101,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - YAML: アンカーとマージキーはconfigと同じ展開処理を再利用する。
   - 非有限数: `.inf`・`-.inf`・`.nan`は入れ子を含めてValueErrorにする。JSONで表現できない数値をnullへ変換してキーごと省略しない。引用符で囲んだ文字列は保持する。
   - 整数: i64・u64の範囲を超えても、i128・u128で読める値はarbitrary_precisionのJSON numberとして桁を落とさず保持する。
-  - 独自タグ: `!foo x`などのローカルタグはConstructorErrorにする。標準タグの解釈差は「許容した差異」に記載する。
+  - 独自タグ: 値に付けた`!foo x`などのローカルタグはConstructorErrorにする。キーに付けた独自タグと標準タグの解釈差は「許容した差異」に記載する。
 - reqs2reqsは設定順に実行する。filter・replace・renameのwhenはRequest.to_dict相当をルートへ渡す。
   - 検査: 条件式の前にRequestをCheckedContextへ変換する。json・form内の非有限数や、f64変換で非有限になる巨大整数はValueErrorにする。addで追加したRequestも後続条件式で同じ検査を通す。
   - 条件: 未設定のnameなどは未定義値になる。テンプレート描画後のliteral_eval相当の値をtruthinessで判定する。
@@ -242,7 +242,10 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
   - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
   - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
-  - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。Rustは`any`・`flat_map`・`map`をまだ実装していない。
+  - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。
+  - Rustの残件: `any`・`flat_map`・`map`は後続タスクで実装する。
+    - 決定: 2026-11-08。
+    - 現状: 実装までは式から呼ぶとエラーになる。
   - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
   - whenの入口: TemplateInputは検査済みの`CheckedContext`とその参照だけに実装する。生のserde_json::Value・MiniJinja Valueをwhenへ直接渡すとコンパイルエラーになる。
   - 構築: JSONは`values::from_json_for_when`、MiniJinja値は`values::checked_context`で一度検査する。検査済みの値の結合には`CheckedContext::from_pairs`を使い、各whenでは再検査しない。renderは別のRenderInputで従来の表示互換を保つ。
@@ -398,12 +401,19 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 | `.inf`・`-.Inf`・`.nan` | 非有限float | ValueError |
 
 - YAML入力では次の寛容さ・キー解釈の差を許容する。
+  - 独自タグ: 値に付けたタグはRustもConstructorErrorにする。
 
 | 入力例 | Python版 | Rust版 |
 | --- | --- | --- |
 | `path: !!python/str a` | ConstructorError | 文字列`a`を受理 |
 | `qs: {a: [010]}` | InvalidTypeError | 文字列`010`として受理 |
 | `headers: {on: x}` | キー`true`に変換 | キー`on`を保持 |
+| `json: {!foo k: v}` | ConstructorError | `json`本文を`{"k": "v"}`として受理 |
+
+- YAML入力のi128・u128の範囲を超える整数は、Rustではf64へ丸める。
+  - 例: `-170141183460469231731687303715884105729`、`2^128`。
+  - Python版: 正確な整数として保持する。
+  - 理由: serde_yaml_ngがこの範囲の整数をf64として渡す。
 
 - 通知blocksの`[NaN]`はRustではJSONDecodeErrorにする。
   - Python版: json.loadsがNaNを受理する。応答変換と同様、RustはJSONで表現できない値を受理しない。
