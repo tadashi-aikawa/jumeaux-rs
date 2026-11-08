@@ -234,6 +234,21 @@ class ComparisonTests(unittest.TestCase):
             path.write_bytes(path.read_bytes().replace(b"[final/viewer] Create", b"[final/viewer] Wrong"))
         self.mutated_case("verbose_3", mutate)
 
+    def test_webhook_transport_exclusion_has_exact_destination_and_method(self):
+        excluded = b'Starting new HTTP connection (1): localhost:8001\nhttp://localhost:8001 "POST /webhook HTTP/1.1" 200 2\n'
+        for stream in ("run.stderr", "retry.stderr"):
+            self.assertEqual(text(excluded, [], RULES, stream), "")
+            for value in (
+                b'http://localhost:8001 "GET /webhook HTTP/1.1" 200 2\n',
+                b'http://localhost:8001 "POST /other HTTP/1.1" 200 2\n',
+                b'http://localhost:8002 "POST /webhook HTTP/1.1" 200 2\n',
+                b'Notify using slack@v2\n',
+                b'[final/notify] Notify by hook. (notify.when => None)\n',
+            ):
+                self.assertEqual(text(value, [], RULES, stream), value.decode())
+        for stream in ("run.stdout", "retry.stdout", "cli.stderr"):
+            self.assertEqual(text(excluded, [], RULES, stream), excluded.decode())
+
     def test_template_list_order_is_ignored(self):
         for case in ("init_no_args", "init_invalid"):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:

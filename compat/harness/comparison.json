@@ -25,6 +25,10 @@
     "streams": ["run.stderr"],
     "patterns": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$"]
   },
+  "excluded_notification_transport_lines": {
+    "streams": ["run.stderr", "retry.stderr"],
+    "patterns": ["^Starting new HTTP connection \\(\\d+\\): localhost:8001$", "^http://localhost:8001 \\\"POST /webhook HTTP/1\\.1\\\" \\d+ \\d+$"]
+  },
   "unordered_text_blocks": [
     {"streams": ["cli.stderr"], "start": "✨ [Valid names] ✨", "line_pattern": "[a-z][a-z0-9_]*"}
   ],

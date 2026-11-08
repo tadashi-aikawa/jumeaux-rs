@@ -66,7 +66,8 @@ uv run --project compat/harness python compat/harness/run.py
 
 - Rust CLIの受入結果は35/35一致。
   - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
-  - 自己検証: 比較規則のmutationテストを含む40テストが成功する。`⏰`行の小数4桁以上を正規化しないことも検証する。
+  - 自己検証: 比較規則のmutationテストを含む41テストが成功する。`⏰`行の精度と、通知用transport行だけを除外することも検証する。
+  - 通知verbose: urllib3のローカルWebhook接続・POST行はrun/retry.stderrだけで除外する。通知のアプリログ・payload・送信回数は比較する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
 
@@ -98,7 +99,7 @@ cargo test --test challenge_e2e -- --ignored --nocapture
   - processes: 公開APIの既定値PerTrialで検証する。threadsではCookieを共有し、processesではtrialごとに分離する。
 - verbose_2の33行・verbose_3の45行に必要なデータとレベルを構造化イベントで検証する。
   - 比較: trial開始からDid challengeまでのアプリ側の行。計測時間・動的port・User-Agentのversionだけを正規化する。
-  - ストリーミング: `exec_with_progress`の通知がHTTP前・sleep中に届くことと、成功・失敗時のlogsに同じ順で保持されることを検証する。
+  - ストリーミング: `exec_with_progress`の通知がHTTP前・sleep中に届き、成功・失敗時ともlogsへ重複保持しないことを検証する。コールバックのない`exec`のログ保持は維持する。
 - Python基準の.venvが必要なE2Eだけ通常のcargo testではignoredとする。
   - 実行: 上記の`--ignored`付きコマンドで明示的に動かす。
 

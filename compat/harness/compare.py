@@ -104,9 +104,9 @@ def text(data, report_list, rules, stream=None):
     for rule in rules["text_rules"]:
         value = re.sub(rule["pattern"], rule["replacement"], value)
     lines = value.splitlines(keepends=True)
-    excluded = rules["excluded_transport_lines"]
-    if stream in excluded["streams"]:
-        lines = [line for line in lines if not any(re.fullmatch(pattern, line.rstrip("\n")) for pattern in excluded["patterns"])]
+    for excluded in (rules["excluded_transport_lines"], rules["excluded_notification_transport_lines"]):
+        if stream in excluded["streams"]:
+            lines = [line for line in lines if not any(re.fullmatch(pattern, line.rstrip("\n")) for pattern in excluded["patterns"])]
     for block in rules["unordered_text_blocks"]:
         if stream not in block["streams"]:
             continue

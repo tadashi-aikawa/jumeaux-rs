@@ -294,6 +294,9 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - urllib3がrunのstderrへ出す接続・応答ログは比較から外す。
   - 対象: `Starting new HTTP connection` と `http://... "GET ..." 200 ...` 形式の行。具体的なパターンは `excluded_transport_lines` に列挙する。
   - 理由: HTTPライブラリ固有の出力であり、Rust版に同じ行を要求しない。API記録の比較は維持する。
+- 通知用urllib3の接続・POSTログもRustでは出力せず、run・retryのstderr比較から外す。
+  - 対象: ローカル受信先`localhost:8001`への接続行と`POST /webhook HTTP/1.1`の応答行だけ。`excluded_notification_transport_lines`へ明記する。
+  - 維持: 通知payload・送信回数・HTTP結果とアプリ側の通知ログは比較する。別port・別path・GET・stdout・cli.stderrへは除外を適用しない。
 - User-Agentログの `jumeaux/[0-9.]+` は `jumeaux/<version>` へ正規化する。
   - 扱い: 製品版番号の差としてversionの比較除外に含める。
 - 作業ディレクトリ全体のツリーとファイルを比較する。
@@ -1285,10 +1288,10 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 表示材料: `Progress::summary()`で既定・-vの結果行に必要なTrialProgressを取り出せる。正常応答は`name.unwrap_or(path)`、通信失敗の名前なしは`None`と表示する。
   - レベル: Normalは既定、Verboseは-v、VeryVerboseは-vv、Debugは-vvvに対応する。Warning・Errorはverbosityによらず表示できる。
 - `exec_with_progress`はイベントをコールバックへ実行中に通知する。
-  - 順序: コールバックの呼び出しを直列化し、成功時のExecution.logsと失敗時のFailure.logsにも同じイベント列を保持する。
+  - 順序: コールバックの呼び出しを直列化する。通知済みイベントを複製・蓄積せず、成功時のExecution.logsと失敗時のFailure.logsは空にする。
   - コールバック: worker上で呼ぶため、短時間で戻りpanicしないこと。channelへ送ってCLI側で処理してもよい。
   - 停止: 保存・後続アドオンが失敗しても、実行中trialの完了までイベントを通知し続ける。
-  - 互換入口: `exec`は通知先を省略した入口。単体のchallenge・finishも直接出力しない。
+  - 互換入口: `exec`は通知先を省略した入口で、従来どおり成功・失敗のlogsへイベントを保持する。単体のchallenge・finishも直接出力しない。
   - 責務: 起動見出し・prepare・finalの出力は各呼出側に残す。urllib3の接続・応答ログは既存の比較除外に従う。
 - 実行時刻はタイムゾーン付きの`started_at`と`ended_at`に保持する。
   - start: 保存ディレクトリ作成後・trial開始前。
@@ -1339,7 +1342,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 内容: store_criterion 24件、dump 41件、tag 9件、sleep 5件、prop 7件、key 8件、ファイル名4件、HTTP以降の統合6件。
   - ローカルHTTP: 既存22ケースとverbose_2・verbose_3を合わせた24ケースのTrial 47件と本文・prop 102ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
   - verbose: verbose_2の33行・verbose_3の45行に必要な値とレベルをイベントから復元して比較する。計測時間・動的port・User-Agentのversionを正規化する。実際のCLI書式はCLI統合時に比較する。
-  - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。通知列とlogsの完全一致を成功時・エラー時の両方で確認する。
+  - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。成功・エラー時とも通知が欠落せず、戻り値のlogsへ重複保持しないことを確認する。
   - 追加fixture: `compat/fixtures/challenge-review.json`の15件はPythonと一致する。保存先作成6件とログ9件を比較する。ログの実測時間だけを0.0秒へ正規化する。
   - 追加検証: 並行数と順序、Cookie共有・分離の既定、failureのスキップ、例外時の新規投入停止・実行中trial完了待ち・latest維持、空のkeyディレクトリ再使用と既存サブディレクトリ拒否、リンク張り替え、実行時刻、実sleepをRustテストで固定する。
 
@@ -1357,15 +1360,17 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## finalの実装境界
 
-- `addons::final::Pipeline`はsummary・json・csv・viewer・notifyを設定順に実行する。
-  - 出力: stdoutは呼出元が渡すcallback、ログはExecution.logs・Failure.logsへ返す。ライブラリはstderrへ直接書かない。
-  - 停止: I/O・テンプレート・通信例外はログを保持して返す。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
+- `addons::final::Pipeline`はsummary・json・csv・viewer・notify・miroirを設定順に実行する。
+  - 出力: stdoutは呼出元が渡すcallback。`exec`はExecution.logs・Failure.logsへログを保持し、`exec_with_log`は発生時のcallbackへ通知する。ライブラリはstderrへ直接書かない。
+  - CLI: `exec_with_log`を使用する。notify・miroirの通信待ちより前に開始ログを表示し、後続のstdoutやアドオンのログとの順序を維持する。通知済みログの再出力・重複保持はしない。
+  - 停止: I/O・テンプレート・通信例外でも停止前のログを保持または通知する。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
 - summaryとjsonはsysout=trueならstdoutだけに出し、末尾に改行を1つ追加する。
   - ファイル: sysout=falseなら結果ディレクトリのsummary.txt・report.jsonへoutput.encodingで保存する。
 - csvは任意のoutput_pathへUTF-8・LFで保存する。
   - 根拠: Pythonのto_csvfはoutput.encodingを渡さず、既定のutf8を使う。未知カラムは空欄、追加のTrialフィールドは無視する。
 - viewerはPython基準のHTMLをそのまま同梱する。
   - 順序: 実行時にreport.jsonがなければPythonと同じ2警告を返す。後続のjsonより前でもコピーする。
+  - パス: 結果パスはPythonと同じ文字列連結を使う。response_dir末尾の`/`を削らず、`responses//<key>/index.html`のようなログ表示を保持する。miroirのPutログも同じ扱いとする。
 - notifyは全whenを先に評価し、選ばれた通知を順に送る。
   - 条件: CheckedContextを使う。メッセージとwhenはPipeline生成時にコンパイルする。
   - HTTPエラー: 残りの選択済み通知も送ってからエラーを返す。通信例外はその時点で停止する。
@@ -1384,6 +1389,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 書式: 起動AA、config AA、ヘッダ、結果行、入力変換・アドオンのログ、WARNING・ERROR・DEBUGのANSI色をPython基準と比較する。
   - config: 数値をJSON Numberの文字列表現からYAMLへ書き、arbitrary_precisionの内部mapを露出させない。複数行文字列はJSONの引用符付き表現で有効なYAMLにする。
   - 文字列: PyYAMLのYAML 1.1 resolverに従い、bool・null・日付・数値として解決される文字列をクォートする。`yes`・`NO`・`2001-01-01`は引用し、`1e3`は引用しない。構文上必要なクォートも維持する。
+  - 通知設定: `#`から始まるチャンネル名は引用し、コメントとして解釈させない。長いplain・single-quoted文字列はPyYAMLと同じ幅80の規則で折り返す。
   - 時間: `⏰`行はマイクロ秒未満を切り捨て、ミリ秒をfloat表記で出す。`0.057ms`・`0.0ms`のように小数1〜3桁を持つ。ハーネスもこの精度だけを正規化する。
   - 再試行: HTTP転送層が再試行ごとに`HttpEvent::Retrying`を通知し、CLIでurllib3の`Retrying (Retry(total=...)) after connection broken by ...`へ整形する。verbosityにかかわらず出し、urllib3と同じく色・WARNING接頭辞は付けない。
   - 接続拒否: `NewConnectionError`の接続先・errno・理由・パス・クエリを維持する。既定3回では両側から計6行を出し、残り回数は各側2・1・0。`max_retries=0`では出さない。
@@ -1403,6 +1409,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - RustはPython固有のtracebackを出力しない。
   - 表示: エラー種別・理由・設定パスをCLIのERROR行で示す。empty_guardの通知エラーはPythonと同じ理由本文を出す。
   - 範囲: Pythonソースの絶対パス、行番号、スタックフレームの一致は要求しない。設定エラーの終了コード1と成果物を生成しない契約は維持する。
+  - ヘッダ: 不正なヘッダ名は`InvalidHeader`の理由末尾へ`in header name: <Python repr>`として含める。改行などはエスケープし、ヘッダ値は表示しない。
 - 製品CLIの比較ハーネスは35/35ケースで一致する。
   - 対象: 16テンプレートと追加19ケース。report・保存bytes・stdout・stderr・終了コード・API記録・通知を比較する。
   - 比較規則の補完: Rustのsummary.comparisonは除外せず、comparison.jsonのケース別期待値と厳密比較する。欠落・設定値の改変をmutationテストで拒否する。
