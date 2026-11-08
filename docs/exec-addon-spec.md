@@ -4,7 +4,8 @@
 
 - 推奨: 9レイヤー共通の `name: exec` を追加し、1呼び出しにつき1プロセスを起動する。
 - 推奨: `res2res/json` は名前を維持し、`transformer` の中身を外部コマンド設定へ置き換える。
-- 対象: macOS・Linux。Windowsは非対応。
+- 配布対象: macOS・Linux。
+  - 未決: Windowsでの動作も仕様上の対象外とするかは論点6で決める。本案は対象外を推奨する。
 - 対象外: Pythonモジュールの動的ロード、常駐プロセス、実装コードの追加。
 
 ## 基準と現状
@@ -53,6 +54,7 @@ addons:
           LANG: C.UTF-8
           UNUSED_TOKEN: null
         max_stdout_bytes: 67108864
+        max_stderr_bytes: 65536
         options:
           path: /hogehoge
 ```
@@ -67,7 +69,8 @@ addons:
 | `inherit_env` | bool、true | 起動時の親環境を子へ継承するか |
 | `env` | 文字列→文字列またはnullの辞書、`{}` | 継承後に上書き。nullは削除。変数名の空文字・`=`・NULと値のNULを拒否 |
 | `max_stdout_bytes` | 正の整数、67108864 | stdoutの上限64 MiB。超過で停止。JSON解析前のUTF-8 bytesで数える |
-| `options` | JSONオブジェクト、`{}` | アドオン固有の設定。stdinの `config` に渡す |
+| `max_stderr_bytes` | 0以上の整数、65536 | エラー診断用に保持するstderr末尾の最大bytes。0は保持なし。表示量は制限しない |
+| `options` | JSONオブジェクト、`{}` | アドオン固有の設定。stdinの `options` に渡す |
 
 - 既定値を持つキーへの明示的nullは既定値として扱う。
   - 例外: `env` 内のnullは環境変数の削除を表す。
@@ -75,9 +78,13 @@ addons:
   - 例外: `options` のキーと値の意味は外部コマンドが検証する。
 - `include`、タグ除外、設定マージ、配列順は既存の規則に従う。
   - 条件: 最終的に有効な設定だけを検証する。log2reqsは既存どおりタグ除外しない。
-- プロセスを起動しない事前検証を、入力読み込み・HTTP送信・成果物作成より前に完了する。
+- retryでは、後述の `--allow-exec` 判定を子プロセスの起動より前に完了する。
+  - 対象: `mode: "validate"` による検証もコマンド実行に含む。
+- ホスト側の事前検証を、入力読み込み・HTTP送信・成果物作成より前に完了する。
   - 対象: 設定型、cwd、実行ファイルの解決、実行可能性、JSON変換のwhen構文。
-  - 制限: `python3 script.py` のscriptの存在や動作までは検証しない。
+  - 制限: この段階は子プロセスを起動せず、scriptやoptionsの意味までは検証しない。
+- ホスト側の検証後、各外部コマンドをvalidateモードで1回起動する案を推奨する。
+  - 未決: 導入の採否は論点5。以降のvalidate契約は採用した場合の仕様。
 
 ### Python指定との対応
 
@@ -102,8 +109,13 @@ stdinにはUTF-8のJSON文書を1つ送り、直後にEOFを送る。BOMは付�
   "protocol_version": 1,
   "layer": "log2reqs",
   "mode": "payload",
-  "config": {},
-  "context": {"invocation_cwd": "/work/project"},
+  "options": {},
+  "context": {
+    "invocation_cwd": "/work/project",
+    "verbosity": 0,
+    "trial_seq": null,
+    "side": null
+  },
   "payload": {"file": "requests"},
   "reference": null
 }
@@ -112,21 +124,47 @@ stdinにはUTF-8のJSON文書を1つ送り、直後にEOFを送る。BOMは付�
 上はlog2reqsの完全な入力例。対応するstdoutは、たとえば `[{"path":"/hello"}]` となる。
 
 - `protocol_version` は整数1。外部コマンドは未対応版を非0終了で拒否する。
-- `mode` は汎用execで `payload`、JSON変換で `json_transformer`。
-- `config` は `options` の内容。実行制御用のcommand・envなどは混ぜない。
+- `mode` は汎用execで `payload`、JSON変換で `json_transformer`、起動前検証で `validate`。
+- `options` は設定の `config.options` または `transformer.options` の内容。実行制御用のcommand・envなどは混ぜない。
 - `context.invocation_cwd` はJumeaux起動時の絶対パス。
   - 用途: payload内の相対ファイルパスを子のcwdと独立に解決する。
+- `context.verbosity` はCLIで指定された `-v` の段数を表す0以上の整数。
+  - 用途: コマンド自身が診断ログの詳しさを選ぶ。親はstderrをverbosityによって省略しない。
+- `context.trial_seq` は1始まりのtrial番号。log2reqs・reqs2reqs・final・validateではnull。
+- `context.side` はres2res・res2dict・dumpの実処理で `"one"` または `"other"`。両側を扱うレイヤーとvalidateではnull。
 - stdoutは戻り値そのものをJSON文書1つで返す。
-  - 形式: 通常はpayloadオブジェクト。log2reqsとJSON変換だけは後述の例外。
+  - 形式: 通常はpayloadオブジェクト。log2reqs・JSON変換・validateは後述の専用形式。
   - 許可: 前後のJSON空白と末尾改行。
   - 拒否: 空出力、BOM、不正UTF-8、複数文書、JSON前後のログ、NaN・Infinity、重複キー。
 - stdoutのJSONと終了コード0の両方が揃った場合だけ、結果をチェーンへ適用する。
 - stderrは診断・表出力用。Jumeauxのstdoutには転送しない。
-  - 表示: UTF-8として親のstderrへ出す。不正UTF-8は置換する。
+  - 表示: 行ごとに親のstderrへ流す。全レイヤーで表示量に上限を設けず、不正UTF-8だけを置換する。
   - 識別: レイヤー・設定インデックス・trial番号・one/otherを、存在する範囲で各行へ付ける。
-  - 上限: 1呼び出しにつき先頭64 KiBを表示・保持する。超過を1回通知し、残りも読み捨ててパイプを詰まらせない。
+  - 保持: エラー診断用に末尾 `max_stderr_bytes` だけをリングバッファへ残す。既定は64 KiB。上限超過はエラーにしない。
+  - 単位: 保持上限は子から受け取った生bytesで数える。診断時にUTF-8として復元し、先頭が文字の途中なら置換する。
+  - 長い行: 改行前のバッファも8 KiBごとに流す。継続部分へ識別情報を重複挿入せず、本文を切り捨てない。EOF時に未改行の末尾も流す。
+  - エラー: 保持した末尾をエラー詳細へ添える。全量表示済みの部分と重複し得ることを明示する。
 - 入出力と終了待ちは同時に進める。
   - 理由: 子がstdinを読み終える前に大量出力してもデッドロックさせない。
+
+### validateによる起動前検証
+
+論点5で導入する場合、実効設定の各execと各json transformerを、設定エントリーごとに1回呼ぶ。
+
+- 順序: retryの許可判定、全設定のホスト側検証、validate、入力読み込み、HTTP実行の順。
+- 対象: タグ除外・マージ後の設定。commandが同じでもoptionsが異なり得るため重複排除しない。
+  - 条件: whenがfalseになるtransformerも検証する。retryで実処理を呼ばないlog2reqsも実効設定に残る場合は検証する。
+- 入力: 共通のenvelopeで `mode: "validate"`、`payload: null`、`reference: null`。layer・options・contextは通常どおり。
+  - context: trial_seq・sideはnull。verbosityとinvocation_cwdは実処理と同じ。
+- 成功: stdoutへ `{"valid":true}` だけを返し、終了コード0で終了する。
+  - 適用: 検証結果だけを受理し、payloadチェーンやReportを更新しない。
+- 失敗: optionsの必須キー・型・値の誤りをstderrへ出し、非0で終了する。
+  - プロトコル違反: 空stdout、valid=false、未知キー、型違い、未対応modeも全体停止。
+- 制限: 同じcwd・env・timeout・出力制限を使う。検証プロセスの状態は実処理へ持ち越さない。
+- 副作用: コマンド作者は検証でHTTP送信や成果物作成を行わない。
+  - 限界: ホストは検証コードの副作用を隔離できない。validateも任意コードの実行であり、信頼確認の代用にはならない。
+- 本処理でもoptionsを検証する。
+  - 理由: validate後にファイルや環境の状態が変わる可能性がある。
 
 ### モデルのJSON表現
 
@@ -160,7 +198,7 @@ PythonのPayload・Referenceのフィールド名と入れ子構造を維持す�
 
 | モデル | フィールド |
 | --- | --- |
-| Request | `name: string?`, `method: HttpMethod`, `path: string`, `qs: map<string,string[]>`, `raw: string?`, `form: JSON?`, `json: JSON?`, `headers: map<string,string>`, `url_encoding: string` |
+| Request | `name: string?`, `method: HttpMethod`, `path: string`, `qs: map<string,string[]>`, `raw: string?`, `form: object?`, `json: object?`, `headers: map<string,string>`, `url_encoding: string` |
 | Response | `body: Base64`, `encoding: string?`, `headers: map<string,string>`, `url: string`, `status_code: integer`, `elapsed: number`, `elapsed_sec: number`, `type: string` |
 | DiffKeys | `added: string[]`, `changed: string[]`, `removed: string[]` |
 | OutputSummary | `response_dir: string`, `encoding: string`, `logger: null` |
@@ -170,6 +208,8 @@ PythonのPayload・Referenceのフィールド名と入れ子構造を維持す�
 | Summary | `one`, `other`, `status`, `tags`, `time`, `concurrency`, `output`, `default_encoding`。Rustの既存拡張 `comparison` も維持 |
 
 Trial以下の型とenum値は [models.rs](../src/models.rs) および [report_fields.rs](../src/models/report_fields.rs) の既存外部IFに従う。送信時のnull保持だけは前述のプロトコル規則を優先する。
+
+Request・Trialのformとjsonはルートがobjectまたはnullに限る。object内部の値には配列・scalar・nullを許可する。
 
 Base64を選ぶ。
 
@@ -203,9 +243,9 @@ Base64を選ぶ。
   - 空入力: 戻り値 `[]` は成功。stdoutの空文字やnullとは区別する。
 - reqs2reqsは全ファイルの連結後、各設定を1回ずつ実行する。
   - reference: `one`、`other`、`output`、`threads`、`processes`、`max_retries`、`title`、`description`、`tags`、`input_files`、`notifiers`、`addons`、`judge_response_header`、`ignore_response_header_keys` を持つ実効Config。
-  - 意味: Pythonの第2引数configを `reference` として公開する。外部コマンド固有の設定はトップレベル `config`。
+  - 意味: Pythonの第2引数configを `reference` として公開する。外部コマンド固有の設定はトップレベル `options`。
 - retryは既存どおりreportからRequestを復元する。
-  - 回数: log2reqsは0回、reqs2reqsは各設定1回。
+  - 実処理の回数: log2reqsは0回、reqs2reqsは各設定1回。validateを採用した場合の事前検証は別に数える。
 
 ### res2res・res2dict・dump
 
@@ -281,7 +321,7 @@ transformerは汎用execと同じ実行設定キーを持つ。`module` と `fun
 2. 子へ次の入力を渡す。
    - `layer: "res2res"`、`mode: "json_transformer"`。
    - `payload: {"body": Base64, "encoding": stringまたはnull}`。
-   - `reference: null`。共通のprotocol_version・config・contextも渡す。
+   - `reference: null`。共通のprotocol_version・options・contextも渡す。
 3. stdoutからJSON文字列を受け取る。
    - 対応: Pythonの `(bytes, encoding) -> str` のstrをJSON文字列としてエスケープしたもの。
    - 例: 変換後本文が `{"wrap":1}` ならstdoutは `"{\"wrap\":1}"`。
@@ -330,6 +370,31 @@ transformerは汎用execと同じ実行設定キーを持つ。`module` と `fun
   - 成果物: 作成済みファイルや外部コマンドの副作用はロールバックしない。正常完了のReport作成とfinalへは進まない。
 - finalで失敗した場合、後続finalを実行しない。
   - 成果物: 先行finalが作ったreportや通知は残る。latestの更新済み状態も巻き戻さない。
+- 親がSIGINTまたはSIGTERMを受けたら、新しいtrialと外部コマンドの起動を止める。
+  - 終了: validate・finalを含む全ての所有プロセスグループへTERMを送り、1秒後に残っていればKILLを送る。直接の子を回収する。
+  - 区別: 通常のtrialエラーで実行中trialを待つ規則より、ユーザーによる中断を優先する。
+  - 結果: 子の結果を適用せず、後続finalも実行しない。SIGINTは終了コード130、SIGTERMは143で終了する。
+  - 制限: 親へのSIGKILLやOS停止、プロセスグループを離脱した子孫の回収は保証しない。
+
+### retryの外部コマンド実行許可
+
+論点4の推奨案では、retryの実効設定に外部コマンドが残る場合、既定で拒否する。
+
+- 対象: 全レイヤーのexecと `res2res/json` のtransformer.command。
+  - 条件: タグ除外・設定マージ後に判定する。when=falseやretryで未使用のレイヤーを理由に許可判定を省略しない。
+- 許可: 利用者がそのretry起動時に `--allow-exec` を指定した場合だけ実行する。
+  - 保存: 許可状態をReportへ保存せず、次回retryへ引き継がない。
+  - 範囲: runで利用者が直接指定するconfigには、このretry専用フラグを要求しない。
+- 拒否時: 終了コード1。HTTP送信・成果物作成・validateを含む子プロセス起動を行わない。
+- 確認対象: Report内のcommand・引数・cwd・env・optionsと実行先ファイル。
+  - 理由: 共有Reportを読む操作と、その中の任意コードを実行する操作を分ける。
+
+```text
+ConfigError: report.addons.final[0]: 外部コマンドを含むReportのretryを拒否しました。
+Report内のcommandと実行先を確認し、信頼できる場合だけ --allow-exec を指定してください。
+validateも外部コマンド実行に含まれます。
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+```
 
 ## コマンド解決・環境・移植性
 
@@ -353,8 +418,10 @@ transformerは汎用execと同じ実行設定キーを持つ。`module` と `fun
 - reportにはcommand・cwd・options・明示envを既存のaddons設定として保存する。
   - 保存しないもの: 継承した環境の全内容、解決済み実行ファイルのホスト固有パス、context。
   - 運用: 秘密は設定のenvやoptionsへ直書きせず、実行環境で渡す。
-  - retry: 保存したコマンドを再実行する。相対パスはretry時の起動ディレクトリ基準になる。
-- 初版の配布・受入対象はmacOS・Linuxのみ。WindowsのPATH、パス区切り、シグナル、プロセスグループの互換動作は提供しない。
+  - retry: 論点4の推奨案では `--allow-exec` 指定時だけ保存したコマンドを再実行する。相対パスはretry時の起動ディレクトリ基準になる。
+- 初版の配布対象はmacOS・Linux。
+  - 未決: Windowsでの動作保証の扱いは論点6。既存serverにはWindows分岐があるため、配布対象の決定だけでWindows非対応まで決定済みとは扱わない。
+  - 推奨: 外部コマンドアドオンのWindows動作を仕様上の対象外とする。PATH・パス区切り・プロセス終了制御の保証と受入をmacOS・Linuxへ限定する。
 
 ## jumeaux init addonの雛形
 
@@ -364,8 +431,6 @@ Python 3の標準ライブラリだけで動く3つのスクリプトを生成�
 - 言語: シェル版を併設しない。
   - 理由: Base64と入れ子JSONを追加依存なしで扱える。
 - 実装時の同梱元: `assets/addon/`。
-  - 接続: バイナリへ埋め込み、`src/init.rs` で `addon` を専用分岐として扱う。
-  - 理由: 現在の通常テンプレートはconfig.yml・requests・apiの組を要求する。
 - 生成先: 起動ディレクトリの `addon_sample/`。
 - 既に `addon_sample` が存在するときは終了コード1。既存ファイルを上書きしない。
 - 既存のconfig.ymlは自動編集しない。
@@ -443,22 +508,112 @@ tableは列名のヘッダと各trialの行をタブ区切りで出す。
 - 旧owlmixinの装飾罫線の完全再現は要求しない。
   - 理由: サンプルの目的は列指定による一覧表示の再現であり、追加依存を避ける。
 
-本仕様段階ではスクリプトを実装しない。実装時には3つともprotocol_version・layer・mode・optionsを検証し、エラーはstderrへ、結果JSONだけをstdoutへ出す。
+3つともprotocol_version・layer・mode・optionsを検証し、エラーはstderrへ、結果JSONだけをstdoutへ出す。
+
+- validate: 論点5で導入した場合は、本文処理や表出力をせずoptionsの検証だけを行う。
+- JSON出力: 全雛形で `allow_nan=False` を指定する。NaN・Infinityの流出は非0終了にする。
+- stderr: tableは64 KiBを超えても全行を表示する。エラー診断の保持上限とは独立。
+
+### 最小のstdin/stdout例
+
+次はres2resのpayloadをそのまま返す通信例。論点5のvalidate採用案に対応する。
+
+```python
+import json
+import sys
+
+try:
+    message = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    if message["protocol_version"] != 1 or message["layer"] != "res2res":
+        raise ValueError("unsupported protocol or layer")
+    if message["options"] != {}:
+        raise ValueError("options must be empty")
+    if message["mode"] == "validate":
+        result = {"valid": True}
+    elif message["mode"] == "payload":
+        result = message["payload"]
+    else:
+        raise ValueError("unsupported mode")
+    output = json.dumps(result, allow_nan=False)
+    sys.stdout.buffer.write((output + "\n").encode("utf-8"))
+except Exception as error:
+    print(str(error), file=sys.stderr)
+    sys.exit(1)
+```
+
+この例のoptionsは空オブジェクトに限定する。戻ったpayloadのモデル検証はホストが行う。
+
+### encoding=nullに対応するtransformer例
+
+次は `transforms/wrap.py` 用の雛形。JSON本文を指定キーで包み、変換後の本文文字列をJSON文字列として返す。
+
+```python
+import base64
+import json
+import sys
+
+try:
+    message = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    if message["protocol_version"] != 1 or message["layer"] != "res2res":
+        raise ValueError("unsupported protocol or layer")
+    options = message["options"]
+    if not isinstance(options, dict) or set(options) - {"key", "input_encoding"}:
+        raise ValueError("options accepts only key and input_encoding")
+    key = options.get("key", "wrap")
+    fallback = options.get("input_encoding", "utf8")
+    if not isinstance(key, str) or not isinstance(fallback, str):
+        raise ValueError("key and input_encoding must be strings")
+    "".encode(fallback)
+    if message["mode"] == "validate":
+        result = {"valid": True}
+    elif message["mode"] == "json_transformer":
+        payload = message["payload"]
+        encoding = payload["encoding"] if payload["encoding"] is not None else fallback
+        body = base64.b64decode(payload["body"], validate=True)
+        value = json.loads(body.decode(encoding))
+        result = json.dumps({key: value}, ensure_ascii=False, allow_nan=False)
+    else:
+        raise ValueError("unsupported mode")
+    output = json.dumps(result, allow_nan=False)
+    sys.stdout.buffer.write((output + "\n").encode("utf-8"))
+except Exception as error:
+    print(str(error), file=sys.stderr)
+    sys.exit(1)
+```
+
+- null対応: この雛形自身が入力のdecode用に `options.input_encoding` を選ぶ。既定はutf8。
+  - 区別: ホストのdefault_encodingは出力のencode用。transformerへ渡すnullをホストが補完する規則には変えない。
+- 例: bodyが `eyJhIjoxfQ==`、encodingがnull、optionsが `{}` なら、stdoutは `"{\"wrap\": {\"a\": 1}}"`。
+- 生成対象: initの3雛形に4つ目のアドオンは追加せず、READMEにこの変換例を掲載する。
 
 ## 旧指定のエラーと移行案内
 
 新旧指定の混在は拒否する。Pythonモジュールを推測して `python -m` で実行しない。
 
-未知のアドオン名には、ドットを含まないPythonモジュール名もあり得る。登録にない名前は一律に移行先を案内する。
+未知の名前には、対象レイヤーの登録済み名一覧または近い候補を先に示す。
+
+- 理由: 組み込み名の打ち間違いを、Pythonモジュールの移行問題と断定しない。
+- 補足: ドットを含まないPythonモジュール名もあり得るため、その後に外部コマンドへの移行先を添える。
+- 案内URL: `https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/` を公開予定ページとする。公開済みとは扱わない。
+
+```text
+ConfigError: config.yml: addons.reqs2reqs[0].name:
+アドオン "shufle" は登録されていません。候補: shuffle
+Pythonのカスタムアドオンを使う場合は name: exec と config.command へ移行してください。
+旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+```
 
 ```text
 ConfigError: config.yml: addons.reqs2reqs[0].name:
 アドオン "addon_sample.reqs2reqs.add_path" は登録されていません。
+登録済みの名前: add, empty_guard, exec, filter, head, rename, repeat, replace, shuffle
 Pythonモジュール名を直接ロードする方式は使用できません。
 外部コマンド方式へ移行してください: name: exec と config.command を指定し、
 従来のconfigを config.options へ移してください。
+旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。
 雛形: jumeaux init addon
-仕様: docs/exec-addon-spec.md
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
 ```
 
 ```text
@@ -466,7 +621,8 @@ ConfigError: config.yml: addons.judgement[0].cls_name:
 cls_name: "MyExecutor" は使用できません。cls_nameを削除し、
 実行する処理を name: exec の config.command と引数で指定してください。
 Pythonクラスの自動ラップは行いません。stdin/stdoutのJSON契約へ移行してください。
-仕様: docs/exec-addon-spec.md
+旧.pyをcommandに指定するだけでは動きません。
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
 ```
 
 ```text
@@ -475,7 +631,8 @@ Python transformerのmodule/function指定は使用できません。
 transformer.command: [python3, transforms/wrap.py] へ置き換えてください。
 whenとdefault_encodingはそのまま使えます。
 変換結果の文字列をJSON文字列としてstdoutへ返す契約が必要です。
-仕様: docs/exec-addon-spec.md
+旧.pyをcommandに指定するだけでは動きません。
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
 ```
 
 - `function` だけ残っている場合も、そのキーを指して同じ移行先を案内する。
@@ -503,6 +660,7 @@ whenとdefault_encodingはそのまま使えます。
 | U | dumpのexec数 |
 | C | did_challengeのexec数 |
 | F | finalのexec数 |
+| V | validateの起動数。採用時は `L + Q + R + T + D + J + S + U + C + F`、不採用時は0 |
 
 レスポンスを取得できた1trialあたりの起動数は次のとおり。
 
@@ -515,18 +673,70 @@ M = one/otherでwhenがtrueとなったtransformerの合計数 (0〜2T)
 - 各レイヤーにexecを1つずつ置き、transformerなしの場合は保存なし7回、保存あり9回。
 - 上記へ常にtrueのtransformerを1つ加えると9回、11回。
 - 入力ファイルK個、trial数N、全件保存・全transformer実行時の総数は次になる。
-  - 通常run: `K × L + Q + N × (2R + 2T + 2D + J + S + 2U + C) + F`。
-  - retry: log2reqs分を除く。
+  - 通常run: `V + K × L + Q + N × (2R + 2T + 2D + J + S + 2U + C) + F`。
+  - retry: 許可された場合は通常runから `K × L` を除く。validateを採用する場合のVは残る。許可されない場合はvalidateを含め0回。
   - 条件: エラーによる打ち切りなし。HTTP failureのtrialではレスポンス後の起動分が0。
 - HTTPの内部リトライ回数は、レスポンス後のアドオン起動数を増やさない。
 - アドオン自身の処理時間とは別に、起動・JSON・Base64・コピーの費用が毎回かかる。
 
+### 本文のコピー数とstdout上限
+
+次表は各レイヤーにexecを1つ置いた1trialの、通信に載る本文のコピー数。oneとotherは同じサイズBで、アドオンが本文を変更しない場合を数える。
+
+| レイヤー | 起動数/trial | stdinの本文コピー数 | stdoutの本文コピー数 | 合計 |
+| --- | --- | --- | --- | --- |
+| res2res | 2 | 2 | 2 | 4 |
+| res2dict | 2 | 2 | 2 | 4 |
+| judgement | 1 | 2。referenceにoneとother | 0 | 2 |
+| store_criterion | 1 | 2。referenceにoneとother | 0 | 2 |
+| dump | 保存時2 | 4。各側でresponse.bodyとbody | 4。各側でresponse.bodyとbody | 8 |
+| did_challenge | 1 | 2。referenceにoneとother | 0 | 2 |
+| 合計・保存なし | 7 | 10 | 4 | 14 |
+| 合計・保存あり | 9 | 14 | 8 | 22 |
+
+- 対象: Response.bodyとDumpPayload.bodyのBase64表現。メモリアロケーションの実測回数ではない。
+  - 除外: res2dictのresult、Requestの本文、その他のJSON、ホスト内部の追加コピー。
+- 通信量: 保存ありでは本文だけでおおむね `22 × 4B / 3` bytes。
+  - 例: oneとotherが各1 MiBなら約29.3 MiB/trial。各10 MiBなら約293 MiB/trial。
+- json transformer: 両側を変換するとstdinへ本文2コピーを追加する。
+  - stdout: 変換後のJSON文字列2つ。大きさは変換結果とJSONエスケープ量に依存し、Base64のコピー数へは加算しない。
+- log2reqs・reqs2reqs・final・validateは、この表で数えるResponse.bodyを持たない。
+
+stdoutの既定上限64 MiBで返せる本文サイズの目安は次のとおり。
+
+| レイヤー | 1応答に含む本文 | 元bytesの上限目安 |
+| --- | --- | --- |
+| res2res | response.bodyの1コピー | 約48 MiB未満 |
+| res2dict | response.bodyの1コピーとresult | 約48 MiB未満。大きいresultがあればさらに小さい |
+| dump | response.bodyとbodyの2コピー | 両者が同サイズなら各約24 MiB未満 |
+
+- 計算: `4 × ceil(B / 3)` のBase64膨張を適用する。JSON構文と他フィールドもstdout上限に含むため、48 MiB・24 MiBちょうどは通らない。
+- dumpでサイズが異なる場合は、両方のBase64サイズと他フィールドの合計で判定する。
+- 対応: 大きい本文を扱う設定ではmax_stdout_bytesを増やす。stderrの保持上限を変えてもstdoutの制限は変わらない。
+
+### レビュアーの実測と見積もり
+
+レビューで報告された概数を次に示す。Rust本体の性能保証値ではない。[^review-bench]
+
+| 測定対象 | 報告値 | スクリプト上の反復数 |
+| --- | --- | --- |
+| Python起動のみ、`python3 -c pass` | 約12 ms | 50 |
+| 1 MiB本文のecho | 約26 ms/呼び出し | 50 |
+| 10 MiB本文のecho | 約100 ms/呼び出し | 10 |
+
+- 測定範囲: Pythonの起動、stdin転送、子でのJSON parseとBase64 decode、payloadのJSON出力、stdout回収、終了待ち。
+- 含まないもの: 親での入力JSON・Base64の生成、返却JSONのparse、Rustのモデル復元、HTTP、保存。
+- 条件: 逐次起動。スクリプトはp50・p95を出力するが、共有された概数の集計種別と実行環境の詳細は未提示。
+  - 扱い: この仕様改訂ではスクリプトの読み取りだけを行い、再測定していない。
+- 見積もり: 起動だけで9回×12 ms≒108 ms/trial。1,000trialの逐次実行で約108秒に相当する。
+  - 制限: 26 msや100 msを9倍して全レイヤーの処理時間とはしない。上表のとおりreferenceとdumpで運ぶ本文量が異なる。
+- validate: 本文なしの追加起動がV回発生する。起動だけの概算は `12 × V` ms/run。
+
+[^review-bench]: Opus設計レビューから進行役が伝達した実測値。測定内容は読み取り専用の `probe/bench.py` と `probe/echo.py` で照合。参照元ディレクトリ: `/private/tmp/claude-501/-Users-tadashi-aikawa-git-github-com-tadashi-aikawa-jumeaux-rs-wt-exec-addon/3c381ab9-ad0a-424c-8030-6417e45693e5/scratchpad/probe/`。保存された実行ログは提示されていない。
+
 1起動の追加費用をpミリ秒とすると、9回起動するtrialはおおむね `9p` ミリ秒を加算する。
 
-- 仮定: p=20 msなら180 ms/trial、1,000trialを逐次実行すると180秒。これは感度計算であり実測ではない。
 - 注意: 並列trialで壁時計時間を短縮できても、総CPU費用とメモリ使用量は減らない。
-- 実装時の計測: macOS・Linuxでno-opコマンドと3雛形、1 KiB・1 MiB・10 MiB本文、逐次・並列を比較する。
-  - 記録: 全体時間、起動回数、1呼び出しのp50/p95、最大メモリ。
 
 ### 常駐方式との比較
 
@@ -545,35 +755,30 @@ M = one/otherでwhenがtrueとなったtransformerの合計数 (0〜2T)
 - 将来: 実測で起動費用が支配的な場合、別modeまたは別プロトコル版として常駐を提案する。
   - 禁止: 初版の1文書・EOF契約を、設定なしにJSON Linesへ変更しない。
 
-## 実装時の接続点と受入条件
-
-実装対象は承認後に確定する。本書だけの追加では既存CLIの動作を変更しない。
-
-- `registry.rs`: 9レイヤーへexecを登録し、JSON transformer設定と移行エラーを接続する。
-- `payload.rs` とモデル境界: Base64・null・elapsedの通信用変換を追加する。
-  - 制約: report保存のserializerへ通信規則を混ぜない。
-- `Chain::build` と各Factory: 設定順と型付きStageを維持する。
-- `commands.rs`、log2reqs・reqs2reqs・finalの専用Pipeline: 実際のCLI経路へ接続する。
-  - 注意: `Chain::build` への登録だけではこれらの経路は動かない。
-- `executor.rs`: 既存の呼び出し回数、保存分岐、エラー時の停止を維持する。
-- `init.rs` と同梱資産: 3つの雛形と移行説明を追加する。
+## 受入条件
 
 | 受入項目 | 合格条件 |
 | --- | --- |
 | 9レイヤー | passthroughと変更の双方でフィールド・順序・referenceが表どおり。組み込みとexecの混在も同じ順 |
-| Option | res2dictのnull→object→null、空object/array、nullとキー欠落を区別して確認 |
+| Option | モデルのOptionalフィールドの出力欠落とnullは同じ。入力にはnullを明示する。空object/arrayはnullと区別し、任意JSON内部のキー欠落とnull値は保持 |
+| Request・Trial | form/jsonのルートはobject/nullを受理し、配列・scalarは拒否。object内部の任意JSONは保持 |
 | binary | NUL・不正UTF-8を含む全byte値、空bytes、大きな本文がBase64往復で一致 |
 | judgement | body=trueでもheader=falseならdifferent。分類済み差分を保持 |
-| 呼び出し回数 | 保存あり9回・なし7回、HTTP failure、when=false、複数入力、retryで計算式と一致 |
+| 呼び出し回数 | 保存あり9回・なし7回、HTTP failure、when=false、複数入力、許可済みretryで計算式と一致。validate採用時は設定数V回を別途加算 |
 | JSON変換 | when、encoding=null、default_encoding、replace、Content-Type保持、文字列内不正JSONがPython規則と一致 |
-| エラー | 非0・不正JSON・空stdout・コマンド欠落・timeout・大量stderr・stdout上限で停止。後続アドオンを起動しない |
+| エラー | 非0・不正JSON・空stdout・コマンド欠落・timeout・stdout上限で停止。後続アドオンを起動しない |
+| stderr | 64 KiBを超えるtableの全行が表示される。長い未改行行も欠落・無制限バッファなし。診断保持は指定した末尾bytes以内、0なら保持なし。大量stderrだけでは停止しない |
 | 並列と終了 | エラー後の新trial停止、実行中trialの完了待ち、子孫がpipeを保持した場合もtimeout、所有PIDの回収 |
+| 親シグナル | validate・trial・final実行中のSIGINT/SIGTERMで新規起動を止め、全所有グループへTERM、1秒後に残存へKILL。所有外PIDに触れず、終了コード130/143 |
+| retry許可 | 論点4の案Aではフラグなしで全コマンド起動0回。validate・when=false・未使用log2reqsも許可判定を迂回しない。--allow-exec指定時だけ実行し、許可は次のretryへ保存しない |
+| validate | 論点5の案Aでは実効設定ごとに1回。options不正・mode未対応・返却形式違反で入力読み込み・HTTP・成果物作成前に停止 |
 | cwd・env | PATH差し替え、空白入り引数、include、retry、env削除、inherit_env=false、明示相対cwdを確認 |
-| サンプル | 追加依存なしで3つが起動。ignore_valuesの特殊パスとheader保持、tableのstderr、既存ディレクトリ保護 |
-| 移行 | モジュール名・非Executor・module/function混在を起動前に拒否し、書き換え先を表示 |
-| 既存動作 | cargo test、cargo fmt --check、cargo clippy --all-targets -- -D warnings、既存E2Eが通る |
+| サンプル | 追加依存なしで3つが起動。ignore_valuesの特殊パスとheader保持、tableのstderr、既存ディレクトリ保護。通信例とtransformerのnull対応、allow_nan=Falseによる非有限数拒否 |
+| 移行 | 打ち間違いには候補または登録一覧を先に表示。モジュール名・非Executor・module/function混在を起動前に拒否し、旧.pyの直接指定では移行できない旨と公開URLを表示 |
+| Windows | 論点6の案Aでは動作保証の対象外と明記。既存serverのWindows分岐を理由に外部コマンドの保証を暗黙追加しない |
+| 既存動作 | 組み込みアドオンのCLI・Report・保存ファイルの既存互換契約を維持 |
 
-新プロトコルの受入は進行役が行う。旧サンプルの不具合はPython完全一致の期待値にせず、意図と修正後の期待値を固定する。
+旧サンプルの不具合はPython完全一致の期待値にせず、意図と修正後の期待値を固定する。
 
 ## 決めたこと
 
@@ -583,14 +788,16 @@ M = one/otherでwhenがtrueとなったtransformerの合計数 (0〜2T)
 | --- | --- |
 | 全レイヤーの予約名をexecへ統一 | 組み込みと同じ配列へ置ける。名前解決に例外を増やさない |
 | commandは配列、シェル展開なし | 引数の空白やメタ文字を暗黙に再解釈しない |
-| optionsをstdinのconfigへ分離 | 実行制御の設定とアドオン固有の設定を衝突させない |
+| 設定・stdinともキー名をoptionsへ統一 | 実行制御のconfigとアドオン固有のoptionsを区別し、受け渡し時の改名をなくす |
 | bytesはBase64、elapsedは総秒数 | JSON非対応の型だけを明示的に変換する |
 | Optionalのnullを明示、本文JSONのnullを保持 | 未変換・空・欠落と本文値を混同しない |
 | log2reqsだけRequest配列を返す | Pythonの実際の戻り値契約に揃える |
 | finalもpayloadを必須で返す | 後続finalとReport変更の機能を維持する |
 | 全エラーでrunを停止、自動再試行なし | Pythonの例外停止に合わせ、副作用を二重実行しない |
 | timeout既定60秒、無制限値なし | 既存の実行中trial待ちが永久停止しない。長い処理は明示的に延長できる |
-| stdout既定64 MiB、stderr表示64 KiB | 通信・診断の無制限なメモリ消費を避ける。大きい正常出力は設定で増やせる |
+| stdout既定64 MiB、stderrは全量表示・末尾64 KiB保持 | tableを切らずに診断保持メモリを制限する。両方の上限設定を分離する |
+| SIGINT/SIGTERMで全所有プロセスグループを終了 | 親だけが止まって子が処理を続けることを防ぐ |
+| contextへverbosity・trial_seq・sideを追加 | コマンド側のログ調整と呼び出し単位の識別に使う |
 | cwdは起動ディレクトリ基準 | include位置に依存せず、既存パスとretryの運用に揃える |
 | Python標準ライブラリの3雛形 | JSON処理を追加依存なしで示せる |
 | 旧雛形の不整合は修正して再現 | 現行モデルで動くサンプルを提供する |
@@ -629,25 +836,87 @@ M = one/otherでwhenがtrueとなったtransformerの合計数 (0〜2T)
 | 案 | 評価 |
 | --- | --- |
 | **A. jsonを残しtransformer.commandへ置換** | **推奨**。whenとencodingの互換処理をホストに集約 |
-| B. 汎用execへ統一 | modeは1つ。既存のjson固有処理をスクリプトへ移す必要がある |
+| B. 汎用execへ統一 | 実処理のmodeはpayloadに統一。既存のjson固有処理をスクリプトへ移す必要がある |
 
 - 推奨理由: 本文だけを変換する用途を短く書け、エンコードやheaders保持の差異を生みにくい。
 - 承認対象: stdoutにJSON文字列を返す専用modeを持つか。
 
 ### 3. 親環境の既定の受け渡し
 
-場面: コマンドがPATH上のpython3と認証用環境変数を使う。
+場面: JumeauxのSlack通知用に設定した `SLACK_INCOMING_WEBHOOKS_URL` が、通知しないものも含め全execの子へ渡る。
 
 ```text
 案A: 親環境 → 継承 → envで上書き・削除 → コマンド
 案B: 空の環境 → envで明示した変数だけ → コマンド
+案C: 親環境 → Jumeauxが使う秘密の変数を除去 → envで明示上書き → コマンド
 ```
 
 | 案 | 評価 |
 | --- | --- |
 | **A. inherit_env=trueを既定** | **推奨**。従来のPythonカスタム処理と実行環境を合わせやすい |
 | B. inherit_env=falseを既定 | 渡す環境を絞れる。PATHや必要変数の明示が必要 |
+| C. 継承するがJumeaux自身が使う秘密の変数は除く | PATHを保ち、Slack用Webhookの不要な受け渡しを減らす。除外リストの保守が必要 |
 
 - 推奨理由: 利用者が選んだ外部コマンドを信頼する実行モデルでは、既存運用との互換性が高い。
 - 承認対象: 親の秘密を含む環境が既定で外部コマンドへ渡ることを許容するか。
-- 共通: どちらを既定にしても、設定による切り替えは提供する。
+- 案Cの具体化: 初版の既定除外対象は `SLACK_INCOMING_WEBHOOKS_URL`。除外設定が有効な間は、envで同名を明示指定した場合だけ渡す。
+  - 限界: その他の資格情報を自動検出する方式ではない。外部コマンドのファイルアクセスも制限しない。
+- 共通: 全継承・継承なしの切り替えは提供する。案Cを採用する場合は `exclude_env: [SLACK_INCOMING_WEBHOOKS_URL]` を既定とする設定を追加し、空配列で全継承へ戻せるようにする。
+
+### 4. retryで保存された外部コマンドを実行する許可
+
+場面: 他の人から共有されたReportをretryしたところ、Report内のcommandが利用者の権限で動く。
+
+```text
+案A: 共有Report → retry → 既定は拒否 → --allow-exec指定時だけvalidate・実処理
+案B: 共有Report → 保存されたexecを無視 → 利用者がconfigを指定 → 実行
+案C: 共有Report → retry → 保存されたcommandをそのまま実行
+```
+
+| 案 | 評価 |
+| --- | --- |
+| **A. 既定で拒否し--allow-execで許可** | **推奨**。Reportの閲覧・再試行と任意コードの実行許可を分ける |
+| B. retryではexecを無視してconfigの指定を求める | 実行設定を手元で選び直せる。再現に必要な設定と新たなCLI経路の指定が必要 |
+| C. 現状どおり実行 | 操作を増やさず再現できる。共有Reportからの任意コマンド実行を防げない |
+
+- 推奨理由: 共有Reportをretryするだけで任意コマンドが動くことを防ぎ、保存設定での再現も明示許可により維持できる。
+- 案Bの範囲: execだけでなくjson transformerのコマンドも除外する。新しいconfigの指定がなければ停止し、アドオンを黙って飛ばして比較を続けない。
+- 承認対象: retryに `--allow-exec` を新設し、validateを含む全外部コマンド起動の前に許可を要求するか。
+
+### 5. validateモードによる起動前検証
+
+場面: 1,000trialを始める前に、final/tableのoptions.columnsの誤りを見つける。
+
+```text
+案A: ホスト検証 → 各コマンドをvalidateで1回起動 → 全て成功 → HTTP・実処理
+案B: ホスト検証 → HTTP・実処理 → 該当アドオンの初回実行でoptionsを検証
+```
+
+| 案 | 評価 |
+| --- | --- |
+| **A. validateを入れる** | **推奨**。各コマンドがoptionsを事前検証。設定数だけ起動が増える |
+| B. validateを入れない | プロトコルと起動回数を抑える。後半のレイヤーの設定誤りはrunの終盤まで分からない |
+
+- 推奨理由: Python版はアドオン生成時に設定を検証する。HTTP送信や成果物作成前に設定誤りを検出する機会を維持する。
+  - 範囲: 動的な入力に依存するエラーまで事前検出できるわけではない。
+- 承認対象: `mode: "validate"` と `{"valid":true}` の応答を全exec・transformerへ要求するか。
+- 前提: retryの許可判定より前にはvalidateも起動しない。
+
+### 6. Windowsでの動作を仕様上の対象外とするか
+
+場面: macOS・Linux向けに配布するバイナリとは別に、Windowsでローカルビルドした利用者がexecを使う。
+
+```text
+案A: 配布macOS・Linux → execの保証もmacOS・Linux → Windowsの動作は対象外
+案B: 配布macOS・Linux → ローカルビルドのWindowsも保証 → 終了制御・PATHの受入を追加
+```
+
+| 案 | 評価 |
+| --- | --- |
+| **A. Windowsでのexec動作を仕様上の対象外と明記** | **推奨**。配布・保証・受入の範囲を揃える |
+| B. Windowsでのexec動作も保証する | ローカルビルド利用者も対象になる。Windows固有のプロセス終了・PATH・引数の契約と受入が必要 |
+
+- 推奨理由: 本案のシグナルとプロセスグループの契約はmacOS・Linux向け。Windows対応を暗黙に約束すると、同じ終了保証を提供できない。
+- 既存コード: server.rsにWindows用のブラウザ起動分岐がある。
+  - 区別: この分岐は外部コマンドアドオンのWindows保証を意味しない。本案の承認で既存分岐の削除は求めない。
+- 承認対象: 配布対象の既決事項とは別に、外部コマンドアドオンのWindows動作を保証対象外と明記するか。
