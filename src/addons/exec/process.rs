@@ -47,9 +47,7 @@ impl OwnedChild {
 impl Drop for OwnedChild {
     fn drop(&mut self) {
         if self.armed {
-            #[cfg(unix)]
-            self.signal(libc::SIGTERM);
-            std::thread::sleep(Duration::from_secs(1));
+            // 通常経路の猶予処理に入れない初期化失敗・panicでも子を残さない。
             #[cfg(unix)]
             self.signal(libc::SIGKILL);
             let _ = self.child.kill();
@@ -127,6 +125,7 @@ pub(super) fn run(
     let start = Instant::now();
     let mut command = Command::new(&prepared.executable);
     command
+        .arg0(&prepared.config.command[0])
         .args(&prepared.config.command[1..])
         .current_dir(&prepared.cwd)
         .env_clear()
@@ -157,6 +156,7 @@ pub(super) fn run(
     let (mut offset, mut out_eof, mut err_eof) = (0, false, false);
     let mut status = None;
     let mut write_error = None;
+    let mut stdout_exceeded = false;
     let result = (|| {
         loop {
             runtime.check_cancelled()?;
@@ -206,6 +206,7 @@ pub(super) fn run(
                             diagnostics.accept(&buffer[..n]);
                         } else {
                             if n > prepared.config.max_stdout_bytes.saturating_sub(bytes.len()) {
+                                stdout_exceeded = true;
                                 return Err(super::json::protocol("$: max_stdout_bytes exceeded"));
                             }
                             bytes.extend_from_slice(&buffer[..n]);
@@ -246,21 +247,41 @@ pub(super) fn run(
     })();
     if result.is_err() {
         stdin.take();
-        owned.signal(libc::SIGTERM);
+        // 制限超過と親の中断はTERMで終了する猶予を与える。
+        // 非0終了・I/Oエラーでは残る所有プロセスを即時回収する。
+        let needs_grace = result.as_ref().is_err_and(|e| {
+            matches!(e.kind, "ExecAddonTimeout" | "ExecAddonInterrupted") || stdout_exceeded
+        });
+        owned.signal(if needs_grace {
+            libc::SIGTERM
+        } else {
+            libc::SIGKILL
+        });
         let grace = Instant::now();
         // 終了猶予中もstderrを流す。子孫がpipeを保持しても1秒で打ち切る。
         while grace.elapsed() < Duration::from_secs(1) {
             let mut buffer = [0; 8192];
             match stderr.read(&mut buffer) {
+                Ok(0) => err_eof = true,
                 Ok(n) if n > 0 => diagnostics.accept(&buffer[..n]),
                 _ => std::thread::sleep(Duration::from_millis(2)),
+            }
+            if !needs_grace && err_eof && owned.child.try_wait().ok().flatten().is_some() {
+                break;
+            }
+            if err_eof {
+                std::thread::sleep(Duration::from_millis(2));
             }
         }
         owned.signal(libc::SIGKILL);
         let _ = owned.child.wait();
     }
     owned.armed = false;
-    diagnostics.emit(false);
+    // 未改行行を次のCLI出力へ連結しない。診断用tailは元のbytesを保持する。
+    if !diagnostics.pending.is_empty() || diagnostics.continued {
+        diagnostics.pending.push(b'\n');
+        diagnostics.emit(true);
+    }
     let tail: Vec<_> = diagnostics.tail.into_iter().collect();
     result.map_err(|e| super::with_tail(e, &tail))?;
     Ok(Output { bytes, tail })

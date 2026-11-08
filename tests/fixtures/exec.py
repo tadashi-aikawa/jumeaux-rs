@@ -24,6 +24,8 @@ if action == "stderr":
     os.write(2, b"x" * 100000 + "終端\n".encode())
 if action == "mixed_stderr":
     os.write(2, b"\xff" + b"x" * 8189 + "あ\n次\n".encode())
+if action == "stderr_unterminated":
+    os.write(2, message["options"]["text"].encode())
 if action == "stderr_failure":
     os.write(2, b"prefix" + b"x" * 100000 + b"tail")
     sys.exit(7)

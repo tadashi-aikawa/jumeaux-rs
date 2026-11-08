@@ -451,6 +451,12 @@ fn transformer_preserves_when_encoding_and_response_metadata() {
         ("True", None, b"?".as_slice()),
         ("True", Some("utf8"), "あ".as_bytes()),
         ("False", None, &[0, 255]),
+        (
+            "req.raw.is_none() and (missing|length == 0)",
+            None,
+            b"?".as_slice(),
+        ),
+        ("req.raw.is_some()", None, &[0, 255]),
     ] {
         let mut a: Addon = serde_json::from_value(json!({"name":"json","config":{"transformer":transformer,"when":when,"default_encoding":"ascii"}})).unwrap();
         a.config.as_mut().unwrap()["transformer"]["options"] =
@@ -484,6 +490,124 @@ fn transformer_preserves_when_encoding_and_response_metadata() {
         if when == "True" {
             assert_eq!(result.response.response_type, "json");
         }
+    }
+}
+
+#[test]
+fn misspelled_names_have_candidates_without_python_migration_advice() {
+    for cls in ["Executor", "OldClass"] {
+        let a: Addon = serde_json::from_value(json!({"name":"shufle","cls_name":cls})).unwrap();
+        let error = addons::parse_config(Layer::Reqs2Reqs, &a, "addons.reqs2reqs[0]").unwrap_err();
+        assert!(error.message.contains("候補: shuffle"));
+        for unwanted in ["cls_name", "Python", "旧.py", "https://"] {
+            assert!(!error.message.contains(unwanted), "{}", error.message);
+        }
+        let a: Addon =
+            serde_json::from_value(json!({"name":"custom.add_path","cls_name":cls})).unwrap();
+        let error = addons::parse_config(Layer::Reqs2Reqs, &a, "addons.reqs2reqs[0]").unwrap_err();
+        assert!(error.message.contains("登録済みの名前:"));
+        assert!(error.message.contains("Python modules cannot be loaded"));
+        assert!(error.message.contains("旧.py"));
+        assert_eq!(error.message.contains("cls_nameは削除"), cls != "Executor");
+    }
+}
+
+#[test]
+fn stderr_unterminated_line_gets_one_newline_even_at_the_chunk_boundary() {
+    for text in [
+        String::new(),
+        "tail".into(),
+        "tail\n".into(),
+        "x".repeat(8192),
+        format!("{}あ", "x".repeat(8191)),
+    ] {
+        let mut addons: Addons =
+            serde_json::from_value(json!({"log2reqs":{"name":"plain"}})).unwrap();
+        let mut a = addon("stderr_unterminated");
+        a.config.as_mut().unwrap()["options"]["text"] = json!(text);
+        addons.dump.push(a);
+        let captured = Arc::new(Mutex::new(String::new()));
+        let events = Arc::clone(&captured);
+        let runtime = Runtime::prepare(&addons, 0, move |e| {
+            events.lock().unwrap().push_str(&e.text)
+        })
+        .unwrap();
+        runtime
+            .invoke(
+                Layer::Dump,
+                0,
+                "payload",
+                json!({}),
+                Value::Null,
+                Default::default(),
+                Ok,
+            )
+            .unwrap();
+        let expected = if text.is_empty() || text.ends_with('\n') {
+            text
+        } else {
+            format!("{text}\n")
+        };
+        assert_eq!(*captured.lock().unwrap(), expected);
+    }
+}
+
+#[test]
+fn nonzero_exit_returns_promptly_and_diagnostics_have_plain_context() {
+    let runtime = runtime(Layer::Dump, "exit");
+    let start = std::time::Instant::now();
+    for _ in 0..5 {
+        let error = runtime
+            .invoke(
+                Layer::Dump,
+                0,
+                "payload",
+                json!({}),
+                Value::Null,
+                Invocation {
+                    trial_seq: Some(1),
+                    side: Some("one"),
+                },
+                Ok,
+            )
+            .unwrap_err();
+        assert!(
+            error.message.contains("trial=1 side=one"),
+            "{}",
+            error.message
+        );
+        assert!(!error.message.contains("Some("));
+        assert!(error.message.contains("diagnostic"));
+    }
+    assert!(
+        start.elapsed() < std::time::Duration::from_millis(2500),
+        "five failures took {:?}",
+        start.elapsed()
+    );
+    let error = runtime.validate().unwrap_err();
+    assert_eq!(error.kind, "ConfigError");
+    assert_eq!(error.message.matches("addons.dump[0].config").count(), 1);
+    assert!(!error.message.contains("trial="));
+    assert!(!error.message.contains("side="));
+}
+
+#[test]
+fn argv_zero_uses_the_configured_name_without_resolved_path_prefixes() {
+    for command in ["sh", "/bin/sh"] {
+        let a: Addon = serde_json::from_value(json!({"name":"exec", "config":{"command":[command, "-c", "cat >/dev/null; printf '\"%s\"' \"$0\""]}})).unwrap();
+        let result = Runtime::prepare_layer(Layer::Dump, &[a])
+            .unwrap()
+            .invoke(
+                Layer::Dump,
+                0,
+                "payload",
+                json!({}),
+                Value::Null,
+                Default::default(),
+                Ok,
+            )
+            .unwrap();
+        assert_eq!(result, command);
     }
 }
 

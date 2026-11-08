@@ -252,15 +252,27 @@ impl Executor {
 }
 pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> Result<()> {
     if !layer.names().contains(&addon.name.as_str()) {
-        return Err(invalid(
-            &format!("{path}.name"),
-            format!(
-                "unsupported addon {:?}; 登録済みの名前: {}\nPython modules cannot be loaded. name: exec と config.command へ移行し、従来のconfigをconfig.optionsへ移してください。cls_nameは削除してください。\n{}",
-                addon.name,
-                layer.names().join(", "),
-                exec::MIGRATION
-            ),
-        ));
+        let candidate = layer
+            .names()
+            .iter()
+            .map(|name| (edit_distance(&addon.name, name), *name))
+            .filter(|(distance, _)| *distance <= 2)
+            .min();
+        let mut message = format!("unsupported addon {:?}; ", addon.name);
+        if let Some((_, name)) = candidate {
+            message.push_str(&format!("候補: {name}"));
+        } else {
+            message.push_str(&format!("登録済みの名前: {}", layer.names().join(", ")));
+            message.push_str("\nPythonのカスタムアドオンを使う場合は name: exec と config.command へ移行し、従来のconfigをconfig.optionsへ移してください。");
+            if addon.name.contains('.') {
+                message.push_str("\nPython modules cannot be loaded.");
+            }
+            if addon.cls_name != "Executor" {
+                message.push_str("\ncls_nameは削除してください。");
+            }
+            message.push_str(&format!("\n{}", exec::MIGRATION));
+        }
+        return Err(invalid(&format!("{path}.name"), message));
     }
     if addon.cls_name != "Executor" {
         return Err(invalid(
@@ -278,4 +290,21 @@ pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> 
         ));
     }
     Ok(())
+}
+
+fn edit_distance(left: &str, right: &str) -> usize {
+    let right: Vec<_> = right.chars().collect();
+    let mut row: Vec<_> = (0..=right.len()).collect();
+    for (i, a) in left.chars().enumerate() {
+        let mut diagonal = row[0];
+        row[0] = i + 1;
+        for (j, b) in right.iter().enumerate() {
+            let previous = row[j + 1];
+            row[j + 1] = (row[j] + 1)
+                .min(previous + 1)
+                .min(diagonal + usize::from(a != *b));
+            diagonal = previous;
+        }
+    }
+    row[right.len()]
 }

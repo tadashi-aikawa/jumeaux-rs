@@ -22,6 +22,7 @@ use std::{
 };
 use wire::Wire;
 
+pub const GUIDE_URL: &str = "https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/";
 pub const MIGRATION: &str = "旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。\n雛形: jumeaux init addon\n移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/";
 
 // retryの許可はプロセス生成前に呼出元で判定する。設定へ保存しない。
@@ -35,7 +36,7 @@ pub fn check_retry(addons: &Addons, allow_exec: bool) -> Result<()> {
                 return Err(invalid(
                     &format!("report.addons.{}[{index}]", layer.name()),
                     format!(
-                        "外部コマンドを含むReportのretryを拒否しました。Report内のcommandと実行先を確認し、信頼できる場合だけ --allow-exec を指定してください。validateも外部コマンド実行に含まれます。\n{MIGRATION}"
+                        "外部コマンドを含むReportのretryを拒否しました。Report内のcommandと実行先を確認し、信頼できる場合だけ --allow-exec を指定してください。validateも外部コマンド実行に含まれます。\n詳細: {GUIDE_URL}"
                     ),
                 ));
             }
@@ -224,12 +225,11 @@ impl Runtime {
                     }
                 },
             )
-            .map_err(|e| {
-                if e.kind == "ExecAddonInterrupted" {
-                    e
-                } else {
-                    invalid(&command.path, e)
+            .map_err(|mut e| {
+                if e.kind != "ExecAddonInterrupted" {
+                    e.kind = "ConfigError";
                 }
+                e
             })?;
         }
         Ok(())
@@ -302,13 +302,16 @@ impl Runtime {
                 .map_err(|e| with_tail(e, &output.tail))
         })();
         result.map_err(|mut e| {
+            let mut context = String::new();
+            if let Some(seq) = invocation.trial_seq {
+                context.push_str(&format!(" trial={seq}"));
+            }
+            if let Some(side) = invocation.side {
+                context.push_str(&format!(" side={side}"));
+            }
             e.message = format!(
-                "{} ({}; trial={:?}; side={:?}): {}",
-                command.path,
-                command.config.command[0],
-                invocation.trial_seq,
-                invocation.side,
-                e.message
+                "{} ({}{}): {}",
+                command.path, command.config.command[0], context, e.message
             );
             e
         })
