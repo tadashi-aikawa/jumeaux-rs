@@ -251,6 +251,14 @@ pub fn config_yaml(config: &jumeaux::config::Config) -> Result<String> {
             _ => false,
         }
     }
+    fn value_scalar(v: &Value, column: usize, indent: usize) -> Result<String> {
+        let text = scalar(v)?;
+        Ok(if v.is_string() {
+            fold_yaml_scalar(&text, column, indent)
+        } else {
+            text
+        })
+    }
     fn emit(v: &Value, indent: usize, out: &mut String) -> Result<()> {
         let pad = " ".repeat(indent);
         match v {
@@ -259,12 +267,16 @@ pub fn config_yaml(config: &jumeaux::config::Config) -> Result<String> {
                 keys.sort();
                 for key in keys {
                     let item = &m[key];
-                    out.push_str(&format!("{pad}{}:", scalar(&json!(key))?));
+                    let key = scalar(&json!(key))?;
+                    out.push_str(&format!("{pad}{key}:"));
                     if block(item) {
                         out.push('\n');
                         emit(item, indent + 2, out)?;
                     } else {
-                        out.push_str(&format!(" {}\n", scalar(item)?));
+                        out.push_str(&format!(
+                            " {}\n",
+                            value_scalar(item, indent + key.chars().count() + 2, indent + 2)?
+                        ));
                     }
                 }
             }
@@ -275,11 +287,14 @@ pub fn config_yaml(config: &jumeaux::config::Config) -> Result<String> {
                         emit(item, indent + 2, &mut nested)?;
                         out.push_str(&format!("{pad}- {}", nested.trim_start()));
                     } else {
-                        out.push_str(&format!("{pad}- {}\n", scalar(item)?));
+                        out.push_str(&format!(
+                            "{pad}- {}\n",
+                            value_scalar(item, indent + 2, indent + 2)?
+                        ));
                     }
                 }
             }
-            _ => out.push_str(&format!("{pad}{}\n", scalar(v)?)),
+            _ => out.push_str(&format!("{pad}{}\n", value_scalar(v, indent, indent + 2)?)),
         }
         Ok(())
     }
@@ -307,10 +322,7 @@ fn yaml_string(s: &str) -> Result<String> {
     }
     // serde_yamlの構文上のクォートは使うが、YAML 1.2だけが数値とみなす文字列は外す。
     if (s.parse::<f64>().is_ok()
-        || matches!(
-            serde_yaml_ng::from_str::<Value>(s),
-            Ok(Value::Number(_) | Value::Bool(_) | Value::Null)
-        ))
+        || matches!(serde_yaml_ng::from_str::<Value>(s), Ok(Value::Number(_))))
         && !s.contains(char::is_whitespace)
         && !s.starts_with(['!', '&', '*', '\'', '"'])
     {
@@ -319,6 +331,33 @@ fn yaml_string(s: &str) -> Result<String> {
     serde_yaml_ng::to_string(s)
         .map(|s| s.trim_end_matches('\n').to_string())
         .map_err(|e| Error::new("ValueError", e.to_string()))
+}
+
+/// PyYAMLのplain/single-quoted scalarと同じく、幅80を超えた後の単独スペースで折る。
+fn fold_yaml_scalar(text: &str, mut column: usize, indent: usize) -> String {
+    if text.starts_with('"') || text.contains('\n') {
+        return text.into();
+    }
+    let chars: Vec<_> = text.chars().collect();
+    let quoted = text.starts_with('\'');
+    let mut output = String::new();
+    for (i, &c) in chars.iter().enumerate() {
+        if c == ' '
+            && column > 80
+            && i > usize::from(quoted)
+            && i + 1 + usize::from(quoted) < chars.len()
+            && chars[i - 1] != ' '
+            && chars[i + 1] != ' '
+        {
+            output.push('\n');
+            output.push_str(&" ".repeat(indent));
+            column = indent;
+        } else {
+            output.push(c);
+            column += 1;
+        }
+    }
+    output
 }
 
 #[cfg(test)]
@@ -381,9 +420,27 @@ mod tests {
         ] {
             assert_eq!(yaml_string(s).unwrap(), s, "{s}");
         }
-        for s in ["a: b", "a # b", " leading", "trailing ", "[x]"] {
+        for s in [
+            "a: b",
+            "a # b",
+            " leading",
+            "trailing ",
+            "[x]",
+            "#bot_tadashi-aikawa",
+        ] {
             assert_eq!(yaml_string(s).unwrap(), format!("'{s}'"), "{s}");
         }
+    }
+
+    #[test]
+    fn long_config_message_wraps_at_pyyaml_width_without_changing_value() {
+        let input = "'{{ title }} is Finish!! There are {{ summary.status.different }} diffs..'";
+        let expected = "'{{ title }} is Finish!! There are {{ summary.status.different\n              }} diffs..'";
+        assert_eq!(fold_yaml_scalar(input, 21, 14), expected);
+        let parsed: String = serde_yaml_ng::from_str(expected).unwrap();
+        assert_eq!(parsed, input.trim_matches('\''));
+        assert_eq!(fold_yaml_scalar("'two  spaces'", 81, 2), "'two  spaces'");
+        assert_eq!(fold_yaml_scalar("word word", 81, 2), "word\n  word");
     }
 
     #[test]
