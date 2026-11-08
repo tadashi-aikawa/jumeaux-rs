@@ -66,7 +66,7 @@ uv run --project compat/harness python compat/harness/run.py
 
 - Rust CLIの受入結果は35/35一致。
   - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
-  - 自己検証: 比較規則のmutationテストを含む41テストが成功する。`⏰`行の精度と、通知用transport行だけを除外することも検証する。
+  - 自己検証: 比較規則のmutationテストを含む43テストが成功する。`⏰`行の精度と、通知用transport行・再試行カウンタ行の除外範囲も検証する。
   - 通知verbose: urllib3のローカルWebhook接続・POST行はrun/retry.stderrだけで除外する。通知のアプリログ・payload・送信回数は比較する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。

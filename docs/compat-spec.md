@@ -291,8 +291,9 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - PythonランタイムのDeprecationWarningは基準採取時に抑制する。
   - 方法: `PYTHONWARNINGS=ignore`。依存ライブラリが警告設定を上書きするため、Pythonラッパーはimport後にも再設定する。
 - verboseログの計測時間はresponse_sec・elapsed_secに対応する箇所だけ正規化する。
-- urllib3がrunのstderrへ出す接続・応答ログは比較から外す。
+- urllib3がrunのstderrへ出す接続・応答・再試行カウンタのログは比較から外す。
   - 対象: `Starting new HTTP connection` と `http://... "GET ..." 200 ...` 形式の行。具体的なパターンは `excluded_transport_lines` に列挙する。
+  - 再試行カウンタ: `-vvv`で出る`Incremented Retry for (url='...'): Retry(total=N, connect=None, read=None, redirect=None, status=None)`形式の行も同じ除外へ含める。`Retrying (...) after connection broken by ...`の行は比較を維持する。
   - 理由: HTTPライブラリ固有の出力であり、Rust版に同じ行を要求しない。API記録の比較は維持する。
 - 通知用urllib3の接続・POSTログもRustでは出力せず、run・retryのstderr比較から外す。
   - 対象: ローカル受信先`localhost:8001`への接続行と`POST /webhook HTTP/1.1`の応答行だけ。`excluded_notification_transport_lines`へ明記する。
@@ -1400,10 +1401,11 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - POST: JSON・form・plainをContent-Typeに従ってログ表示し、GETと同じファイルを返す。
   - 検証: GET・HEAD・POST、MIME、URLデコード、ディレクトリへのredirect、404をローカルプロセスで確認する。
   - アクセスログ: ファイルの200だけでなく、ディレクトリ一覧・301・404・501も出す。404・501は`code N, message ...`をアクセス行の前に出す。
-  - MIME: mime_guessの拡張子表を使用する。JavaScriptと圧縮ファイルはPythonの定義を優先し、未知の拡張子はapplication/octet-streamとする。
+  - MIME: mime_guessの拡張子表を使用する。JavaScript・圧縮ファイル・YAMLはPythonの定義を優先し、`.yml`・`.yaml`は`application/yaml`、未知の拡張子はapplication/octet-streamとする。
   - 実装差: Serverヘッダは`Jumeaux/<version>`。ディレクトリ一覧と404のHTMLはRustで生成する。Pythonのランタイム名や動的HTMLの完全一致は保証しない。
 - viewerはresponses-dir/latestを配信する。
   - リロード: 配信するHTMLへ500ms間隔の監視スクリプトを追加し、report.jsonのmtime・内容変更とlatestの切り替えで再読込する。ディスク上の同梱HTMLは改変しない。
+  - ログ: `/__jumeaux_reload`のポーリングはアクセスログを出さない。変更検出時の`Reload viewer.`と通常のファイルへのアクセスログは維持する。
   - ブラウザ: 起動後1秒で既定ブラウザを開く。`JUMEAUX_NO_BROWSER`が設定されていれば起動しない。
   - 検証: ブラウザを抑止したローカル試験で配信・変更検出・latest切り替えを確認する。目視は後続の全体受入に残す。
 - RustはPython固有のtracebackを出力しない。

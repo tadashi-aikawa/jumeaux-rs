@@ -23,7 +23,7 @@
   ],
   "excluded_transport_lines": {
     "streams": ["run.stderr"],
-    "patterns": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$"]
+    "patterns": ["^Starting new HTTP connection \\(\\d+\\): localhost:8000$", "^http://localhost:8000 \\\"GET /api/[^\\n]+ HTTP/1\\.1\\\" \\d+ \\d+$", "^Incremented Retry for \\(url='[^\\n]*'\\): Retry\\(total=\\d+, connect=None, read=None, redirect=None, status=None\\)$"]
   },
   "excluded_notification_transport_lines": {
     "streams": ["run.stderr", "retry.stderr"],

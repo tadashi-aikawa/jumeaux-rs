@@ -199,7 +199,9 @@ fn handle(
             logger.log(Verbosity::Normal, "Reload viewer.");
             *previous = current.clone();
         }
-        return reply(
+        // ポーリングのアクセスログは出さず、変更検出時の通知だけを残す。
+        return respond(
+            &mut stream,
             200,
             "text/plain",
             current.as_bytes(),
@@ -267,7 +269,7 @@ fn handle(
         }
     }
     let mut body=match std::fs::read(&path){Ok(body)=>body,Err(_)=>return reply(404,"text/html; charset=utf-8",b"<!DOCTYPE HTML><html><title>Error response</title><h1>Error response</h1><p>Error code: 404</p><p>Message: File not found.</p></html>",head,&[])};
-    // Pythonの明示的な圧縮拡張子と、既存のJavaScript MIMEを優先する。
+    // JavaScript・圧縮ファイル・YAMLはPythonのMIME定義を優先する。
     let guessed = mime_guess::from_path(&path).first_or_octet_stream();
     let mime = match path
         .extension()
@@ -276,6 +278,7 @@ fn handle(
         .as_deref()
     {
         Some("js" | "mjs") => "text/javascript",
+        Some("yml" | "yaml") => "application/yaml",
         Some("gz") => "application/gzip",
         Some("z") => "application/octet-stream",
         Some("bz2") => "application/x-bzip2",
