@@ -113,7 +113,7 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 
 ## Python版E2E 23件との対応
 
-比較対象はPython版 `e2e/main.py` 。発注文にあった `tests/e2e/` は存在しない。
+比較対象はPython版 `e2e/main.py` 。
 テストメソッドは23件で、未対応は0件だった。
 元の23件を埋めるためのE2E追加は不要だった。
 旧reportのretry受入8シナリオと、OS間比較のハーネスを追加した。
@@ -129,7 +129,7 @@ Rustが追加する `summary.comparison` は期待値を明示して比較する
 | `TestInit.test_simple` | simpleのapi・requests・configを生成 | `simple` のinit段階 |
 | `TestRun.test_simple` | GET、same 1・different 1、notifiersなし、成果物 | `simple` |
 | `TestRun.test_path_custom` | 両側のpath変換とdifferent 2 | `path_custom` |
-| `TestRun.test_query_custom` | queryの追加・削除・日時と実送信URL | `query_custom`、日時は入力固定 |
+| `TestRun.test_query_custom` | queryの追加・削除・日時と実送信URL | `query_custom`、日時は入力固定。日時展開は `compat/fixtures/inputs.json` の `replace-datetime` と `compat/fixtures/http-request.json` で検証 |
 | `TestRun.test_all_same` | same 1、本文・propを保存しない | `all_same` |
 | `TestRun.test_xml` | XML差分、different 1、価格タグ | `xml` |
 | `TestRun.test_html` | HTML差分、different 1、成果物 | `html` |
@@ -233,6 +233,9 @@ JUMEAUX_BIN="$PWD/target/release/jumeaux" uv run --project compat/harness python
 
 Linuxビルドは [リリース手順](releasing.md#linuxのクロスビルド) と同じバージョンとglibc指定を使う。
 
+- 結果ディレクトリはColimaが共有するリポジトリ内の `target/` などに置く。
+  - 注意: `/private/tmp` 配下では結果がホストに残らない。
+
 ```sh
 uv tool install cargo-zigbuild==0.24.1 --with ziglang==0.15.2
 export PATH="$(uv tool dir --bin):$PATH"
@@ -274,13 +277,17 @@ cd "$demo_dir"
 "$JUMEAUX_BIN" init simple
 "$JUMEAUX_BIN" server > server.log 2>&1 &
 api_pid=$!
+api_ready=true
 until curl --silent --fail http://127.0.0.1:8000/api/one/same-1.json > /dev/null; do
-  kill -0 "$api_pid" || exit 1
+  kill -0 "$api_pid" || { echo 'server failed'; cat server.log; api_ready=false; break; }
   sleep 0.1
 done
-"$JUMEAUX_BIN" run requests
-printf '目視用ディレクトリ: %s\n' "$PWD"
-"$JUMEAUX_BIN" viewer
+if [ "$api_ready" = true ]; then
+  "$JUMEAUX_BIN" run requests && {
+    printf '目視用ディレクトリ: %s\n' "$PWD"
+    "$JUMEAUX_BIN" viewer
+  }
+fi
 ```
 
 ブラウザで `http://127.0.0.1:5500/` が開く。
@@ -304,7 +311,12 @@ mv updated-report.json responses/latest/report.json
 ```
 
 タイトルが自動で変わることを確認する。
-続けてターミナル2でreleaseバイナリの絶対パスを使って `run requests` を実行し、latest差し替えも確認する。
+続けてターミナル2で再runし、latest差し替えも確認する。
+
+```sh
+export JUMEAUX_BIN="<リポジトリの絶対パス>/target/release/jumeaux"
+"$JUMEAUX_BIN" run requests
+```
 
 終了時はターミナル1のviewerをCtrl-Cで止め、同じターミナルでAPIサーバーを停止する。
 

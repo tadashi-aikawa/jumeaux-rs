@@ -16,7 +16,12 @@ addons:
           path: /added.json
 ```
 
-旧アドオンのconfigは `config.options` へ移します。
+- 設定: 旧アドオンのconfigは `config.options` へ移します。
+- コード: 旧Pythonアドオンのコード `.py` はstdin/stdoutのJSON契約へ書き換えてください。
+    - 注意: configを `options` へ移すだけでは動きません。
+    - 雛形: [`jumeaux init addon`](#jumeaux-init-addon) で生成できます。
+    - 詳細: [stdin/stdoutのJSON契約](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/exec-addon-spec.md)
+
 コマンドはシェルを介さず、配列の先頭を実行ファイル、残りを引数として起動します。
 
 詳細: [外部コマンドの設定とプロトコル](exec.md)

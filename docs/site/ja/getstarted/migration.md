@@ -11,8 +11,12 @@ CLI、設定ファイル、リクエスト形式、レポート、Viewerの互�
     - 詳細: [インストール](quickstart.md#installation)
 - Pythonモジュール方式のカスタムアドオンと `res2res/json` のtransformerは使用できません。
     - 移行先: 9レイヤー共通の `name: exec` と `res2res/json.transformer.command` を使います。
-    - 設定: 旧configのアドオン固有値は `options` へ移します。プロセス間はJSONとBase64で受け渡します。
+    - 設定: 旧configのアドオン固有値は `options` へ移します。
+    - コード: 旧Pythonアドオンのコード `.py` はstdin/stdoutのJSON契約へ書き換えてください。
+        - 注意: configを `options` へ移すだけでは動きません。
+    - 雛形: `jumeaux init addon` で生成できます。
     - 詳細: [カスタムアドオン](../addons/custom.md)
+    - 詳細: [stdin/stdoutのJSON契約](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/exec-addon-spec.md)
 - `jumeaux init addon` は `addon_sample/` に3種類の外部コマンド雛形を生成します。
     - 実行: Python製の雛形にはPython 3が必要です。Jumeaux本体と組み込みアドオンには不要です。
 - 外部コマンドを含むレポートの `retry` には毎回 `--allow-exec` が必要です。
