@@ -1,0 +1,1076 @@
+[
+  {
+    "name": "option-review-{'a': 1}.get([1])-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get([1])",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{}.get([1], 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{}.get([1], 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get([])-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get([])",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{}.get([], 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{}.get([], 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get({'x': 1})-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get({'x': 1})",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{}.get({'x': 1}, 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{}.get({'x': 1}, 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get({})-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get({})",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{}.get({}, 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{}.get({}, 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get(([1],))-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get(([1],))",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{}.get(([1],), 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{}.get(([1],), 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.get).get()-option_when-[1]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}.get).get()",
+      "data": {
+        "one": [
+          1
+        ]
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}|attr('get')).get()-option_when-[1]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}|attr('get')).get()",
+      "data": {
+        "one": [
+          1
+        ]
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.flat_map({'a': 1}.get).get()-option_when-[1]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.flat_map({'a': 1}.get).get()",
+      "data": {
+        "one": [
+          1
+        ]
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.get).get()-option_when-[]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}.get).get()",
+      "data": {
+        "one": []
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}|attr('get')).get()-option_when-[]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}|attr('get')).get()",
+      "data": {
+        "one": []
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.flat_map({'a': 1}.get).get()-option_when-[]",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.flat_map({'a': 1}.get).get()",
+      "data": {
+        "one": []
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.get).get()-option_when-{'a': 1}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}.get).get()",
+      "data": {
+        "one": {
+          "a": 1
+        }
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}|attr('get')).get()-option_when-{'a': 1}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}|attr('get')).get()",
+      "data": {
+        "one": {
+          "a": 1
+        }
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.flat_map({'a': 1}.get).get()-option_when-{'a': 1}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.flat_map({'a': 1}.get).get()",
+      "data": {
+        "one": {
+          "a": 1
+        }
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.get).get()-option_when-{}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}.get).get()",
+      "data": {
+        "one": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}|attr('get')).get()-option_when-{}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}|attr('get')).get()",
+      "data": {
+        "one": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-one.flat_map({'a': 1}.get).get()-option_when-{}",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.flat_map({'a': 1}.get).get()",
+      "data": {
+        "one": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get('a', 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get('a', 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 1
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get('missing', 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get('missing', 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 99
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get(1, 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get(1, 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 99
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get(true, 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get(true, 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 99
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get(none, 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get(none, 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 99
+    }
+  },
+  {
+    "name": "option-review-{'a': 1}.get((1, 2), 99)-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "{'a': 1}.get((1, 2), 99)",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": 99
+    }
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.get).is_none()-option_when-None",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map({'a': 1}.get).is_none()",
+      "data": {
+        "one": null
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "option-review-one.map(debug).get()-option_when-1",
+    "input": {
+      "operation": "option_when",
+      "expression": "one.map(debug).get()",
+      "data": {
+        "one": 1
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "option-review-debug is defined-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "debug is defined",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "option-review-debug()-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "debug()",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "option-review-missing|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-missing|first-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|first",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "SyntaxError"
+    }
+  },
+  {
+    "name": "option-review-missing|first is defined-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|first is defined",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "option-review-missing|first == missing|first-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|first == missing|first",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "option-review-missing|first|default('fallback')-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|first|default('fallback')}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "fallback"
+    }
+  },
+  {
+    "name": "option-review-missing.child|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing.child|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "option-review-qs.missing|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{qs.missing|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-[]|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{[]|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-[1, 2]|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{[1, 2]|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "1"
+    }
+  },
+  {
+    "name": "option-review-''|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{''|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-'日本語'|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{'日本語'|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "日"
+    }
+  },
+  {
+    "name": "option-review-none|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{none|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-7|first-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{7|first}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-missing|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-missing|last-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|last",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "SyntaxError"
+    }
+  },
+  {
+    "name": "option-review-missing|last is defined-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|last is defined",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "option-review-missing|last == missing|last-when-'key'",
+    "input": {
+      "operation": "when",
+      "expression": "missing|last == missing|last",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "option-review-missing|last|default('fallback')-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|last|default('fallback')}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "fallback"
+    }
+  },
+  {
+    "name": "option-review-missing.child|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing.child|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "option-review-qs.missing|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{qs.missing|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-[]|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{[]|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-[1, 2]|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{[1, 2]|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "2"
+    }
+  },
+  {
+    "name": "option-review-''|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{''|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "option-review-'日本語'|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{'日本語'|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "語"
+    }
+  },
+  {
+    "name": "option-review-none|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{none|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-7|last-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{7|last}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "option-review-missing|items|list-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|items|list}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": "[]"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|random-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|random}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|format-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|format}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "value": ""
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|indent-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|indent}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "value": ""
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|wordwrap-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|wordwrap}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "value": ""
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|dictsort-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|dictsort}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-missing|filesizeformat-render-'key'",
+    "input": {
+      "operation": "render",
+      "template": "{{missing|filesizeformat}}",
+      "data": {
+        "qs": {}
+      }
+    },
+    "expected": {
+      "error": "UndefinedError"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: 未定義値を受け取るフィルタの差異"
+  },
+  {
+    "name": "option-review-one.map('abc'.rsplit).get()-option_render-'b'",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('abc'.rsplit).get()}}",
+      "data": {
+        "one": "b"
+      }
+    },
+    "expected": {
+      "value": "['a', 'c']"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map('abc'.index).get()-option_render-'b'",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('abc'.index).get()}}",
+      "data": {
+        "one": "b"
+      }
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map('abc'.partition).get()-option_render-'b'",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('abc'.partition).get()}}",
+      "data": {
+        "one": "b"
+      }
+    },
+    "expected": {
+      "value": "('a', 'b', 'c')"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map('abc'.zfill).get()-option_render-5",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('abc'.zfill).get()}}",
+      "data": {
+        "one": 5
+      }
+    },
+    "expected": {
+      "value": "00abc"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map('abc'.center).get()-option_render-7",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('abc'.center).get()}}",
+      "data": {
+        "one": 7
+      }
+    },
+    "expected": {
+      "value": "  abc  "
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map('a'.__eq__).get()-option_render-'a'",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map('a'.__eq__).get()}}",
+      "data": {
+        "one": "a"
+      }
+    },
+    "expected": {
+      "value": "True"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map({'a': 1}.pop).get()-option_render-'a'",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map({'a': 1}.pop).get()}}",
+      "data": {
+        "one": "a"
+      }
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.map([1, 2].index).get()-option_render-2",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map([1, 2].index).get()}}",
+      "data": {
+        "one": 2
+      }
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: メソッド参照の許可リスト外は未対応"
+  },
+  {
+    "name": "option-review-one.get()[-1:].count('a')-option_render-['a']",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.get()[-1:].count('a')}}",
+      "data": {
+        "one": [
+          "a"
+        ]
+      }
+    },
+    "expected": {
+      "value": "1"
+    },
+    "rust_expected": {
+      "error": "TypeError"
+    },
+    "difference": "compat-spec.md: リストのスライスはiteratorになる"
+  },
+  {
+    "name": "option-review-one.map(one.get()[-1:].count).get()-option_render-['a']",
+    "input": {
+      "operation": "option_render",
+      "template": "{{one.map(one.get()[-1:].count).get()}}",
+      "data": {
+        "one": [
+          "a"
+        ]
+      }
+    },
+    "expected": {
+      "value": "0"
+    },
+    "rust_expected": {
+      "error": "UndefinedError"
+    },
+    "difference": "compat-spec.md: リストのスライスはiteratorになる"
+  },
+  {
+    "name": "option-review-(one.get()[-1:]|list).count('a')-option_when-['a']",
+    "input": {
+      "operation": "option_when",
+      "expression": "(one.get()[-1:]|list).count('a')",
+      "data": {
+        "one": [
+          "a"
+        ]
+      }
+    },
+    "expected": {
+      "value": 1
+    }
+  }
+]

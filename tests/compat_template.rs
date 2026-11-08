@@ -53,6 +53,11 @@ fn python_option_method_fixtures() {
 fn python_template_fixtures() {
     let cases: Vec<Value> =
         serde_json::from_str(include_str!("../compat/fixtures/template/cases.json")).unwrap();
+    let review: Vec<Value> = serde_json::from_str(include_str!(
+        "../compat/fixtures/template/option-review.json"
+    ))
+    .unwrap();
+    let cases: Vec<_> = cases.into_iter().chain(review).collect();
     let engine = TemplateEngine::new();
     let mut failures = Vec::new();
     let mut differences = 0;
@@ -72,6 +77,22 @@ fn python_template_fixtures() {
             "render" => engine
                 .render(string("template"), &input["data"])
                 .map(Value::from),
+            "option_when" | "option_render" => {
+                let context = checked_context(minijinja::context!(
+                    one => jumeaux::compat::values::optional(Some(&input["data"]["one"]))
+                        .unwrap().into_when_value()
+                ))
+                .unwrap();
+                if string("operation") == "option_render" {
+                    engine
+                        .render(string("template"), context.into_when_value())
+                        .map(Value::from)
+                } else {
+                    engine
+                        .when(string("expression"), context)
+                        .and_then(|value| value.to_json())
+                }
+            }
             "response_when" => {
                 let response = Response {
                     body: string("text").as_bytes().into(),

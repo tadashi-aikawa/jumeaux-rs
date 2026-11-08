@@ -226,6 +226,11 @@ cargo test --test response_judgement -- --nocapture
   - 採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/option_methods.py > compat/fixtures/template/option-methods.json`
   - 検証: `cargo test --test compat_template -- --nocapture`
   - 設定: sameとignoreで各5件の式を検証する。renameは未定義nameのlengthを0として描画する回帰fixtureを含む。
+- レビュー回帰は`template/option-review.json`の76件。
+  - Python一致: 59件。辞書getのハッシュできないキー、未定義値のfirst・last、debug非公開を検証する。
+  - 許容した差異: 17件。未定義フィルタ7件、許可リスト外のメソッド参照8件、リストスライス2件を固定する。
+  - 採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/option_review.py > compat/fixtures/template/option-review.json`
+  - 検証: `cargo test --test compat_template -- --nocapture`で既存の226件と合わせて実行する。
 - `cargo test --test json_boundary`で深さ1,000と1,001を検証する。
   - 実行: 子プロセス内の2MiBスタックから、配列・辞書・混在JSONの読み込み・ソート・diff・破棄を呼び出す。
   - エラー: 非有限数のエラー種別とメッセージを全入口で検証する。json_sortからres2dict/jsonへの連結も検証する。

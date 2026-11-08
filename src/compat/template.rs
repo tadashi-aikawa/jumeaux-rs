@@ -30,7 +30,8 @@ impl Default for TemplateEngine {
 impl TemplateEngine {
     pub fn new() -> Self {
         let mut env = Environment::new();
-        env.set_unknown_method_callback(minijinja_contrib::pycompat::unknown_method_callback);
+        env.set_unknown_method_callback(python_method);
+        env.remove_global("debug");
         env.set_formatter(|out, _state, value| {
             if value.kind() == ValueKind::Invalid {
                 value.try_iter()?;
@@ -72,6 +73,20 @@ impl TemplateEngine {
                 }
             });
         }
+        env.add_filter("first", |value: &Value| {
+            if value.is_undefined() {
+                Ok(Value::UNDEFINED)
+            } else {
+                minijinja::filters::first(value)
+            }
+        });
+        env.add_filter("last", |value: Value| {
+            if value.is_undefined() {
+                Ok(Value::UNDEFINED)
+            } else {
+                minijinja::filters::last(value)
+            }
+        });
         use minijinja_contrib::{filters, globals};
         env.add_filter(
             "truncate",
@@ -357,6 +372,33 @@ fn python_attr(value: Value, name: &str) -> MiniResult<Value> {
         ));
     }
     value.get_attr(name)
+}
+
+fn python_method(
+    state: &mut State,
+    value: &Value,
+    name: &str,
+    args: &[Value],
+) -> MiniResult<Value> {
+    if value.kind() == ValueKind::Map && name == "get" {
+        let (key, _default): (&Value, Option<Value>) = from_args(args)?;
+        require_hashable_key(key)?;
+    }
+    minijinja_contrib::pycompat::unknown_method_callback(state, value, name, args)
+}
+
+fn require_hashable_key(key: &Value) -> MiniResult<()> {
+    if let Some(tuple) = key.downcast_object_ref::<minijinja::value::Tuple>() {
+        for item in tuple.iter() {
+            require_hashable_key(item)?;
+        }
+    } else if matches!(key.kind(), ValueKind::Map | ValueKind::Seq) {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "unhashable dict key",
+        ));
+    }
+    Ok(())
 }
 
 fn python_dict(value: Option<Value>, kwargs: Kwargs) -> MiniResult<Value> {
@@ -844,7 +886,9 @@ fn template_error(error: minijinja::Error) -> Error {
         source = cause.source();
     }
     let kind = match error.kind() {
-        minijinja::ErrorKind::UndefinedError => "UndefinedError",
+        minijinja::ErrorKind::UndefinedError | minijinja::ErrorKind::UnknownFunction => {
+            "UndefinedError"
+        }
         minijinja::ErrorKind::SyntaxError => "TemplateSyntaxError",
         minijinja::ErrorKind::UnknownMethod
         | minijinja::ErrorKind::InvalidOperation

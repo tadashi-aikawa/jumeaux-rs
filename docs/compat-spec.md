@@ -252,14 +252,31 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
     - 制限: `when`は描画後にliteral_evalする。文字列を返す例では比較式か`tojson`が必要。
   - 式から渡せるcallableは、公開済みのグローバル関数とオブジェクトのメソッド参照。
     - Option: `dict_one.map(dict_other.get_or).get().a == 2`。別Optionの値を使える。`map`・`flat_map`自身も渡せるが、受け取る値をcallableとして扱うため引数の型に従う。
-    - 文字列: `res_one.encoding.map('utf-8'.startswith).get()`。既存のPython文字列メソッドを参照できる。
+    - 文字列: `res_one.encoding.map('utf-8'.startswith).get()`。参照できるメソッドは下記の許可リストに限る。
     - 辞書: `res_one.encoding.map({'utf-8': True}.get).get()`。リストの`count`も参照できる。
     - attr: `res_one.encoding.map({'utf-8': True}|attr('get')).get()`。Optionや文字列のメソッドも取得できる。
     - グローバル: `dict`・`range`などJinja2が公開するcallableを渡せる。例は`opt.map(range).get()|list`。`dict`はキーと値のペアからの構築も受け付ける。
     - テンプレート: 描画文字列では`set`で保存したメソッドや`macro`も渡せる。`when`の式内ではマクロを定義できない。
     - flat_map: `dict_one.flat_map(dict_other.map).is_none()`はdict_otherがNoneならtrue。コールバックが返すOptionの値を取り出す。
+  - メソッド参照の許可リストは次のとおり。
+    - Option: `any`・`flat_map`・`get`・`get_or`・`is_none`・`map`。Rust独自の`is_some`も参照できる。
+    - 辞書: `get`・`items`・`keys`・`values`。
+    - リスト: `count`。
+    - 文字列:
+
+      ```text
+      upper lower islower isupper isspace
+      isdigit isnumeric isalnum isalpha isascii
+      strip lstrip rstrip replace title
+      split splitlines capitalize count find
+      format rfind startswith endswith join
+      ```
+
+    - 制限: リスト外の参照は未対応。Pythonとの差異は「許容した差異」に記す。
+  - 辞書のget: 直接呼び出しとメソッド参照のどちらも、dict・listのキーはTypeError。tuple内にdict・listがある場合もTypeError。
   - 式から呼べない形: `lambda x: ...`はTemplateSyntaxError。Pythonの組み込み`len`・`str`・`bool`は式へ公開されておらず、非Noneの`map`に渡すとUndefinedError。
     - any: `any(func)`という形式はTOptionの公開IFに存在せず、式から呼ぶとTypeError。
+    - debug: Rust独自の`debug`グローバルは削除し、Python同様に公開しない。
   - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
   - whenの入口: TemplateInputは検査済みの`CheckedContext`とその参照だけに実装する。生のserde_json::Value・MiniJinja Valueをwhenへ直接渡すとコンパイルエラーになる。
   - 構築: JSONは`values::from_json_for_when`、MiniJinja値は`values::checked_context`で一度検査する。検査済みの値の結合には`CheckedContext::from_pairs`を使い、各whenでは再検査しない。renderは別のRenderInputで従来の表示互換を保つ。
@@ -493,6 +510,29 @@ HTML/XMLと式・正規表現・文字コードの差異は2026-11-07の質問�
 | `s > 1` | TypeError | True |
 | `nil < 1` | TypeError | True |
 | `1 / 0` | ZeroDivisionError | TypeError |
+
+- 未定義値を受け取るフィルタの差異。
+  - 実測: 下表はテンプレートで直接描画した結果。`option-review.json`の`rust_expected`で固定する。
+  - 解消済み: `missing|first`・`missing|last`は両者とも空文字列。`missing|first is defined`も両者ともfalse。renameの`{{ qs.missing|first }}`・`{{ qs.missing|last }}`も描画できる。
+
+| fixtureの式 | Python | Rust |
+| --- | --- | --- |
+| `missing\|items\|list` | `[]` | TypeError |
+| `missing\|random` | 空文字列 | TypeError |
+| `missing\|format` | 空文字列 | TypeError |
+| `missing\|indent` | UndefinedError | 空文字列 |
+| `missing\|wordwrap` | UndefinedError | 空文字列 |
+| `missing\|dictsort` | UndefinedError | TypeError |
+| `missing\|filesizeformat` | UndefinedError | TypeError |
+
+- メソッド参照の対応範囲・表示の差異。
+  - 対応範囲: 「応答変換とjudgement」の許可リスト外は参照できない。非NoneのOptionのmapへ渡すとUndefinedError。
+  - 実測: 文字列の`rsplit`・`index`・`partition`・`zfill`・`center`・`__eq__`、辞書の`pop`、リストの`index`をfixtureで固定する。dunderメソッドも参照対象に追加しない。
+  - 表示: `{{ {'a': 1}.get }}`はPythonではメモリアドレスを含むメソッド表記、Rustでは`jumeaux::compat::template::python_attr::{{closure}}`のような内部名になる。表示文字列の互換は保証しない。
+- リストのスライスの差異。
+  - 実測: `one.get()[-1:].count('a')`はPythonでは件数、RustではTypeError。スライスの`count`をmapへ渡す場合はRustでUndefinedError。
+  - 理由: MiniJinjaのリストスライスはiteratorになり、リストのメソッドを持たない。
+  - 回避: `(one.get()[-1:]|list).count('a')`のようにlistへ変換する。
 
 - ロード時の未知filter/test検査の差異。
   - 実測: Pythonは未実行分岐内の未知名を許容する。RustはTemplateAssertionErrorを返す。
@@ -1387,6 +1427,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 - notifyは全whenを先に評価し、選ばれた通知を順に送る。
   - 条件: CheckedContextを使う。メッセージとwhenはPipeline生成時にコンパイルする。
   - HTTPエラー: 残りの選択済み通知も送ってからエラーを返す。通信例外はその時点で停止する。
+  - 意図的な差異: notifiers未設定時の案内URLは、Python版の`https://tadashi-aikawa.github.io/jumeaux/ja/getstarted/configuration/`からRust版の`https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/configuration/`へ変更する。
 - Python比較fixtureは`compat/fixtures/final-addons.json`の41件。
   - 内訳: 4文字コードでsummary・json・csvの40ケースと、nullを保持する通知context1ケース。
   - 追加検証: 保存順、Viewerのbytes、stdout、UTF-16保存、UTF-8 CSV、ローカル通知、通知失敗時の後続final停止。
