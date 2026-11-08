@@ -113,9 +113,13 @@ fn handle(
     if first.is_empty() {
         return Ok(());
     }
+    let mut reply = |status, mime: &str, body: &[u8], head, headers: &[(&str, String)]| {
+        access_log(&stream, &first, logger, status)?;
+        respond(&mut stream, status, mime, body, head, headers)
+    };
     let parts: Vec<_> = first.split_whitespace().collect();
     if parts.len() != 3 {
-        return respond(&mut stream, 400, "text/plain", b"Bad request", false, &[]);
+        return reply(400, "text/plain", b"Bad request", false, &[]);
     }
     let (method, target) = (parts[0], parts[1]);
     let mut raw_headers = String::new();
@@ -128,14 +132,7 @@ fn handle(
         }
         raw_headers.push_str(&line.replace("\r\n", "\n"));
         if raw_headers.len() > 65_536 {
-            return respond(
-                &mut stream,
-                431,
-                "text/plain",
-                b"Headers too large",
-                false,
-                &[],
-            );
+            return reply(431, "text/plain", b"Headers too large", false, &[]);
         }
         if let Some((key, value)) = line.split_once(':') {
             headers.insert(key.to_ascii_lowercase(), value.trim().to_owned());
@@ -144,14 +141,7 @@ fn handle(
     raw_headers.push('\n');
     let head = method == "HEAD";
     if !matches!(method, "GET" | "POST" | "HEAD") {
-        return respond(
-            &mut stream,
-            501,
-            "text/plain",
-            b"Unsupported method",
-            head,
-            &[],
-        );
+        return reply(501, "text/plain", b"Unsupported method", head, &[]);
     }
     if method != "HEAD" {
         logger.log(Verbosity::Verbose, "*".repeat(80));
@@ -209,6 +199,7 @@ fn handle(
             logger.log(Verbosity::Normal, "Reload viewer.");
             *previous = current.clone();
         }
+        // ポーリングのアクセスログは出さず、変更検出時の通知だけを残す。
         return respond(
             &mut stream,
             200,
@@ -238,14 +229,7 @@ fn handle(
             } else {
                 format!("{target}/")
             };
-            return respond(
-                &mut stream,
-                301,
-                "text/html",
-                b"",
-                head,
-                &[("Location", location)],
-            );
+            return reply(301, "text/html", b"", head, &[("Location", location)]);
         }
         if path.join("index.html").is_file() {
             path.push("index.html");
@@ -281,36 +265,25 @@ fn handle(
                 ));
             }
             html.push_str("</ul><hr></body></html>");
-            return respond(
-                &mut stream,
-                200,
-                "text/html; charset=utf-8",
-                html.as_bytes(),
-                head,
-                &[],
-            );
+            return reply(200, "text/html; charset=utf-8", html.as_bytes(), head, &[]);
         }
     }
-    let mut body=match std::fs::read(&path){Ok(body)=>body,Err(_)=>return respond(&mut stream,404,"text/html; charset=utf-8",b"<!DOCTYPE HTML><html><title>Error response</title><h1>Error response</h1><p>Error code: 404</p><p>Message: File not found.</p></html>",head,&[])};
+    let mut body=match std::fs::read(&path){Ok(body)=>body,Err(_)=>return reply(404,"text/html; charset=utf-8",b"<!DOCTYPE HTML><html><title>Error response</title><h1>Error response</h1><p>Error code: 404</p><p>Message: File not found.</p></html>",head,&[])};
+    // JavaScript・圧縮ファイル・YAMLはPythonのMIME定義を優先する。
+    let guessed = mime_guess::from_path(&path).first_or_octet_stream();
     let mime = match path
         .extension()
         .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase()
-        .as_str()
+        .map(str::to_ascii_lowercase)
+        .as_deref()
     {
-        "html" | "htm" => "text/html",
-        "json" => "application/json",
-        "xml" => "application/xml",
-        "txt" => "text/plain",
-        "csv" => "text/csv",
-        "css" => "text/css",
-        "js" => "text/javascript",
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "webp" => "image/webp",
-        "svg" => "image/svg+xml",
-        _ => "application/octet-stream",
+        Some("js" | "mjs") => "text/javascript",
+        Some("yml" | "yaml") => "application/yaml",
+        Some("gz") => "application/gzip",
+        Some("z") => "application/octet-stream",
+        Some("bz2") => "application/x-bzip2",
+        Some("xz") => "application/x-xz",
+        _ => guessed.essence_str(),
     };
     if viewer && mime == "text/html" {
         body.extend_from_slice(RELOAD.as_bytes());
@@ -326,16 +299,35 @@ fn handle(
     if viewer {
         extra.push(("Cache-Control", "no-cache".into()));
     }
+    reply(200, mime, &body, head, &extra)
+}
+fn access_log(stream: &TcpStream, request: &str, logger: Logger, status: u16) -> Result<()> {
+    let prefix = format!(
+        "{} - - [{}]",
+        stream.peer_addr().map_err(io_error)?.ip(),
+        chrono::Local::now().format("%d/%b/%Y %H:%M:%S")
+    );
+    let message = match status {
+        404 => Some("File not found".to_owned()),
+        501 => Some(format!(
+            "Unsupported method ('{}')",
+            request.split_whitespace().next().unwrap_or("")
+        )),
+        400 => Some("Bad request".to_owned()),
+        431 => Some("Headers too large".to_owned()),
+        _ => None,
+    };
+    if let Some(message) = message {
+        logger.log(
+            Verbosity::Normal,
+            format!("{prefix} code {status}, message {message}"),
+        );
+    }
     logger.log(
         Verbosity::Normal,
-        format!(
-            "{} - - [{}] \"{}\" 200 -",
-            stream.peer_addr().map_err(io_error)?.ip(),
-            chrono::Local::now().format("%d/%b/%Y %H:%M:%S"),
-            first.trim_end()
-        ),
+        format!("{prefix} \"{}\" {status} -", request.trim_end()),
     );
-    respond(&mut stream, 200, mime, &body, head, &extra)
+    Ok(())
 }
 fn respond(
     stream: &mut TcpStream,

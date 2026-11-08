@@ -398,12 +398,16 @@ def main():
         load_error = "unknown_filter" in fmt or "unknown_test" in fmt
         add("template", "review-" + fmt, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}), rust_expected={"error": "TemplateAssertionError"} if load_error else None, difference="compat-spec.md: 未実行分岐でも未知filter/testをロード時に拒否" if load_error else None)
     for expression, rust in (
-        ("missing > 1", {"value": False}), ("missing|length", {"error": "TypeError"}),
+        ("missing > 1", {"value": False}),
         ("s > 1", {"value": True}), ("nil < 1", {"value": True}),
         ("1 / 0", {"error": "TypeError"}),
     ):
         data = {"s": "hello", "nil": None}
         add("template", "difference-" + expression, {"operation": "when", "expression": expression, "data": data}, lambda: utils.when_filter(expression, data), rust_expected=rust, difference="compat-spec.md: 未定義値・異種比較・例外種別")
+    for expression in ("missing|length", "missing|count", "missing.child|length", "none|length", "7|length", "'日本語'|length", "[1,2]|length", "{}|length"):
+        add("template", "length-" + expression, {"operation": "when", "expression": expression, "data": {}}, lambda: utils.when_filter(expression, {}))
+    for fmt in ("{{ missing|length }}", "{{ missing|count }}", "{{ name }} ({{ name|length }} bytes)"):
+        add("template", "length-render-" + fmt, {"operation": "render", "template": fmt, "data": {}}, lambda: utils.jinja2_format(fmt, {}))
     for fmt, rust in (
         ("{{ (1, 2) }}", {"value": "[1, 2]"}),
         ("{{ range(3) }}", {"value": "[0, 1, 2]"}),

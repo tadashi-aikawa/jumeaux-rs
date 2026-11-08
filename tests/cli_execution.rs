@@ -32,6 +32,60 @@ fn command(temp: &Temp) -> Command {
 }
 
 #[test]
+fn connection_retry_warnings_match_urllib3_at_every_verbosity() {
+    let temp = Temp::new();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let os_error = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap_err();
+    let code = os_error.raw_os_error().unwrap();
+    let detail = os_error.to_string();
+    let detail = detail.strip_suffix(&format!(" (os error {code})")).unwrap();
+    std::fs::write(temp.0.join("requests"), "/path?q=1\n").unwrap();
+    let config = json!({"one":{"name":"One","host":format!("http://127.0.0.1:{port}")},"other":{"name":"Other","host":format!("http://127.0.0.1:{port}")},"output":{"response_dir":"responses"},"addons":{"log2reqs":{"name":"plain"},"final":[{"name":"json"}]}});
+    std::fs::write(
+        temp.0.join("config.yml"),
+        serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+    for verbosity in [None, Some("-v"), Some("-vv"), Some("-vvv")] {
+        let mut cmd = command(&temp);
+        cmd.args(["run", "requests"]);
+        if let Some(flag) = verbosity {
+            cmd.arg(flag);
+        }
+        let output = cmd.output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        let warnings: Vec<_> = stderr
+            .lines()
+            .filter(|l| l.contains("Retrying ("))
+            .collect();
+        assert_eq!(warnings.len(), 6, "{stderr}");
+        for remaining in [2, 1, 0] {
+            let expected = format!(
+                "Retrying (Retry(total={remaining}, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError(\"HTTPConnection(host='127.0.0.1', port={port}): Failed to establish a new connection: [Errno {code}] {detail}\")': /path?q=1"
+            );
+            assert_eq!(
+                warnings.iter().filter(|line| **line == expected).count(),
+                2,
+                "{warnings:#?}"
+            );
+        }
+    }
+    let output = command(&temp)
+        .args(["run", "requests", "--max-retries", "0"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("Retrying ("));
+}
+
+#[test]
 fn retry_restores_raw_comparison_and_emits_both_warning_sources() {
     let temp = Temp::new();
     // LISTENを持たないローカルportでfailure Trialを作る。外部APIへ送らない。

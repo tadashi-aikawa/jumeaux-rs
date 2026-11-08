@@ -86,17 +86,17 @@ impl Event {
         }
     }
 }
-type Observer = Box<dyn FnMut(&Progress) + Send>;
+pub(super) type Observer = Box<dyn FnMut(&Progress) + Send>;
 struct State {
     logs: Vec<Progress>,
-    observer: Observer,
+    observer: Option<Observer>,
 }
 pub(super) struct Stream(Mutex<State>);
 impl Stream {
-    pub fn new(observer: impl FnMut(&Progress) + Send + 'static) -> Arc<Self> {
+    pub fn new(observer: Option<Observer>) -> Arc<Self> {
         Arc::new(Self(Mutex::new(State {
             logs: Vec::new(),
-            observer: Box::new(observer),
+            observer,
         })))
     }
     pub fn take(&self) -> Vec<Progress> {
@@ -137,7 +137,7 @@ impl TrialEvents {
         Self { seq, total, stream }
     }
     pub fn silent(seq: u64) -> Self {
-        Self::new(seq, 1, Stream::new(|_| {}))
+        Self::new(seq, 1, Stream::new(Some(Box::new(|_| {}))))
     }
     pub fn emit(&self, event: Event) {
         let event = Progress {
@@ -146,10 +146,13 @@ impl TrialEvents {
             level: event.level(),
             event,
         };
-        // 通知順とlogsの順を一致させる。コールバックの並行呼び出しはしない。
+        // コールバックの並行呼び出しはしない。通知する場合は複製・保持をしない。
         let mut state = self.stream.0.lock().unwrap();
-        state.logs.push(event.clone());
-        (state.observer)(&event);
+        if let Some(observer) = &mut state.observer {
+            observer(&event);
+        } else {
+            state.logs.push(event);
+        }
     }
     pub fn timed<T>(&self, stage: Stage, run: impl FnOnce() -> Result<T>) -> Result<T> {
         let start = Instant::now();

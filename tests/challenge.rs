@@ -853,7 +853,7 @@ async fn python_review_fixtures() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn events_stream_before_http_and_during_sleep_and_match_retained_logs() {
+async fn events_stream_before_http_and_during_sleep_without_retention() {
     use jumeaux::{
         addons::log::AddonLog,
         executor::{Event, Stage},
@@ -939,7 +939,10 @@ async fn events_stream_before_http_and_during_sleep_and_match_retained_logs() {
     resume.send(()).unwrap();
     let result = job.await.unwrap().unwrap();
     streamed.extend(receive.try_iter());
-    assert_eq!(result.logs, streamed);
+    assert!(
+        result.logs.is_empty(),
+        "streamed events must not be retained"
+    );
     assert!(streamed.iter().all(|p| p.seq == 1 && p.total == 1));
     assert!(streamed.iter().any(|p| matches!(&p.event, Event::Http(HttpEvent::Url { side: Side::One, url }) if url == &format!("{}/a?q=a+b", server.address))));
     assert!(streamed.iter().any(|p| matches!(&p.event, Event::Http(HttpEvent::Proxy { side: Side::One, host }) if host == &config.one.proxy)));
@@ -997,7 +1000,7 @@ async fn events_stream_before_http_and_during_sleep_and_match_retained_logs() {
 }
 
 #[tokio::test]
-async fn failure_stream_preserves_partial_events_and_all_running_trials() {
+async fn failure_stream_delivers_partial_events_without_retaining_them() {
     use jumeaux::executor::Event;
     use std::sync::{Arc, Mutex};
     let temp = Temp::new();
@@ -1018,24 +1021,23 @@ async fn failure_stream_preserves_partial_events_and_all_running_trials() {
         )
         .await
         .unwrap_err();
-    assert_eq!(failure.logs, *observed.lock().unwrap());
     assert!(
-        failure
-            .logs
-            .iter()
+        failure.logs.is_empty(),
+        "failed streams must not retain events"
+    );
+    let logs = observed.lock().unwrap();
+    assert!(
+        logs.iter()
             .any(|p| matches!(&p.event, Event::Failed(e) if e == &failure.error))
     );
-    assert!(!failure.logs.iter().any(|p| p.seq == 3));
+    assert!(!logs.iter().any(|p| p.seq == 3));
     assert!(
-        !failure
-            .logs
+        !logs
             .iter()
             .any(|p| p.seq == 1 && matches!(p.event, Event::Saved { .. }))
     );
     assert_eq!(
-        failure
-            .logs
-            .iter()
+        logs.iter()
             .filter(|p| p.seq == 2 && matches!(p.event, Event::Saved { .. }))
             .count(),
         4

@@ -74,6 +74,15 @@ pub fn merge_headers(endpoint: &Headers, request: &Headers) -> Headers {
         .collect()
 }
 
+pub(super) fn header_name(name: &str) -> Result<reqwest::header::HeaderName> {
+    reqwest::header::HeaderName::from_bytes(name.as_bytes()).map_err(|_| {
+        Error::new("InvalidHeader", format!(
+            "Invalid leading whitespace, reserved character(s), or return character(s) in header name: {}",
+            crate::compat::template::python_repr(name)
+        ))
+    })
+}
+
 pub(super) fn merge_headers_preserving_case(endpoint: &Headers, request: &Headers) -> Headers {
     let mut headers = Headers::from([(
         "User-Agent".into(),
@@ -309,6 +318,10 @@ pub fn prepare(endpoint: &AccessPoint, request: &Request) -> Result<PreparedRequ
         url.set_query(None);
     }
     let (body, content_type) = body(request)?;
+    // 大小文字の正規化より先に検査し、エラーに入力どおりの名前を残す。
+    for name in merge_headers_preserving_case(&endpoint.headers, &request.headers).keys() {
+        header_name(name)?;
+    }
     let mut headers = merge_headers(&endpoint.headers, &request.headers);
     if request.method == HttpMethod::Post
         && !body.is_empty()

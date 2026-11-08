@@ -30,6 +30,22 @@ impl Log {
     }
 }
 
+/// 保存用Vecと逐次通知を同じアドオン実装で扱う。ライブラリはstderrへ書かない。
+pub trait LogSink {
+    fn push(&mut self, log: Log);
+}
+impl LogSink for Vec<Log> {
+    fn push(&mut self, log: Log) {
+        Vec::push(self, log);
+    }
+}
+struct Observer<F>(F);
+impl<F: FnMut(&Log)> LogSink for Observer<F> {
+    fn push(&mut self, log: Log) {
+        (self.0)(&log);
+    }
+}
+
 pub struct Execution {
     pub payload: FinalPayload,
     pub logs: Vec<Log>,
@@ -73,14 +89,49 @@ impl Pipeline {
         self
     }
 
-    /// stdoutの書き込み先は呼出元で指定する。ログは戻り値だけに保持する。
+    /// stdoutの書き込み先は呼出元で指定する。ログは戻り値に保持する。
     pub async fn exec(
         &self,
         payload: FinalPayload,
         reference: &FinalReference,
         context: &Context,
-        mut stdout: impl FnMut(&str) -> Result<()>,
+        stdout: impl FnMut(&str) -> Result<()>,
     ) -> LoggedResult<Execution, Log> {
+        let mut logs = Vec::new();
+        match self
+            .exec_to(payload, reference, context, stdout, &mut logs)
+            .await
+        {
+            Ok(mut result) => {
+                result.logs = logs;
+                Ok(result)
+            }
+            Err(error) => Err(Failure { error, logs }),
+        }
+    }
+
+    /// 各アドオンのログを発生時に通知する。成功・失敗の戻り値へは重複保持しない。
+    pub async fn exec_with_log(
+        &self,
+        payload: FinalPayload,
+        reference: &FinalReference,
+        context: &Context,
+        stdout: impl FnMut(&str) -> Result<()>,
+        observer: impl FnMut(&Log),
+    ) -> LoggedResult<Execution, Log> {
+        self.exec_to(payload, reference, context, stdout, &mut Observer(observer))
+            .await
+            .map_err(Failure::from)
+    }
+
+    async fn exec_to(
+        &self,
+        payload: FinalPayload,
+        reference: &FinalReference,
+        context: &Context,
+        mut stdout: impl FnMut(&str) -> Result<()>,
+        logs: &mut impl LogSink,
+    ) -> Result<Execution> {
         let mut result = Execution {
             payload,
             logs: vec![],
@@ -98,15 +149,8 @@ impl Pipeline {
                 )?;
                 continue;
             }
-            if let Err(error) = self
-                .apply(config, &mut result, reference, context, &mut stdout)
-                .await
-            {
-                return Err(Failure {
-                    error,
-                    logs: result.logs,
-                });
-            }
+            self.apply(config, &mut result, reference, context, &mut stdout, logs)
+                .await?;
             if result.exit_code.is_some() {
                 break;
             }
@@ -121,9 +165,13 @@ impl Pipeline {
         reference: &FinalReference,
         context: &Context,
         stdout: &mut impl FnMut(&str) -> Result<()>,
+        logs: &mut impl LogSink,
     ) -> Result<()> {
         let payload = &result.payload;
-        let root = Path::new(&payload.output_summary.response_dir).join(&payload.report.key);
+        let root = std::path::PathBuf::from(format!(
+            "{}/{}",
+            payload.output_summary.response_dir, payload.report.key
+        ));
         match config {
             AddonConfig::FinalSummary(c) => {
                 let text = summary::render(&payload.report);
@@ -146,15 +194,15 @@ impl Pipeline {
                 std::fs::write(&c.output_path, c.render(&payload.report)?)
                     .map_err(|e| io_error(Path::new(&c.output_path), e))?;
             }
-            AddonConfig::FinalViewer(_) => viewer::save(&root, &mut result.logs)?,
-            AddonConfig::FinalMiroir(c) => c.send(payload, &mut result.logs).await?,
+            AddonConfig::FinalViewer(_) => viewer::save(&root, logs)?,
+            AddonConfig::FinalMiroir(c) => c.send(payload, logs).await?,
             AddonConfig::FinalNotify(c) => {
                 c.send(
                     &payload.report,
                     reference,
                     context,
                     &self.engine,
-                    &mut result.logs,
+                    logs,
                     &mut result.notifications,
                     &mut result.exit_code,
                 )

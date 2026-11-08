@@ -59,7 +59,7 @@ impl From<&ResponseSummary> for ProgressResponse {
 #[derive(Debug)]
 pub struct Execution {
     pub trials: Vec<Trial>,
-    /// 全イベントを通知順に保持する。保存などで停止した場合もFailure.logsへ返す。
+    /// execでは全イベントを保持する。exec_with_progressでは保持せず空を返す。
     pub logs: Vec<Progress>,
     pub started_at: chrono::DateTime<chrono::FixedOffset>,
     pub ended_at: chrono::DateTime<chrono::FixedOffset>,
@@ -111,11 +111,11 @@ impl Pipeline {
         key: &str,
         process_cookies: Option<ProcessCookieScope>,
     ) -> LoggedResult<Execution, Progress> {
-        self.exec_with_progress(transport, requests, key, process_cookies, |_| {})
+        self.exec_to(transport, requests, key, process_cookies, Stream::new(None))
             .await
     }
 
-    /// イベントは発生時に通知する。コールバックはworker上で直列に呼び、logsにも同じ順で残す。
+    /// イベントは発生時に通知する。コールバックはworker上で直列に呼び、logsには保持しない。
     /// コールバックは短時間で戻り、panicしないこと。channelへ送ってCLI側で整形してもよい。
     pub async fn exec_with_progress(
         self: &Arc<Self>,
@@ -124,6 +124,24 @@ impl Pipeline {
         key: &str,
         process_cookies: Option<ProcessCookieScope>,
         observer: impl FnMut(&Progress) + Send + 'static,
+    ) -> LoggedResult<Execution, Progress> {
+        self.exec_to(
+            transport,
+            requests,
+            key,
+            process_cookies,
+            Stream::new(Some(Box::new(observer))),
+        )
+        .await
+    }
+
+    async fn exec_to(
+        self: &Arc<Self>,
+        transport: Arc<HttpTransport>,
+        requests: Vec<Request>,
+        key: &str,
+        process_cookies: Option<ProcessCookieScope>,
+        logs: Arc<Stream>,
     ) -> LoggedResult<Execution, Progress> {
         self.runtime.check_cancelled()?;
         let concurrency = self.config.concurrency()?;
@@ -148,7 +166,6 @@ impl Pipeline {
         let mut running = tokio::task::JoinSet::new();
         let mut indices = HashMap::new();
         let mut completed = Vec::new();
-        let logs = Stream::new(observer);
         let mut stopped = false;
         loop {
             stopped |= self.runtime.check_cancelled().is_err();

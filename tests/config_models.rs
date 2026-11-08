@@ -223,7 +223,7 @@ fn optional_report_fields_and_arbitrary_json_nulls_follow_owlmixin() {
 }
 
 #[test]
-fn number_spelling_difference_is_observed_without_normalizing() {
+fn number_spelling_is_retained_in_models_and_normalized_when_writing_reports() {
     let cases = fixture("compat/fixtures/config-models.json");
     let case = cases
         .as_array()
@@ -257,15 +257,15 @@ fn number_spelling_difference_is_observed_without_normalizing() {
         .unwrap();
     let actual: Value = serde_json::from_slice(&bytes).unwrap();
     let python: Value = serde_json::from_str(case["expected"]["value"].as_str().unwrap()).unwrap();
-    assert_eq!(actual["trials"][0]["json"]["decimal"].to_string(), "1.2300");
+    assert_eq!(actual["trials"][0]["json"]["decimal"].to_string(), "1.23");
     assert_eq!(python["trials"][0]["json"]["decimal"].to_string(), "1.23");
-    assert_eq!(actual["trials"][0]["json"]["exponent"].to_string(), "1e+2");
+    assert_eq!(actual["trials"][0]["json"]["exponent"].to_string(), "100.0");
     assert_eq!(python["trials"][0]["json"]["exponent"].to_string(), "100.0");
     assert_eq!(
         actual["trials"][0]["json"]["big"],
         python["trials"][0]["json"]["big"]
     );
-    assert_ne!(
+    assert_eq!(
         String::from_utf8(bytes).unwrap(),
         case["expected"]["value"].as_str().unwrap()
     );

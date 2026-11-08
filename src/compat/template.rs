@@ -47,6 +47,7 @@ impl TemplateEngine {
         });
         env.add_function("calc_distance_km", calc_distance_km);
         env.add_function("equals_without_host", equals_without_host);
+        env.add_function("dict", python_dict);
         env.add_filter("int", python_int);
         env.add_filter("float", python_float);
         env.add_filter("tojson", python_tojson);
@@ -60,6 +61,17 @@ impl TemplateEngine {
         env.add_filter("join", python_join);
         env.add_filter("replace", python_replace);
         env.add_filter("urlencode", python_urlencode);
+        env.add_filter("attr", python_attr);
+        env.add_function("__jumeaux_attr", python_attr);
+        for name in ["length", "count"] {
+            env.add_filter(name, |value: &Value| {
+                if value.is_undefined() {
+                    Ok(0)
+                } else {
+                    minijinja::filters::length(value)
+                }
+            });
+        }
         use minijinja_contrib::{filters, globals};
         env.add_filter(
             "truncate",
@@ -169,7 +181,7 @@ impl TemplateEngine {
         let ast = serde_json::to_value(ast)
             .map_err(|e| Error::new("TemplateSyntaxError", e.to_string()))?;
         validate_names(&ast, &env.empty_state())?;
-        env.add_template_owned(template.to_owned(), template.to_owned())
+        env.add_template_owned(template.to_owned(), bind_method_references(template, &ast))
             .map_err(template_error)
     }
 
@@ -191,6 +203,191 @@ impl TemplateEngine {
         let rendered = self.render(&format!("{{{{{expression}}}}}"), data)?;
         literal_eval(&rendered)
     }
+}
+
+/// MiniJinjaのメソッド名前空間を、Python同様にcallableとして参照できるようにする。
+/// 呼び出し先の属性はそのまま残し、属性値の参照だけをASTの位置情報から変換する。
+fn bind_method_references(source: &str, ast: &Json) -> String {
+    fn expression_start(node: &Json) -> Option<usize> {
+        match node {
+            Json::Object(fields) => {
+                let here = node["inner"][1]["start_offset"]
+                    .as_u64()
+                    .map(|v| v as usize);
+                here.into_iter()
+                    .chain(fields.values().filter_map(expression_start))
+                    .min()
+            }
+            Json::Array(items) => items.iter().filter_map(expression_start).min(),
+            _ => None,
+        }
+    }
+    fn collect(node: &Json, source: &str, callee: bool, edits: &mut Vec<(usize, usize, String)>) {
+        if node["expr"] == "GetAttr" && !callee {
+            let name = node["inner"][0]["name"].as_str().unwrap();
+            if is_python_method(name) {
+                let span = &node["inner"][1];
+                // postfixのspanは直前のドットや括弧から始まる場合がある。
+                let start = expression_start(node).unwrap();
+                let end = span["end_offset"].as_u64().unwrap() as usize;
+                let dot = start + source[start..end].rfind('.').unwrap();
+                edits.push((start, start, "__jumeaux_attr(".into()));
+                edits.push((dot, end, format!(", {name:?})")));
+            }
+        }
+        match node {
+            Json::Object(fields) => {
+                if node["expr"] == "Call" {
+                    let inner = &node["inner"][0];
+                    collect(&inner["expr"], source, true, edits);
+                    collect(&inner["args"], source, false, edits);
+                    return;
+                }
+                for child in fields.values() {
+                    collect(child, source, false, edits);
+                }
+            }
+            Json::Array(items) => {
+                for child in items {
+                    collect(child, source, false, edits);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut edits = Vec::new();
+    collect(ast, source, false, &mut edits);
+    let mut rendered = source.to_owned();
+    edits.sort_by_key(|(start, end, _)| (*start, *end));
+    for (start, end, replacement) in edits.into_iter().rev() {
+        rendered.replace_range(start..end, &replacement);
+    }
+    rendered
+}
+
+fn is_python_method(name: &str) -> bool {
+    matches!(
+        name,
+        "get"
+            | "get_or"
+            | "is_none"
+            | "is_some"
+            | "any"
+            | "map"
+            | "flat_map"
+            | "keys"
+            | "values"
+            | "items"
+            | "upper"
+            | "lower"
+            | "islower"
+            | "isupper"
+            | "isspace"
+            | "isdigit"
+            | "isnumeric"
+            | "isalnum"
+            | "isalpha"
+            | "isascii"
+            | "strip"
+            | "lstrip"
+            | "rstrip"
+            | "replace"
+            | "title"
+            | "split"
+            | "splitlines"
+            | "capitalize"
+            | "count"
+            | "find"
+            | "format"
+            | "rfind"
+            | "startswith"
+            | "endswith"
+            | "join"
+    )
+}
+
+fn python_attr(value: Value, name: &str) -> MiniResult<Value> {
+    if value
+        .downcast_object_ref::<super::values::PythonOption>()
+        .is_some()
+    {
+        return value.get_attr(name);
+    }
+    let method = match value.kind() {
+        ValueKind::String => matches!(
+            name,
+            "upper"
+                | "lower"
+                | "islower"
+                | "isupper"
+                | "isspace"
+                | "isdigit"
+                | "isnumeric"
+                | "isalnum"
+                | "isalpha"
+                | "isascii"
+                | "strip"
+                | "lstrip"
+                | "rstrip"
+                | "replace"
+                | "title"
+                | "split"
+                | "splitlines"
+                | "capitalize"
+                | "count"
+                | "find"
+                | "format"
+                | "rfind"
+                | "startswith"
+                | "endswith"
+                | "join"
+        ),
+        ValueKind::Map => matches!(name, "keys" | "values" | "items" | "get"),
+        ValueKind::Seq => name == "count",
+        _ => false,
+    };
+    if method
+        && value
+            .downcast_object_ref::<super::values::Response>()
+            .is_none()
+    {
+        let name = name.to_owned();
+        return Ok(Value::from_function(
+            move |state: &mut State, args: Rest<Value>| value.call_method(state, &name, &args),
+        ));
+    }
+    value.get_attr(name)
+}
+
+fn python_dict(value: Option<Value>, kwargs: Kwargs) -> MiniResult<Value> {
+    let value = if let Some(value) = value {
+        if value.kind() == ValueKind::Map {
+            Some(value)
+        } else {
+            let mut pairs = Vec::new();
+            for item in value.try_iter()? {
+                let items = if let Some(text) = item.as_str() {
+                    text.chars()
+                        .map(|c| Value::from(c.to_string()))
+                        .collect::<Vec<_>>()
+                } else {
+                    item.try_iter()?.collect()
+                };
+                if items.len() != 2 {
+                    return Err(minijinja::Error::new(
+                        minijinja::ErrorKind::InvalidOperation,
+                        "dict expects pairs",
+                    )
+                    .with_source(Error::new("ValueError", "dict expects pairs")));
+                }
+                pairs.push((items[0].clone(), items[1].clone()));
+            }
+            Some(Value::from_pairs(pairs))
+        }
+    } else {
+        None
+    };
+    minijinja::functions::dict(value, kwargs)
 }
 
 fn validate_names(node: &Json, state: &State) -> Result<()> {
@@ -649,7 +846,10 @@ fn template_error(error: minijinja::Error) -> Error {
     let kind = match error.kind() {
         minijinja::ErrorKind::UndefinedError => "UndefinedError",
         minijinja::ErrorKind::SyntaxError => "TemplateSyntaxError",
-        minijinja::ErrorKind::UnknownMethod | minijinja::ErrorKind::InvalidOperation => "TypeError",
+        minijinja::ErrorKind::UnknownMethod
+        | minijinja::ErrorKind::InvalidOperation
+        | minijinja::ErrorKind::MissingArgument
+        | minijinja::ErrorKind::TooManyArguments => "TypeError",
         _ => "TemplateError",
     };
     Error::new(kind, error.to_string())
@@ -729,7 +929,7 @@ pub(crate) fn python_float_repr(value: f64) -> String {
     }
 }
 
-fn python_repr(text: &str) -> String {
+pub(crate) fn python_repr(text: &str) -> String {
     let quote = if text.contains('\'') && !text.contains('"') {
         '"'
     } else {

@@ -19,6 +19,14 @@ RULES = load(HERE / "comparison.json")
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_stage_elapsed_normalization_requires_microsecond_precision(self):
+        for duration in ("0.0", "0.057", "1.23"):
+            line = f"[1 / 2] ⏰ Judgement:   {duration}ms\n".encode()
+            self.assertEqual(text(line, [], RULES), "[1 / 2] ⏰ Judgement:   <elapsed_sec>\n")
+        for duration in ("0", "0.057123", "1.0000", "-0.1", "1e-5"):
+            line = f"[1 / 2] ⏰ Judgement:   {duration}ms\n".encode()
+            self.assertEqual(text(line, [], RULES), line.decode())
+
     def test_rust_comparison_settings_are_required_and_checked(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "simple"
@@ -220,11 +228,44 @@ class ComparisonTests(unittest.TestCase):
             with self.subTest(stream=stream):
                 self.assertEqual(text(value, [], RULES, stream), value.decode())
 
+    def test_retry_counter_transport_exclusion_is_limited_to_run_stderr(self):
+        for remaining in (2, 1, 0):
+            value = f"Incremented Retry for (url='/api/one/x?key=value'): Retry(total={remaining}, connect=None, read=None, redirect=None, status=None)\n".encode()
+            with self.subTest(remaining=remaining):
+                self.assertEqual(text(value, [], RULES, "run.stderr"), "")
+                for stream in ("run.stdout", "cli.stderr", "retry.stderr"):
+                    with self.subTest(stream=stream):
+                        self.assertEqual(text(value, [], RULES, stream), value.decode())
+
+    def test_retry_transport_exclusion_preserves_warnings_and_application_logs(self):
+        for value in (
+            b"Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError': /api/one/x\n",
+            b"[DEBUG] Incremented Retry for (url='/api/one/x'): Retry(total=2, connect=None, read=None, redirect=None, status=None)\n",
+            b"Incremented Retry for (url='/api/one/x'): application message\n",
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(text(value, [], RULES, "run.stderr"), value.decode())
+
     def test_application_log_changes_are_detected(self):
         def mutate(target):
             path = target / "run.stderr"
             path.write_bytes(path.read_bytes().replace(b"[final/viewer] Create", b"[final/viewer] Wrong"))
         self.mutated_case("verbose_3", mutate)
+
+    def test_webhook_transport_exclusion_has_exact_destination_and_method(self):
+        excluded = b'Starting new HTTP connection (1): localhost:8001\nhttp://localhost:8001 "POST /webhook HTTP/1.1" 200 2\n'
+        for stream in ("run.stderr", "retry.stderr"):
+            self.assertEqual(text(excluded, [], RULES, stream), "")
+            for value in (
+                b'http://localhost:8001 "GET /webhook HTTP/1.1" 200 2\n',
+                b'http://localhost:8001 "POST /other HTTP/1.1" 200 2\n',
+                b'http://localhost:8002 "POST /webhook HTTP/1.1" 200 2\n',
+                b'Notify using slack@v2\n',
+                b'[final/notify] Notify by hook. (notify.when => None)\n',
+            ):
+                self.assertEqual(text(value, [], RULES, stream), value.decode())
+        for stream in ("run.stdout", "retry.stdout", "cli.stderr"):
+            self.assertEqual(text(excluded, [], RULES, stream), excluded.decode())
 
     def test_template_list_order_is_ignored(self):
         for case in ("init_no_args", "init_invalid"):

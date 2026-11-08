@@ -66,7 +66,8 @@ uv run --project compat/harness python compat/harness/run.py
 
 - Rust CLIの受入結果は35/35一致。
   - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
-  - 自己検証: 比較規則のmutationテストを含む39テストが成功する。
+  - 自己検証: 比較規則のmutationテストを含む43テストが成功する。`⏰`行の精度と、通知用transport行・再試行カウンタ行の除外範囲も検証する。
+  - 通知verbose: urllib3のローカルWebhook接続・POST行はrun/retry.stderrだけで除外する。通知のアプリログ・payload・送信回数は比較する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
 
@@ -117,7 +118,7 @@ cargo test --test challenge_e2e -- --ignored --nocapture
   - processes: 公開APIの既定値PerTrialで検証する。threadsではCookieを共有し、processesではtrialごとに分離する。
 - verbose_2の33行・verbose_3の45行に必要なデータとレベルを構造化イベントで検証する。
   - 比較: trial開始からDid challengeまでのアプリ側の行。計測時間・動的port・User-Agentのversionだけを正規化する。
-  - ストリーミング: `exec_with_progress`の通知がHTTP前・sleep中に届くことと、成功・失敗時のlogsに同じ順で保持されることを検証する。
+  - ストリーミング: `exec_with_progress`の通知がHTTP前・sleep中に届き、成功・失敗時ともlogsへ重複保持しないことを検証する。コールバックのない`exec`のログ保持は維持する。
 - Python基準の.venvが必要なE2Eだけ通常のcargo testではignoredとする。
   - 実行: 上記の`--ignored`付きコマンドで明示的に動かす。
 
@@ -196,8 +197,8 @@ diff -r compat/fixtures /tmp/jumeaux-fixtures
   - fixture: `original_config` は元設定を明示するAPIの入力契約を示す。保存済みcomparisonと旧reportの補完は `tests/review_fixes.rs` で別途検証する。
 - 既存テストからテンプレート式、正規表現、encoding決定、HTML/XMLの入力を取り込む。
 - Rustの互換モジュールは`cargo test --test compat_template --test compat_regex --test compat_encoding -- --nocapture`で検証する。
-  - 件数: template 216、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
-  - 許容した差異: template 23件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
+  - 件数: template 226、regex 82、encoding 267。既存ケースの期待値は保持し、不足した境界ケースを追加した。
+  - 許容した差異: template 22件、regex 15件、encoding 28件を明示検証する。encodingの`detect-euc`もPython期待値とRust結果を両方assertする。
   - 別名: Windows-31J・cswindows31jはPythonでもcp932へ解決される。別名をそのまま指定して採取し、`input.python_codec`に解決先を記載する。
   - HTML: `dump_html`の`decoded_text`・`formatted_text`はPythonで採取した中間値。ここでは文字コード境界を検証し、Rustの整形結果との接続はmarkup統合で検証する。
 - 既存ユニットテスト一式は `gen/environment.py` で一時コピーを実行する。
@@ -234,11 +235,16 @@ cargo test --test markup -- --nocapture
 cargo test --test response_judgement -- --nocapture
 ```
 
-- 関数fixtureは279件。
-  - Python一致: 229件。
+- 関数fixtureは289件。
+  - Python一致: 239件。
   - 承認済み差異: 特殊パスの値取得修正7件、非有限数41件、lone surrogate 2件。Python観測値と`rust_expected`を両方保持する。
   - 未決: 0件。
   - 境界: Optionのvalue、整数の負のゼロ、深さ129・200の読み込みとソートもPythonと比較する。非有限数はjson_sort・res2dict/json・when・diffを同じ入力で比較する。
+- Optionメソッドは別途137件をPythonの実際の式環境で採取し、全件一致する。
+  - 対象: `any()`・`map(func)`・`flat_map(func)`、メソッド参照、`attr`、公開済みグローバル、Noneの短絡、引数・戻り値のエラー。
+  - 採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/option_methods.py > compat/fixtures/template/option-methods.json`
+  - 検証: `cargo test --test compat_template -- --nocapture`
+  - 設定: sameとignoreで各5件の式を検証する。renameは未定義nameのlengthを0として描画する回帰fixtureを含む。
 - `cargo test --test json_boundary`で深さ1,000と1,001を検証する。
   - 実行: 子プロセス内の2MiBスタックから、配列・辞書・混在JSONの読み込み・ソート・diff・破棄を呼び出す。
   - エラー: 非有限数のエラー種別とメッセージを全入口で検証する。json_sortからres2dict/jsonへの連結も検証する。
@@ -262,7 +268,7 @@ diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
 
 - `config-models.json` は32件。
   - Python一致: 設定6件、モデル12件、TextIOWrapperの出力12件。
-  - 許容した差異: RequestとReportの数値表記2件。serde_jsonで正規化した表記を使い、Python期待値との差を明示検証する。
+  - 数値表記: Request内部はserde_jsonの表記を維持する。Report保存はPythonのfloat reprへ正規化し、既存fixtureの期待bytesと一致する。BigIntは丸めない。
 - 基準report31件はJSON値とbytesの往復を検証する。
   - 対象: テンプレート15種と追加ケース。可変値も除外しない。
   - 例外: encoding_hellは終了コード1とreport不存在を確認する。既存基準を作り直さない。

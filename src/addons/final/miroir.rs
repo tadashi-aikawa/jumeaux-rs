@@ -1,7 +1,6 @@
 //! Python addons/final/miroir.py と同じDynamoDB項目・S3成果物を保存する。
-use super::Log;
 #[cfg(feature = "miroir")]
-use super::{io_error, write_text};
+use super::{Log, io_error, write_text};
 use crate::{
     addons::payload::FinalPayload,
     compat::{Error, Result},
@@ -96,7 +95,11 @@ impl Config {
     }
 
     #[cfg(not(feature = "miroir"))]
-    pub async fn send(&self, _payload: &FinalPayload, _logs: &mut Vec<Log>) -> Result<()> {
+    pub async fn send(
+        &self,
+        _payload: &FinalPayload,
+        _logs: &mut impl super::LogSink,
+    ) -> Result<()> {
         Err(disabled())
     }
 }
@@ -180,7 +183,11 @@ mod enabled {
             item
         }
 
-        pub async fn send(&self, payload: &FinalPayload, logs: &mut Vec<Log>) -> Result<()> {
+        pub async fn send(
+            &self,
+            payload: &FinalPayload,
+            logs: &mut impl super::super::LogSink,
+        ) -> Result<()> {
             self.validate()?;
             let report = &payload.report;
             if self.when.contains(&When::NotEmpty) && report.trials.is_empty() {
@@ -297,7 +304,10 @@ mod enabled {
             )
             .await?;
 
-            let root = Path::new(&payload.output_summary.response_dir).join(&report.key);
+            let root = std::path::PathBuf::from(format!(
+                "{}/{}",
+                payload.output_summary.response_dir, report.key
+            ));
             for which in ["one", "one-props", "other", "other-props"] {
                 let dir = root.join(which);
                 let entries = std::fs::read_dir(&dir)
@@ -332,7 +342,7 @@ mod enabled {
                     &payload.output_summary,
                 )?;
                 // ディスク上に一時ZIPを作る。レスポンス全件をメモリへ載せない。
-                let zip_path = root.with_file_name(format!("{}.zip", report.key));
+                let zip_path = std::path::PathBuf::from(format!("{}.zip", root.display()));
                 archive(&root, &zip_path)?;
                 logs.push(Log::new(
                     Verbosity::VeryVerbose,

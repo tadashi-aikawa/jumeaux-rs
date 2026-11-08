@@ -86,6 +86,81 @@ impl Server {
         stream.read_to_string(&mut response).unwrap();
         response
     }
+    fn expect_log_suffix(&self, suffix: &str) {
+        loop {
+            let line = self
+                .logs
+                .recv_timeout(std::time::Duration::from_secs(2))
+                .unwrap();
+            if line.ends_with(suffix) {
+                return;
+            }
+        }
+    }
+}
+
+#[test]
+fn server_logs_all_statuses_and_guesses_mime_types() {
+    let s = Server::start(false);
+    for (method, path, status, error) in [
+        (
+            "GET",
+            "/missing",
+            404,
+            Some("code 404, message File not found"),
+        ),
+        (
+            "HEAD",
+            "/missing",
+            404,
+            Some("code 404, message File not found"),
+        ),
+        ("GET", "/responses", 301, None),
+        ("GET", "/", 200, None),
+        (
+            "PUT",
+            "/",
+            501,
+            Some("code 501, message Unsupported method ('PUT')"),
+        ),
+    ] {
+        let response = s.request(method, path, "", "text/plain");
+        assert!(
+            response.starts_with(&format!("HTTP/1.0 {status}")),
+            "{response}"
+        );
+        if let Some(error) = error {
+            s.expect_log_suffix(error);
+        }
+        s.expect_log_suffix(&format!("\"{method} {path} HTTP/1.1\" {status} -"));
+    }
+    for (extension, mime) in [
+        ("gif", "image/gif"),
+        ("pdf", "application/pdf"),
+        ("wasm", "application/wasm"),
+        ("woff2", "font/woff2"),
+        ("ico", "image/x-icon"),
+        ("mp4", "video/mp4"),
+        ("ZIP", "application/zip"),
+        ("gz", "application/gzip"),
+        ("bz2", "application/x-bzip2"),
+        ("xz", "application/x-xz"),
+        ("js", "text/javascript"),
+        ("yml", "application/yaml"),
+        ("yaml", "application/yaml"),
+        ("YML", "application/yaml"),
+        ("YAML", "application/yaml"),
+        ("unknown-extension", "application/octet-stream"),
+    ] {
+        let name = format!("file.{extension}");
+        std::fs::write(s.root.join(&name), "body").unwrap();
+        let response = s.request("GET", &format!("/{name}"), "", "text/plain");
+        assert!(
+            response.contains(&format!("Content-Type: {mime}\r\n")),
+            "{extension}: {response}"
+        );
+        s.expect_log_suffix(&format!("\"GET /{name} HTTP/1.1\" 200 -"));
+    }
 }
 impl Drop for Server {
     fn drop(&mut self) {
@@ -146,6 +221,38 @@ fn static_server_supports_get_head_post_and_paths() {
 
 #[cfg(unix)]
 #[test]
+fn viewer_polling_does_not_log_access_but_file_requests_do() {
+    let s = Server::start(true);
+    for (method, path) in [
+        ("GET", "/__jumeaux_reload"),
+        ("GET", "/__jumeaux_reload"),
+        ("GET", "/__jumeaux_reload?poll=1"),
+        ("HEAD", "/__jumeaux_reload"),
+    ] {
+        let response = s.request(method, path, "", "text/plain");
+        assert!(response.starts_with("HTTP/1.0 200 OK"), "{response}");
+        assert!(response.contains("Cache-Control: no-store\r\n"));
+        if method == "HEAD" {
+            assert!(response.ends_with("\r\n\r\n"));
+        }
+    }
+    let response = s.request("GET", "/report.json", "", "text/plain");
+    assert!(response.ends_with("{\"key\":\"first\"}"));
+    // 通常のアクセスログを受け取るまで、先行したポーリングのログも検査する。
+    loop {
+        let line = s
+            .logs
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .unwrap();
+        assert!(!line.contains("/__jumeaux_reload"), "{line}");
+        if line.ends_with("\"GET /report.json HTTP/1.1\" 200 -") {
+            break;
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn viewer_tracks_report_changes_and_latest_replacement_without_browser() {
     let s = Server::start(true);
     let html = s.request("GET", "/", "", "text/plain");
@@ -165,6 +272,7 @@ fn viewer_tracks_report_changes_and_latest_replacement_without_browser() {
     .unwrap();
     let second = s.request("GET", "/__jumeaux_reload", "", "text/plain");
     assert_ne!(second.split("\r\n\r\n").nth(1).unwrap(), first);
+    s.expect_log_suffix("Reload viewer.");
     std::fs::create_dir(s.root.join("responses/next")).unwrap();
     std::fs::write(
         s.root.join("responses/next/report.json"),
@@ -182,4 +290,5 @@ fn viewer_tracks_report_changes_and_latest_replacement_without_browser() {
         third.split("\r\n\r\n").nth(1),
         second.split("\r\n\r\n").nth(1)
     );
+    s.expect_log_suffix("Reload viewer.");
 }

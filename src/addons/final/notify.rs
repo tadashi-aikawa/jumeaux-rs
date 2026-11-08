@@ -26,7 +26,7 @@ impl Config {
         reference: &crate::addons::payload::FinalReference,
         context: &crate::notification::Context,
         engine: &crate::compat::template::TemplateEngine,
-        logs: &mut Vec<super::Log>,
+        logs: &mut impl super::LogSink,
         outcomes: &mut Vec<crate::notification::Outcome>,
         exit_code: &mut Option<u8>,
     ) -> crate::compat::Result<()> {
@@ -39,7 +39,7 @@ impl Config {
                 Verbosity::Error,
                 "[final/notify] There are no notifiers. Please set notifiers in config.",
             ));
-            logs.push(super::Log::new(Verbosity::Error, "[final/notify] See https://tadashi-aikawa.github.io/jumeaux/ja/getstarted/configuration/"));
+            logs.push(super::Log::new(Verbosity::Error, "[final/notify] See https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/configuration/"));
             *exit_code = Some(1);
             return Ok(());
         };
@@ -85,16 +85,16 @@ impl Config {
                 format!("Notify using slack@v{}", notifier.version),
             ));
             let outcome = notification::notify(notifier, &message, context).await?;
-            logs.extend(outcome.logs.iter().map(|l| {
-                super::Log::new(
+            for l in &outcome.logs {
+                logs.push(super::Log::new(
                     match l.level {
                         Level::Info => Verbosity::Normal,
                         Level::Warning => Verbosity::Warning,
                         Level::Error => Verbosity::Error,
                     },
                     l.message.clone(),
-                )
-            }));
+                ));
+            }
             outcomes.push(outcome);
         }
         for outcome in &outcomes[start..] {

@@ -1,8 +1,53 @@
 use jumeaux::compat::{
     template::{self, TemplateEngine},
-    values::{Request, Response, checked_context, from_json_for_when},
+    values::{Request, Response, TemplateInput, checked_context, from_json_for_when},
 };
 use serde_json::{Value, json};
+
+#[test]
+fn python_option_method_fixtures() {
+    let cases: Vec<Value> = serde_json::from_str(include_str!(
+        "../compat/fixtures/template/option-methods.json"
+    ))
+    .unwrap();
+    let engine = TemplateEngine::new();
+    let mut failures = Vec::new();
+    for case in &cases {
+        let input = &case["input"];
+        let context = checked_context(minijinja::context!(
+            one => jumeaux::compat::values::optional(Some(&input["data"]["one"])).unwrap().into_when_value(),
+            other => jumeaux::compat::values::optional(Some(&input["data"]["other"])).unwrap().into_when_value(),
+            empty => jumeaux::compat::values::optional(None).unwrap().into_when_value(),
+        )).unwrap();
+        let expression = input["expression"].as_str().unwrap();
+        let actual = if input["render"] == true {
+            let template = if expression.starts_with("{%") {
+                expression.to_owned()
+            } else {
+                format!("{{{{{expression}}}}}")
+            };
+            engine
+                .render(&template, context.into_when_value())
+                .map(Value::from)
+        } else {
+            engine
+                .when(expression, context)
+                .and_then(|value| value.to_json())
+        };
+        let actual = match actual {
+            Ok(value) => json!({"value": value}),
+            Err(error) => json!({"error": error.kind}),
+        };
+        if actual != case["expected"] {
+            failures.push(format!(
+                "{}: actual={actual}, expected={}",
+                case["name"], case["expected"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    println!("Optionメソッド: {}/{} Python一致", cases.len(), cases.len());
+}
 
 #[test]
 fn python_template_fixtures() {

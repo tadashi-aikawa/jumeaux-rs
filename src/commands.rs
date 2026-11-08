@@ -248,7 +248,7 @@ __/\__  / ___|___  _ __  / _(_) __ _  __/\__
     runtime.check_cancelled()?;
     let stdout = config.output.stdout()?;
     let result = final_pipeline
-        .exec(
+        .exec_with_log(
             FinalPayload {
                 report,
                 output_summary: config.output,
@@ -258,21 +258,12 @@ __/\__  / ___|___  _ __  / _(_) __ _  __/\__
             },
             &context,
             |s| stdout.write_text(s),
+            |log| logger.log(log.level, &log.message),
         )
         .await;
     stdout.flush()?;
     match result {
-        Ok(result) => {
-            for log in result.logs {
-                logger.log(log.level, log.message);
-            }
-            Ok(result.exit_code.unwrap_or(0))
-        }
-        Err(e) => {
-            for log in e.logs {
-                logger.log(log.level, log.message);
-            }
-            Err(e.error)
-        }
+        Ok(result) => Ok(result.exit_code.unwrap_or(0)),
+        Err(e) => Err(e.error),
     }
 }

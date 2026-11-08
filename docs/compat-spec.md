@@ -168,7 +168,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - JSONの整数は桁を落とさず保持し、多倍長整数として比較する。小数・指数表記はPythonと同じくf64として比較する。
   - 例: `18446744073709551616` と `18446744073709551617` はchanged、`1e2` と `100.0` は同値。
   - 実装: serde_jsonの `arbitrary_precision` を有効にする。通常の `Value` の等値比較は数値リテラルの表記に依存するため、差分判定には使わない。
-  - 保存への影響: 大きな整数はJSON numberのまま往復できる。小数・指数の再出力はserde_jsonで正規化した表記とし、「許容した差異」で固定する。
+  - 保存への影響: 大きな整数はJSON numberのまま往復できる。report.json・propの小数・指数は保存時にPythonのfloat reprへ正規化する。モデル内の値は変更しない。
 - HTMLはBeautifulSoup+lxmlの補完とprettify後のdictを基準にする。
   - 内容: 属性 `#attr`、本文 `##value`、同名タグのリスト、空タグ、script、混在テキストの空白。
 - XMLはxmltodictのdictを基準にする。
@@ -242,11 +242,24 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - ヘッダ: 判定有効時は名前と除外キーのASCII大小を無視する。値は完全一致。無効時はregard_as_same_headerをtrueにする。
 - ignoreとsameはregard_as_same_bodyがtrueなら処理をスキップする。
   - ヘッダ: どちらもregard_as_same_headerは変更しない。最終sameはbodyとheaderの両方がtrueの場合だけ。
-  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`get`・`get_or`・`is_none`メソッドを公開する。
+  - 式入力: reqはname・path・qs・headers。res_one・res_otherはResponseオブジェクト。dict_one・dict_otherとres_one.encoding等のOptionは、`value`属性と`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`メソッドを公開する。
   - Pythonの公開IF: owlmixin 7.0.1のTOptionは`any`・`flat_map`・`get`・`get_or`・`is_none`・`map`・`value`を持つ。`is_some`は持たない。
-  - Rustの残件: `any`・`flat_map`・`map`は後続タスクで実装する。
-    - 決定: 2026-11-08。
-    - 現状: 実装までは式から呼ぶとエラーになる。
+  - Optionメソッド: `any()`は引数なしで値の有無を返す。Noneだけがfalseで、0・false・空文字列・空配列・空dictはtrue。
+    - 実装済み: `map(func)`は変換結果をOptionで包む。`flat_map(func)`は変換結果の`get()`を呼び、その値をOptionで包む。
+    - None: コールバックを呼ばず、NoneのOptionを返す。非callableや未定義の引数でも呼び出さない。
+    - 引数: `func=`を受け付ける。非Noneに非callableを渡すとTypeError、未定義の関数ならUndefinedError。引数の不足・過剰・重複もTypeError。
+    - 戻り値: `flat_map`のコールバックが`get`を持たなければAttributeError。dictなど引数を要する`get`ならTypeError。
+    - 制限: `when`は描画後にliteral_evalする。文字列を返す例では比較式か`tojson`が必要。
+  - 式から渡せるcallableは、公開済みのグローバル関数とオブジェクトのメソッド参照。
+    - Option: `dict_one.map(dict_other.get_or).get().a == 2`。別Optionの値を使える。`map`・`flat_map`自身も渡せるが、受け取る値をcallableとして扱うため引数の型に従う。
+    - 文字列: `res_one.encoding.map('utf-8'.startswith).get()`。既存のPython文字列メソッドを参照できる。
+    - 辞書: `res_one.encoding.map({'utf-8': True}.get).get()`。リストの`count`も参照できる。
+    - attr: `res_one.encoding.map({'utf-8': True}|attr('get')).get()`。Optionや文字列のメソッドも取得できる。
+    - グローバル: `dict`・`range`などJinja2が公開するcallableを渡せる。例は`opt.map(range).get()|list`。`dict`はキーと値のペアからの構築も受け付ける。
+    - テンプレート: 描画文字列では`set`で保存したメソッドや`macro`も渡せる。`when`の式内ではマクロを定義できない。
+    - flat_map: `dict_one.flat_map(dict_other.map).is_none()`はdict_otherがNoneならtrue。コールバックが返すOptionの値を取り出す。
+  - 式から呼べない形: `lambda x: ...`はTemplateSyntaxError。Pythonの組み込み`len`・`str`・`bool`は式へ公開されておらず、非Noneの`map`に渡すとUndefinedError。
+    - any: `any(func)`という形式はTOptionの公開IFに存在せず、式から呼ぶとTypeError。
   - 入力検査: dictはres2dictとinitial_payloadで検査する。Option生成時の`values::optional`は数値変換中に非有限値を拒否し、Resultを返す。whenごとにdict全体を検査し直さない。
   - whenの入口: TemplateInputは検査済みの`CheckedContext`とその参照だけに実装する。生のserde_json::Value・MiniJinja Valueをwhenへ直接渡すとコンパイルエラーになる。
   - 構築: JSONは`values::from_json_for_when`、MiniJinja値は`values::checked_context`で一度検査する。検査済みの値の結合には`CheckedContext::from_pairs`を使い、各whenでは再検査しない。renderは別のRenderInputで従来の表示互換を保つ。
@@ -291,9 +304,13 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - PythonランタイムのDeprecationWarningは基準採取時に抑制する。
   - 方法: `PYTHONWARNINGS=ignore`。依存ライブラリが警告設定を上書きするため、Pythonラッパーはimport後にも再設定する。
 - verboseログの計測時間はresponse_sec・elapsed_secに対応する箇所だけ正規化する。
-- urllib3がrunのstderrへ出す接続・応答ログは比較から外す。
+- urllib3がrunのstderrへ出す接続・応答・再試行カウンタのログは比較から外す。
   - 対象: `Starting new HTTP connection` と `http://... "GET ..." 200 ...` 形式の行。具体的なパターンは `excluded_transport_lines` に列挙する。
+  - 再試行カウンタ: `-vvv`で出る`Incremented Retry for (url='...'): Retry(total=N, connect=None, read=None, redirect=None, status=None)`形式の行も同じ除外へ含める。`Retrying (...) after connection broken by ...`の行は比較を維持する。
   - 理由: HTTPライブラリ固有の出力であり、Rust版に同じ行を要求しない。API記録の比較は維持する。
+- 通知用urllib3の接続・POSTログもRustでは出力せず、run・retryのstderr比較から外す。
+  - 対象: ローカル受信先`localhost:8001`への接続行と`POST /webhook HTTP/1.1`の応答行だけ。`excluded_notification_transport_lines`へ明記する。
+  - 維持: 通知payload・送信回数・HTTP結果とアプリ側の通知ログは比較する。別port・別path・GET・stdout・cli.stderrへは除外を適用しない。
 - User-Agentログの `jumeaux/[0-9.]+` は `jumeaux/<version>` へ正規化する。
   - 扱い: 製品版番号の差としてversionの比較除外に含める。
 - 作業ディレクトリ全体のツリーとファイルを比較する。
@@ -397,9 +414,10 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - blockのtupleヘッダはJSONへ保存できない。
   - Python版: アドオン実行は成功し、prop fileのJSON保存時にTypeErrorとなる。
   - Rust版: 保存前のblock実行時にTypeErrorとなる。fixtureは保存時の失敗までを境界契約とする。
-- JSON numberはserde_jsonで正規化した表記を使う。
-  - 例: `1e2` は `1e+2`。Pythonの `100.0` とは一致しない。`1.2300` はRustで `1.2300`、Pythonで `1.23`。
-  - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
+- モデル内部のJSON numberはserde_jsonの表記を保持する。
+  - 例: Requestの内部値は`1e2`が`1e+2`、`1.2300`が`1.2300`となる。
+  - 保存: report.jsonはPythonと一致する。`1.5e-7`・`1e+2`・`0.00001`・`1.10`は`1.5e-07`・`100.0`・`1e-05`・`1.1`として出力する。旧方針の「serde_jsonの正規化表記」はReport保存には適用しない。
+  - 検証: 既存Request・Reportの数値fixtureを維持し、Reportは期待bytesとの一致を検証する。整数はBigIntのまま出力し、`18446744073709551617`も丸めない。
 - YAML 1.1固有の数値表記を受理しない。
   - 例: Pythonの `010` は8、`1_000` は1000となる。Rustの数値フィールドではエラーとする。
 - YAML入力のjson・form本文はYAML 1.2相当の文字列解釈を許容する。
@@ -481,7 +499,6 @@ HTML/XMLと式・正規表現・文字コードの差異は2026-11-07の質問�
 | fixtureの式 | Python | Rust |
 | --- | --- | --- |
 | `missing > 1` | UndefinedError | False |
-| `missing\|length` | 0 | TypeError |
 | `s > 1` | TypeError | True |
 | `nil < 1` | TypeError | True |
 | `1 / 0` | ZeroDivisionError | TypeError |
@@ -1293,10 +1310,10 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 表示材料: `Progress::summary()`で既定・-vの結果行に必要なTrialProgressを取り出せる。正常応答は`name.unwrap_or(path)`、通信失敗の名前なしは`None`と表示する。
   - レベル: Normalは既定、Verboseは-v、VeryVerboseは-vv、Debugは-vvvに対応する。Warning・Errorはverbosityによらず表示できる。
 - `exec_with_progress`はイベントをコールバックへ実行中に通知する。
-  - 順序: コールバックの呼び出しを直列化し、成功時のExecution.logsと失敗時のFailure.logsにも同じイベント列を保持する。
+  - 順序: コールバックの呼び出しを直列化する。通知済みイベントを複製・蓄積せず、成功時のExecution.logsと失敗時のFailure.logsは空にする。
   - コールバック: worker上で呼ぶため、短時間で戻りpanicしないこと。channelへ送ってCLI側で処理してもよい。
   - 停止: 保存・後続アドオンが失敗しても、実行中trialの完了までイベントを通知し続ける。
-  - 互換入口: `exec`は通知先を省略した入口。単体のchallenge・finishも直接出力しない。
+  - 互換入口: `exec`は通知先を省略した入口で、従来どおり成功・失敗のlogsへイベントを保持する。単体のchallenge・finishも直接出力しない。
   - 責務: 起動見出し・prepare・finalの出力は各呼出側に残す。urllib3の接続・応答ログは既存の比較除外に従う。
 - 実行時刻はタイムゾーン付きの`started_at`と`ended_at`に保持する。
   - start: 保存ディレクトリ作成後・trial開始前。
@@ -1347,7 +1364,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 内容: store_criterion 24件、dump 41件、tag 9件、sleep 5件、prop 7件、key 8件、ファイル名4件、HTTP以降の統合6件。
   - ローカルHTTP: 既存22ケースとverbose_2・verbose_3を合わせた24ケースのTrial 47件と本文・prop 102ファイルを保存済みPython基準と比較する。request_time・response_secと動的portだけを正規化し、ヘッダ名の大小と承認済みheader_ignore_caseを既定の比較契約どおり扱う。
   - verbose: verbose_2の33行・verbose_3の45行に必要な値とレベルをイベントから復元して比較する。計測時間・動的port・User-Agentのversionを正規化する。実際のCLI書式はCLI統合時に比較する。
-  - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。通知列とlogsの完全一致を成功時・エラー時の両方で確認する。
+  - ストリーミング: コールバック内で開始とsleepを止め、HTTP前とexec完了前にイベントを受け取れることを検証する。成功・エラー時とも通知が欠落せず、戻り値のlogsへ重複保持しないことを確認する。
   - 追加fixture: `compat/fixtures/challenge-review.json`の15件はPythonと一致する。保存先作成6件とログ9件を比較する。ログの実測時間だけを0.0秒へ正規化する。
   - 追加検証: 並行数と順序、Cookie共有・分離の既定、failureのスキップ、例外時の新規投入停止・実行中trial完了待ち・latest維持、空のkeyディレクトリ再使用と既存サブディレクトリ拒否、リンク張り替え、実行時刻、実sleepをRustテストで固定する。
 
@@ -1365,15 +1382,17 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## finalの実装境界
 
-- `addons::final::Pipeline`はsummary・json・csv・viewer・notifyを設定順に実行する。
-  - 出力: stdoutは呼出元が渡すcallback、ログはExecution.logs・Failure.logsへ返す。ライブラリはstderrへ直接書かない。
-  - 停止: I/O・テンプレート・通信例外はログを保持して返す。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
+- `addons::final::Pipeline`はsummary・json・csv・viewer・notify・miroirを設定順に実行する。
+  - 出力: stdoutは呼出元が渡すcallback。`exec`はExecution.logs・Failure.logsへログを保持し、`exec_with_log`は発生時のcallbackへ通知する。ライブラリはstderrへ直接書かない。
+  - CLI: `exec_with_log`を使用する。notify・miroirの通信待ちより前に開始ログを表示し、後続のstdoutやアドオンのログとの順序を維持する。通知済みログの再出力・重複保持はしない。
+  - 停止: I/O・テンプレート・通信例外でも停止前のログを保持または通知する。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
 - summaryとjsonはsysout=trueならstdoutだけに出し、末尾に改行を1つ追加する。
   - ファイル: sysout=falseなら結果ディレクトリのsummary.txt・report.jsonへoutput.encodingで保存する。
 - csvは任意のoutput_pathへUTF-8・LFで保存する。
   - 根拠: Pythonのto_csvfはoutput.encodingを渡さず、既定のutf8を使う。未知カラムは空欄、追加のTrialフィールドは無視する。
 - viewerはPython基準のHTMLをそのまま同梱する。
   - 順序: 実行時にreport.jsonがなければPythonと同じ2警告を返す。後続のjsonより前でもコピーする。
+  - パス: 結果パスはPythonと同じ文字列連結を使う。response_dir末尾の`/`を削らず、`responses//<key>/index.html`のようなログ表示を保持する。miroirのPutログも同じ扱いとする。
 - notifyは全whenを先に評価し、選ばれた通知を順に送る。
   - 条件: CheckedContextを使う。メッセージとwhenはPipeline生成時にコンパイルする。
   - HTTPエラー: 残りの選択済み通知も送ってからエラーを返す。通信例外はその時点で停止する。
@@ -1391,20 +1410,29 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 進捗: exec_with_progressのコールバック内でtrialごとに表示する。完了後の再出力はしない。
   - 書式: 起動AA、config AA、ヘッダ、結果行、入力変換・アドオンのログ、WARNING・ERROR・DEBUGのANSI色をPython基準と比較する。
   - config: 数値をJSON Numberの文字列表現からYAMLへ書き、arbitrary_precisionの内部mapを露出させない。複数行文字列はJSONの引用符付き表現で有効なYAMLにする。
+  - 文字列: PyYAMLのYAML 1.1 resolverに従い、bool・null・日付・数値として解決される文字列をクォートする。`yes`・`NO`・`2001-01-01`は引用し、`1e3`は引用しない。構文上必要なクォートも維持する。
+  - 通知設定: `#`から始まるチャンネル名は引用し、コメントとして解釈させない。長いplain・single-quoted文字列はPyYAMLと同じ幅80の規則で折り返す。
+  - 時間: `⏰`行はマイクロ秒未満を切り捨て、ミリ秒をfloat表記で出す。`0.057ms`・`0.0ms`のように小数1〜3桁を持つ。ハーネスもこの精度だけを正規化する。
+  - 再試行: HTTP転送層が再試行ごとに`HttpEvent::Retrying`を通知し、CLIでurllib3の`Retrying (Retry(total=...)) after connection broken by ...`へ整形する。verbosityにかかわらず出し、urllib3と同じく色・WARNING接頭辞は付けない。
+  - 接続拒否: `NewConnectionError`の接続先・errno・理由・パス・クエリを維持する。既定3回では両側から計6行を出し、残り回数は各側2・1・0。`max_retries=0`では出さない。
 - initは16テンプレートとAPIファイルをバイナリへ埋め込む。
   - 一覧: ソート順。config.yml・requests・apiの作成ログはPythonと一致する。
   - addon: `addon_sample/` へ3つのPython標準ライブラリ製雛形と設定例・READMEを生成する。transformer例はREADMEに掲載する。既存ディレクトリは上書きせず終了コード1とする。
 - serverはカレントディレクトリを静的配信する。
   - POST: JSON・form・plainをContent-Typeに従ってログ表示し、GETと同じファイルを返す。
   - 検証: GET・HEAD・POST、MIME、URLデコード、ディレクトリへのredirect、404をローカルプロセスで確認する。
+  - アクセスログ: ファイルの200だけでなく、ディレクトリ一覧・301・404・501も出す。404・501は`code N, message ...`をアクセス行の前に出す。
+  - MIME: mime_guessの拡張子表を使用する。JavaScript・圧縮ファイル・YAMLはPythonの定義を優先し、`.yml`・`.yaml`は`application/yaml`、未知の拡張子はapplication/octet-streamとする。
   - 実装差: Serverヘッダは`Jumeaux/<version>`。ディレクトリ一覧と404のHTMLはRustで生成する。Pythonのランタイム名や動的HTMLの完全一致は保証しない。
 - viewerはresponses-dir/latestを配信する。
   - リロード: 配信するHTMLへ500ms間隔の監視スクリプトを追加し、report.jsonのmtime・内容変更とlatestの切り替えで再読込する。ディスク上の同梱HTMLは改変しない。
+  - ログ: `/__jumeaux_reload`のポーリングはアクセスログを出さない。変更検出時の`Reload viewer.`と通常のファイルへのアクセスログは維持する。
   - ブラウザ: 起動後1秒で既定ブラウザを開く。`JUMEAUX_NO_BROWSER`が設定されていれば起動しない。
   - 検証: ブラウザを抑止したローカル試験で配信・変更検出・latest切り替えを確認する。目視は後続の全体受入に残す。
 - RustはPython固有のtracebackを出力しない。
   - 表示: エラー種別・理由・設定パスをCLIのERROR行で示す。empty_guardの通知エラーはPythonと同じ理由本文を出す。
   - 範囲: Pythonソースの絶対パス、行番号、スタックフレームの一致は要求しない。設定エラーの終了コード1と成果物を生成しない契約は維持する。
+  - ヘッダ: 不正なヘッダ名は`InvalidHeader`の理由末尾へ`in header name: <Python repr>`として含める。改行などはエスケープし、ヘッダ値は表示しない。
 - 製品CLIの比較ハーネスは35/35ケースで一致する。
   - 対象: 16テンプレートと追加19ケース。report・保存bytes・stdout・stderr・終了コード・API記録・通知を比較する。
   - 比較規則の補完: Rustのsummary.comparisonは除外せず、comparison.jsonのケース別期待値と厳密比較する。欠落・設定値の改変をmutationテストで拒否する。

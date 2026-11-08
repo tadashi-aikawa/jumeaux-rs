@@ -1,0 +1,1960 @@
+[
+  {
+    "name": "one.any()-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": null
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': None, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": null,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': False, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": false,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': 0, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": 0,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": ""
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': '', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": "",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": []
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': {}, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": {},
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "key"
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": [
+        1
+      ]
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': [1], 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": [
+          1
+        ],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any()-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any()",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.any(123)-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(123)",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.any(func=123)-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.any(func=123)",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(123).get()-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(123).get()",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(123).get()-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(123).get()",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).get()|tojson-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).get()|tojson",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": {
+        "a": 1
+      }
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).is_none()-{'one': {'a': 1}, 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).is_none()",
+      "data": {
+        "one": {
+          "a": 1
+        },
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.map(func=other.get_or).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(func=other.get_or).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.map(other.get_or, func=empty.get_or).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or, func=empty.get_or).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(1, 2)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(1, 2)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(1, 2)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(1, 2)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(unknown=1)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(unknown=1)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map(unknown=1)-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(unknown=1)",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(other.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(other.is_none).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.is_none).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(other.any).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.any).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(other.map).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.map).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(empty.map).get().is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.map).get().is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(empty.flat_map).get().is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.flat_map).get().is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.flat_map(func=empty.map).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(func=empty.map).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.flat_map(other.get_or).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(other.get_or).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "one.flat_map(other.map(empty.map).get_or).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(other.map(empty.map).get_or).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(other|attr('get_or')).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other|attr('get_or')).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.map({'key': 42}.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'key': 42}.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map(({'key': 42}).get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(({'key': 42}).get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map({'key': 42}|attr('get')).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'key': 42}|attr('get')).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map({'get': 1, 'key': 42}.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'get': 1, 'key': 42}.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map('keychain'.startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map('keychain'.startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map('keychain'|attr('startswith')).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map('keychain'|attr('startswith')).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(('keychain').startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(('keychain').startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map('keychain'.find).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map('keychain'.find).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 0
+    }
+  },
+  {
+    "name": "one.map([1, 'key', 'key'].count).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map([1, 'key', 'key'].count).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 2
+    }
+  },
+  {
+    "name": "one.map('key'.upper).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map('key'.upper).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map({'key': 1}.keys).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'key': 1}.keys).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(len).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(len).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "one.map(str).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(str).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "one.map(bool).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(bool).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "one.map(missing).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(missing).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "one.flat_map(missing).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(missing).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "empty.map(missing).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "empty.map(missing).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "empty.flat_map(missing).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "empty.flat_map(missing).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(lambda x: x).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(lambda x: x).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TemplateSyntaxError"
+    }
+  },
+  {
+    "name": "one.map(other|attr('absent')).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other|attr('absent')).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "UndefinedError"
+    }
+  },
+  {
+    "name": "one.flat_map({'key': 42}.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map({'key': 42}.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "one.flat_map({'key': {'x': 1}}.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map({'key': {'x': 1}}.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.flat_map({'key': none}.get).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map({'key': none}.get).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).map('key'.startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).map('key'.startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map({'key': none}.get).map(123).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'key': none}.get).map(123).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(empty.get_or).flat_map(empty.map).is_none()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(empty.get_or).flat_map(empty.map).is_none()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map((other.get_or)).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map((other.get_or)).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.map(({'key': 42}.get if true else empty.get_or)).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(({'key': 42}.get if true else empty.get_or)).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map([{'key': 42}.get][0]).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map([{'key': 42}.get][0]).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map({'fn': {'key': 42}.get}.fn).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map({'fn': {'key': 42}.get}.fn).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map((none or {'key': 42}.get)).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map((none or {'key': 42}.get)).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": 42
+    }
+  },
+  {
+    "name": "one.map(('key' ~ 'chain').startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(('key' ~ 'chain').startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map(('keychain'|replace('chain', '')).startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(('keychain'|replace('chain', '')).startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": true
+    }
+  },
+  {
+    "name": "one.map((other.get_or)(none).startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map((other.get_or)(none).startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "one.map(other.map(empty.map).get().get_or).get()|tojson-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.map(empty.map).get().get_or).get()|tojson",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": "key"
+    }
+  },
+  {
+    "name": "one.map('日本.語'.startswith).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map('日本.語'.startswith).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": false
+    }
+  },
+  {
+    "name": "one.flat_map({'key': 42}|attr('get')).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map({'key': 42}|attr('get')).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "AttributeError"
+    }
+  },
+  {
+    "name": "one.map(dict).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(dict).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "one.map(range).get()|list-{'one': 3, 'other': 'other'}",
+    "input": {
+      "expression": "one.map(range).get()|list",
+      "data": {
+        "one": 3,
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": [
+        0,
+        1,
+        2
+      ]
+    }
+  },
+  {
+    "name": "one.map(dict).get()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.map(dict).get()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "value": {}
+    }
+  },
+  {
+    "name": "one.flat_map(dict).get()-{'one': [], 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(dict).get()",
+      "data": {
+        "one": [],
+        "other": "other"
+      },
+      "render": false
+    },
+    "expected": {
+      "error": "TypeError"
+    }
+  },
+  {
+    "name": "one.map(other.get_or).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.map(other.get_or).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": true
+    },
+    "expected": {
+      "value": "other"
+    }
+  },
+  {
+    "name": "one.flat_map(empty.map).get()-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "one.flat_map(empty.map).get()",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": true
+    },
+    "expected": {
+      "value": "None"
+    }
+  },
+  {
+    "name": "{% set f = {'key': 42}.get %}{{ one.map(f).get() }}-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "{% set f = {'key': 42}.get %}{{ one.map(f).get() }}",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": true
+    },
+    "expected": {
+      "value": "42"
+    }
+  },
+  {
+    "name": "{% macro f(x) %}{{ x }}{% endmacro %}{{ one.map(f).get() }}-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "{% macro f(x) %}{{ x }}{% endmacro %}{{ one.map(f).get() }}",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": true
+    },
+    "expected": {
+      "value": "key"
+    }
+  },
+  {
+    "name": "{% for f in ['keychain'.startswith, {'key': 42}.get] %}{{ one.map(f).get() }} {% endfor %}-{'one': 'key', 'other': 'other'}",
+    "input": {
+      "expression": "{% for f in ['keychain'.startswith, {'key': 42}.get] %}{{ one.map(f).get() }} {% endfor %}",
+      "data": {
+        "one": "key",
+        "other": "other"
+      },
+      "render": true
+    },
+    "expected": {
+      "value": "True 42 "
+    }
+  }
+]

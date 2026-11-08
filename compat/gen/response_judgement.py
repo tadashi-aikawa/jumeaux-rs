@@ -258,6 +258,16 @@ for name, expressions in [
 ]:
     capture("same-" + name, "judgement", "same", {"when_any": expressions}, payload, reference)
 
+for name, expression, ref in [
+    ("any", "dict_one.any()", reference),
+    ("map-option", "dict_one.map(dict_other.get_or).get().a == 2", reference),
+    ("map-string", "res_one.encoding.map('utf-8'.startswith).get()", reference),
+    ("map-attr", "res_one.encoding.map({'utf-8': True}|attr('get')).get()", reference),
+    ("flat-map", "dict_one.flat_map(dict_other.map).is_none()", {**reference, "dict_other": None}),
+]:
+    capture("same-option-method-" + name, "judgement", "same", {"when_any": [expression]}, payload, ref)
+    capture("ignore-option-method-" + name, "judgement", "ignore", ignores([{**all_cases, "when": expression}]), payload, ref)
+
 for key, path in [("a.b", "root<'a.b'>"), ("root", "root<'root'>"), ("rooted", "root<'rooted'>"), ("a[0]", "root<'a[0]'>"), ("a'b", 'root<"a\'b">'), ('a\\b', "root<'a\\\\b'>")]:
     ref = {**reference, "dict_one": {key: 1}, "dict_other": {key: 2}}
     source = {**payload, "diffs_by_cognition": {"unknown": {"added": [], "changed": [path], "removed": []}}}

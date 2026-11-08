@@ -28,6 +28,12 @@ pub enum HttpEvent {
         host: Option<String>,
     },
     RequestDetails(Box<Request>),
+    /// urllib3の再試行警告。転送層ではstderrへ書かない。
+    Retrying {
+        remaining: u64,
+        reason: Error,
+        path: String,
+    },
     RequestHeaders {
         side: Side,
         headers: Headers,
@@ -43,6 +49,7 @@ pub enum HttpEvent {
 impl HttpEvent {
     pub fn level(&self) -> Verbosity {
         match self {
+            Self::Retrying { .. } => Verbosity::Warning,
             Self::Proxy { .. } | Self::RequestHeaders { .. } => Verbosity::Debug,
             _ => Verbosity::VeryVerbose,
         }
@@ -135,8 +142,8 @@ impl HttpTransport {
         }
         let request_time = request_time(chrono::Local::now().fixed_offset());
         let (r_one, r_other) = tokio::join!(
-            self.send_prepared(&self.one, one),
-            self.send_prepared(&self.other, other)
+            self.send_prepared_with_events(&self.one, one, log),
+            self.send_prepared_with_events(&self.other, other, log)
         );
         match r_one.and_then(|a| r_other.map(|b| (a, b))) {
             Ok((one, other)) => {
