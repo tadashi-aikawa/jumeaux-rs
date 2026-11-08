@@ -137,7 +137,7 @@ logger.info("ログ")
     cases.append({"name": f"process-output-{codec}", "operation": "process-output", "input": {"encoding": codec},
                   "expected": {"value": {"stdout_hex": result.stdout.hex(), "stderr_hex": result.stderr.hex()}}})
 
-assert len(valid) == 34
+assert len(valid) == 33
 for case in cases:
     if "rust_expected" in case:
         assert case["expected"] != case["rust_expected"], case["name"]

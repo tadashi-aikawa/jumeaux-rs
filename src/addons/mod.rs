@@ -252,6 +252,7 @@ impl Executor {
 }
 pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> Result<()> {
     if !layer.names().contains(&addon.name.as_str()) {
+        let removed_viewer = layer == Layer::Final && addon.name == "viewer";
         let candidate = layer
             .names()
             .iter()
@@ -263,17 +264,24 @@ pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> 
             message.push_str(&format!("候補: {name}"));
         } else {
             message.push_str(&format!("登録済みの名前: {}", layer.names().join(", ")));
-            message.push_str("\nPythonのカスタムアドオンを使う場合は name: exec と config.command へ移行し、従来のconfigをconfig.optionsへ移してください。");
-            if addon.name.contains('.') {
-                message.push_str("\nPython modules cannot be loaded.");
+            if !removed_viewer {
+                message.push_str("\nPythonのカスタムアドオンを使う場合は name: exec と config.command へ移行し、従来のconfigをconfig.optionsへ移してください。");
+                if addon.name.contains('.') {
+                    message.push_str("\nPython modules cannot be loaded.");
+                }
+                if addon.cls_name != "Executor" {
+                    message.push_str("\ncls_nameは削除してください。");
+                }
+                message.push_str(&format!("\n{}", exec::MIGRATION));
             }
-            if addon.cls_name != "Executor" {
-                message.push_str("\ncls_nameは削除してください。");
-            }
-            message.push_str(&format!("\n{}", exec::MIGRATION));
         }
-        if layer == Layer::Final && addon.name == "viewer" {
-            message.push_str("\nfinal/viewer はRust版にはありません。設定から name: viewer の行を削除してください。");
+        if removed_viewer {
+            let source = if path.starts_with("report.") {
+                "レポート"
+            } else {
+                "設定"
+            };
+            message.push_str(&format!("\nfinal/viewer はRust版にはありません。{source}の addons.final から name: viewer の項目を削除してください。"));
         }
         return Err(invalid(&format!("{path}.name"), message));
     }

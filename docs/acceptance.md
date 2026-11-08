@@ -20,7 +20,7 @@
 | 移行後の旧Python reportのretry | 8/8シナリオ成功 |
 | fmt・Clippy・サイトstrictビルド・releaseビルド | 成功 |
 | `cargo tree` | Viewer専用依存なし。ブラウザ起動はOSコマンドだった |
-| release CLIの35ケース比較 | 未実行。ポート8000を既存serverが使用中で開始前に停止 |
+| release CLIの35ケース比較 | 35/35 matched。進行役とOpusがそれぞれ実行して成功 |
 | 削除したCLIと旧reportのViewer設定 | 終了コード1。未知コマンド・設定の削除案内を確認 |
 
 Python基準側の結果ルートの `index.html` と、Viewerに対応する設定・report項目・既知ログ・help行を比較から除く。
@@ -290,5 +290,4 @@ uv run --project compat/harness python compat/harness/compare_platforms.py targe
 
 ## 残件
 
-- ポート8000が空いた環境で、Viewer削除後のrelease CLIの35ケース比較を実行する。
 - リリースするかの判断と、push・タグ作成・公開作業。

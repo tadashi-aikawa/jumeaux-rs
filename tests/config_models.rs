@@ -508,7 +508,9 @@ fn migrated_baseline_configs_load_except_the_known_broken_template() {
                 "{error}"
             );
             assert!(
-                error.message.contains("設定から name: viewer の行を削除"),
+                error
+                    .message
+                    .contains("設定の addons.final から name: viewer の項目を削除"),
                 "{error}"
             );
         }
@@ -535,6 +537,32 @@ fn migrated_baseline_configs_load_except_the_known_broken_template() {
     }
     assert!(count >= 31);
     eprintln!("Baseline configurations: {count}/{count} + encoding_hell expected failure");
+}
+
+#[test]
+fn removed_viewer_errors_identify_the_input_without_python_migration_advice() {
+    for cls_name in ["Executor", "Custom"] {
+        let addon: Addon =
+            serde_json::from_value(json!({"name": "viewer", "cls_name": cls_name})).unwrap();
+        for (path, source) in [
+            ("addons.final[0]", "設定"),
+            ("report.addons.final[0]", "レポート"),
+        ] {
+            let error = addons::parse_config(Layer::Final, &addon, path).unwrap_err();
+            assert_eq!(error.kind, "ConfigError");
+            assert!(
+                error.message.starts_with(&format!("{path}.name:")),
+                "{error}"
+            );
+            assert!(error.message.contains("登録済みの名前:"), "{error}");
+            assert!(error.message.contains(&format!(
+                "final/viewer はRust版にはありません。{source}の addons.final から name: viewer の項目を削除してください。"
+            )), "{error}");
+            for unwanted in ["Python", "config.command", "cls_nameは削除", "https://"] {
+                assert!(!error.message.contains(unwanted), "{error}");
+            }
+        }
+    }
 }
 
 struct TestStage<const N: usize>;
