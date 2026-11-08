@@ -404,6 +404,10 @@ async fn notify_conditions_nulls_and_errors_stop_later_addons() {
         .unwrap();
     assert_eq!(result.exit_code, Some(1));
     assert_eq!(result.logs.len(), 2);
+    assert_eq!(
+        result.logs[1].message,
+        "[final/notify] See https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/configuration/"
+    );
     assert!(!temp.0.join("should-not-exist").exists());
 }
 

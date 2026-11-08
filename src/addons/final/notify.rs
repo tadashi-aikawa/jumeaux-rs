@@ -39,7 +39,7 @@ impl Config {
                 Verbosity::Error,
                 "[final/notify] There are no notifiers. Please set notifiers in config.",
             ));
-            logs.push(super::Log::new(Verbosity::Error, "[final/notify] See https://tadashi-aikawa.github.io/jumeaux/ja/getstarted/configuration/"));
+            logs.push(super::Log::new(Verbosity::Error, "[final/notify] See https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/configuration/"));
             *exit_code = Some(1);
             return Ok(());
         };
