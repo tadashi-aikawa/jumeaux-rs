@@ -309,9 +309,10 @@ fn python_http_objects_items_and_assume_role() {
             }
             if mode.ends_with("failure") {
                 let count = match mode {
-                    "failure" => 1,
-                    "s3-failure" => 2,
-                    _ => 8,
+                    // PipelineとCLIを各1回実行する。空reportのCLIではZIP前に3件送る。
+                    "failure" => 2,
+                    "s3-failure" => 4,
+                    _ => 12,
                 };
                 assert_eq!(actual.len(), count);
                 continue;
@@ -452,19 +453,47 @@ fn miroir_child() {
     }
     if fail {
         let error = result.err().unwrap().error;
-        assert!(error.message.starts_with("service error:"), "{error}");
-        let reason = if std::env::var("MIROIR_MODE").unwrap() == "failure" {
-            "Requested table does not exist"
+        let expected = if std::env::var("MIROIR_MODE").unwrap() == "failure" {
+            "service error: ResourceNotFoundException: Requested table does not exist"
         } else {
-            "Upload denied"
+            "service error: unhandled error (AccessDenied): Error { code: \"AccessDenied\", message: \"Upload denied\" }"
         };
-        assert!(error.message.contains(reason), "{error}");
+        assert_eq!(error.kind, "AWSError");
+        assert_eq!(error.message, expected);
         assert!(stdout.is_empty());
         assert!(
             !destination
                 .with_file_name(format!("{}.zip", case["report"]["key"].as_str().unwrap()))
                 .exists()
         );
+        let mut cli_config: Value =
+            serde_yaml_ng::from_str(include_str!("../compat/python-baseline/simple/config.yml"))
+                .unwrap();
+        cli_config["addons"]["final"] = json!([
+            {"name":"miroir", "config":config},
+            {"name":"json", "config":{"sysout":true}}
+        ]);
+        std::fs::write(root.join("config.yml"), cli_config.to_string()).unwrap();
+        std::fs::write(root.join("requests"), "").unwrap();
+        let cli = Command::new(env!("CARGO_BIN_EXE_jumeaux"))
+            .current_dir(&root)
+            .args(["run", "requests"])
+            .output()
+            .unwrap();
+        assert_eq!(cli.status.code(), Some(1));
+        let stderr = String::from_utf8(cli.stderr)
+            .unwrap()
+            .replace("\x1b[31m", "")
+            .replace("\x1b[0m", "");
+        let error_lines: Vec<_> = stderr
+            .lines()
+            .filter(|line| line.contains("[ ERROR ]"))
+            .collect();
+        assert_eq!(error_lines, [format!("[ ERROR ] AWSError: {expected}")]);
+        for raw_debug in ["Response {", "ServiceError {", "SdkBody", "headers:"] {
+            assert!(!stderr.contains(raw_debug), "{stderr}");
+        }
+        assert!(cli.stdout.is_empty());
         return;
     }
     result.unwrap();

@@ -395,10 +395,17 @@ mod enabled {
     }
 
     fn aws_error(error: impl std::error::Error) -> Error {
-        Error::new(
-            "AWSError",
-            aws_smithy_types::error::display::DisplayErrorContext(error).to_string(),
-        )
+        let mut messages = vec![error.to_string()];
+        let mut source = error.source();
+        while let Some(cause) = source {
+            let message = cause.to_string();
+            // SDKの操作エラーとその内側の例外は同じDisplayを返すことがある。
+            if messages.last() != Some(&message) {
+                messages.push(message);
+            }
+            source = cause.source();
+        }
+        Error::new("AWSError", messages.join(": "))
     }
 
     // json.dumps(report.to_dict(), ensure_ascii=False)は挿入順とカンマ後の空白を保持する。

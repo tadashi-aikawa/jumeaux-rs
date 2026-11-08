@@ -1453,7 +1453,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
     - 差異: boto3 1.35のHTTP接続は本文のSHA256を署名する。RustはHTTPでも`UNSIGNED-PAYLOAD`を使う。boto3が付ける`Content-MD5`もRustでは追加しない。
   - リトライ: 初回を含む最大試行回数は基準botocore 1.35.91のlegacyでDynamoDBが10回、S3が5回。Rustのstandardは3回。SDKの環境変数・プロファイルで上書きしない場合の値。
   - 接続タイムアウト: 基準botocoreは60秒、Rustは3.1秒。Rustのリクエスト全体・1試行全体のタイムアウトは既定で未設定。CLIのAPI比較用タイムアウトをAWS SDKには適用しない。
-  - SDK差異: User-Agent・API操作クエリ・CA読み込みは各SDKに従う。SDKエラーは`AWSError`と`DisplayErrorContext`の原因チェーンで表示する。Pythonのbotocore例外名とは一致させない。
+  - SDK差異: User-Agent・API操作クエリ・CA読み込みは各SDKに従う。SDKエラーは`AWSError`に続けて、`source()`の各段のDisplayを`: `で連結する。連続する同一Displayは1回だけ表示し、Responseを含む末尾のDebug出力は付けない。Pythonのbotocore例外名とは一致させない。
   - 詳細: [AWS Rust認証プロバイダ](https://docs.aws.amazon.com/sdk-for-rust/latest/dg/credproviders.html)
   - 詳細: [aws-config 1.13.0のリージョン解決](https://docs.rs/aws-config/1.13.0/src/aws_config/environment/region.rs.html)
   - 詳細: [Boto3の環境変数・設定](https://docs.aws.amazon.com/boto3/latest/guide/configuration.html)
