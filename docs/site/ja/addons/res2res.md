@@ -17,10 +17,8 @@ json
 
 任意のレスポンスをJSONへ変換するアドオンです。
 
-!!! warning "準備中"
-
-    Pythonの `module` と `function` を指定するtransformerはRust版では使用できません。
-    現在この設定はエラーになります。外部コマンド方式への移行を準備中です。
+Pythonの `module` と `function` は `transformer.command` と `transformer.options` へ移行してください。
+外部コマンドでレスポンスをJSONへ変換できます。
 
 詳細: [カスタムアドオン](custom.md#transformer)
 

@@ -32,6 +32,7 @@ nav = [
     { "did_challenge" = "ja/addons/did_challenge.md" },
     { "final" = "ja/addons/final.md" },
     { "カスタムアドオン" = "ja/addons/custom.md" },
+    { "外部コマンド" = "ja/addons/exec.md" },
   ] },
   { "Models" = [
     { "AccessPoint" = "ja/models/access-point.md" },

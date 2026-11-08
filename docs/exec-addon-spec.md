@@ -396,7 +396,7 @@ retryの実効設定に外部コマンドが残る場合、既定で拒否する
 ConfigError: report.addons.final[0]: 外部コマンドを含むReportのretryを拒否しました。
 Report内のcommandと実行先を確認し、信頼できる場合だけ --allow-exec を指定してください。
 validateも外部コマンド実行に含まれます。
-移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/
 ```
 
 ## コマンド解決・環境・移植性
@@ -601,7 +601,7 @@ except Exception as error:
 - 候補: 編集距離2以内の登録名があれば、最も近い名前を先に示す。この場合は移行案内を付けない。
 - 候補なし: 登録名一覧を示し、Pythonカスタムアドオンの場合の移行先を添える。
   - cls_name: 非Executorの旧指定も含む場合だけ、名前のエラーに削除案内を付記する。
-- 案内URL: `https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/` を公開予定ページとする。公開済みとは扱わない。
+- 案内URL: `https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/` を公開予定ページとする。公開済みとは扱わない。
 
 ```text
 ConfigError: config.yml: addons.reqs2reqs[0].name:
@@ -617,7 +617,7 @@ Pythonモジュール名を直接ロードする方式は使用できません�
 従来のconfigを config.options へ移してください。
 旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。
 雛形: jumeaux init addon
-移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/
 ```
 
 ```text
@@ -626,7 +626,7 @@ cls_name: "MyExecutor" は使用できません。cls_nameを削除し、
 実行する処理を name: exec の config.command と引数で指定してください。
 Pythonクラスの自動ラップは行いません。stdin/stdoutのJSON契約へ移行してください。
 旧.pyをcommandに指定するだけでは動きません。
-移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/
 ```
 
 ```text
@@ -636,7 +636,7 @@ transformer.command: [python3, transforms/wrap.py] へ置き換えてくださ�
 whenとdefault_encodingはそのまま使えます。
 変換結果の文字列をJSON文字列としてstdoutへ返す契約が必要です。
 旧.pyをcommandに指定するだけでは動きません。
-移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/
 ```
 
 - `function` だけ残っている場合も、そのキーを指して同じ移行先を案内する。

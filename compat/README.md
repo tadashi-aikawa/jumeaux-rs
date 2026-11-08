@@ -79,6 +79,22 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+### 全体受入
+
+releaseバイナリをビルドし、旧Pythonレポートのretryを比較する。
+
+```sh
+cargo build --release
+JUMEAUX_BIN="$PWD/target/release/jumeaux" uv run --project compat/harness python compat/harness/retry_acceptance.py
+```
+
+- 旧report6種類、未知フィールドとloggerの警告、外部コマンドの許可を8シナリオで検証する。
+- raw以外の5種類は、送信リクエスト・新report・保存bytesをPython版と比較する。
+- postはraw喪失の既知差異を検証する。rawなしのRust対照実行はPython版と完全一致を要求する。
+- 動的なローカルポートを使い、失敗時も一時ディレクトリへ成果物を残す。
+- LinuxのPythonなし受入とOS間比較は `container_acceptance.sh` と `compare_platforms.py` を使う。
+  - 詳細: [全体受入の記録と再実行手順](../docs/acceptance.md)
+
 ### 外部コマンドアドオンの受入
 
 ```sh

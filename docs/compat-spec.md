@@ -1553,6 +1553,8 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ## 受入の段階
 
+全体受入の結果、Python版E2Eとの対応、再実行方法とViewer目視手順は [全体受入](acceptance.md) に記す。
+
 - CLI統合前は5コンポーネントのJSON fixtureを使う。
 - CLI統合後は16テンプレートのreport、保存ファイル、stdout、stderr、終了コードとAPI記録を比較する。
 - 通知は追加ケースでSlack v1・v2をローカル受信先に送って比較する。

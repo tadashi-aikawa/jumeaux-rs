@@ -22,8 +22,8 @@ use std::{
 };
 use wire::Wire;
 
-pub const GUIDE_URL: &str = "https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/";
-pub const MIGRATION: &str = "旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。\n雛形: jumeaux init addon\n移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/";
+pub const GUIDE_URL: &str = "https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/";
+pub const MIGRATION: &str = "旧.pyをcommandに指定するだけでは動きません。stdin/stdoutのJSON契約へ書き換えてください。\n雛形: jumeaux init addon\n移行ガイド: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/";
 
 // retryの許可はプロセス生成前に呼出元で判定する。設定へ保存しない。
 pub fn check_retry(addons: &Addons, allow_exec: bool) -> Result<()> {

@@ -37,7 +37,7 @@ Zensical 0.1.0を `pyproject.toml` と `uv.lock` で固定する。
 - `mkdocs/img/`、`mkdocs/css/`、モデル説明の画像は元の形式と内容を保持する。
 - HomeとQuickstartはRust版のバイナリ配布向けに書き直す。
 - AddonsのPythonソース参照はRustのソースへ切り替える。
-- カスタムアドオン、Python transformer、`init addon` は準備中として案内する。
+- カスタムアドオン、Python transformer、`init addon` は外部コマンド方式への移行を案内する。
 - ConfigurationとReportの並列数、設定の検証、`summary.comparison` を更新する。
 - TemplateはMiniJinjaによる互換実装を案内する。
 - Notifierの古い廃止予定を、Rust版の互換対応に合わせる。

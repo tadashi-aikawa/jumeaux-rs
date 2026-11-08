@@ -22,7 +22,7 @@ Python 3の標準ライブラリだけで動きます。
 - tableはタブ区切りで全行をstderrへ出します。
 - 旧Pythonモジュールをcommandへ指定するだけでは動きません。stdin/stdoutの契約への書き換えが必要です。
 
-詳細: https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/
+詳細: https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/
 
 ## JSON transformer
 

@@ -60,7 +60,7 @@ fn retry_requires_permission_before_validate_even_for_unused_log2reqs() {
     assert!(String::from_utf8_lossy(&refused.stderr).contains("--allow-exec"));
     assert!(
         String::from_utf8_lossy(&refused.stderr)
-            .contains("https://tadashi-aikawa.github.io/jumeaux-rs/addons/exec/")
+            .contains("https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/exec/")
     );
     assert!(!String::from_utf8_lossy(&refused.stderr).contains("旧.py"));
     assert!(!String::from_utf8_lossy(&refused.stderr).contains("雛形"));

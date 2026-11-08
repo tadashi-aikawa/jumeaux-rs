@@ -1,6 +1,6 @@
 use std::{
     io::{BufRead, BufReader, Read, Write},
-    net::{TcpListener, TcpStream},
+    net::TcpStream,
     path::PathBuf,
     process::{Child, Command, Stdio},
     sync::atomic::{AtomicUsize, Ordering},
@@ -35,17 +35,10 @@ impl Server {
         #[cfg(unix)]
         std::os::unix::fs::symlink("first", root.join("responses/latest")).unwrap();
         std::fs::write(root.join("日本語.json"), "{\"ok\":true}").unwrap();
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        drop(listener);
         let mut command = Command::new(env!("CARGO_BIN_EXE_jumeaux"));
         command
             .current_dir(&root)
-            .args([
-                if viewer { "viewer" } else { "server" },
-                "--port",
-                &port.to_string(),
-            ])
+            .args([if viewer { "viewer" } else { "server" }, "--port", "0"])
             .env("JUMEAUX_NO_BROWSER", "1")
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
@@ -57,6 +50,15 @@ impl Server {
         let mut first = String::new();
         stderr.read_line(&mut first).unwrap();
         assert!(first.starts_with("Serving HTTP on"), "{first}");
+        let port = first
+            .split(" port ")
+            .nth(1)
+            .unwrap()
+            .split(' ')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
         // ログpipeを詰まらせず、各行を受け取れる状態にする。
         let (tx, logs) = std::sync::mpsc::channel();
         std::thread::spawn(move || {

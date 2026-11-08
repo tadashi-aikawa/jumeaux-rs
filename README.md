@@ -70,7 +70,9 @@ Viewerは `http://localhost:5500/` で開きます。
 
 `config.yml` の `one.host` と `other.host` を比較したいAPIへ変更し、`requests` にリクエストを記載します。
 
-カスタムアドオンとPython transformerの代替は準備中です。
+カスタムアドオンとPython transformerは外部コマンド方式を使えます。
+`jumeaux init addon` で3種類のPython 3製雛形を生成できます。
+外部コマンドを含むレポートの再実行には `retry --allow-exec` が必要です。
 
 詳細: [カスタムアドオン](https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/custom/)
 
