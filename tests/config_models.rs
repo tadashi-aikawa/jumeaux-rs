@@ -541,6 +541,7 @@ fn check_layer<const N: usize>() {
         .iter()
         .rev()
         .filter(|name| !(layer == Layer::Res2Res && **name == "json"))
+        .filter(|name| cfg!(feature = "miroir") || !(layer == Layer::Final && **name == "miroir"))
         .map(|name| {
             let cases = fixture("compat/fixtures/review-fixes.json");
             let case = cases

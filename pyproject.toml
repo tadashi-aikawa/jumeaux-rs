@@ -1,0 +1,9 @@
+[project]
+name = "jumeaux-docs"
+version = "0.1.0"
+description = "Jumeaux Rust版のドキュメントビルド環境"
+requires-python = ">=3.12"
+dependencies = ["zensical==0.1.0"]
+
+[tool.uv]
+package = false

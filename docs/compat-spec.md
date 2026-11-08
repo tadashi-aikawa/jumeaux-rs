@@ -73,7 +73,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
   - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
   - 保存系: store_criterion/free、dumpの4種、did_challengeの2種も各レイヤーのFactoryから生成する。`executor::Pipeline`が実装済み6レイヤーを`Chain::build`で接続する。
-  - final: summary・json・csv・viewer・notifyはasyncの`addons::final::Pipeline`で設定順に実行する。miroir本体は後続タスク。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
+  - final: summary・json・csv・viewer・notify・miroirはasyncの`addons::final::Pipeline`で設定順に実行する。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
@@ -1402,6 +1402,70 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - encoding_hell: Rustは承認済み修正版をencoding_fixed基準と比較する。変更を許す入力ファイルはconfig.yml・init-config.ymlの廃止ブロックとrequestsのGET列だけ。Python自己比較は元の失敗基準を維持する。
   - 維持: 既存の可変値・transport行以外の除外は追加しない。
 
+### final/miroir
+
+- Cargo feature `miroir`を既定で有効にする。配布バイナリにも含める。
+  - 軽量ビルド: `cargo build --release --no-default-features`。AWS SDK・AWS用HTTPクライアント・ZIP依存を含めない。
+  - 再有効化: `cargo build --release --no-default-features --features miroir`。
+  - 無効時: `final/miroir`設定を読み込むと`ConfigError`で停止し、`--features miroir`での再ビルドを案内する。`when`でスキップされる設定でも拒否する。
+- `table`・`bucket`は必須。`prefix`・`cache_max_age`・`with_zip`・`assumed_role_arn`・`checklist`・`local_stack`・`endpoints`・`when`をPython版と同じ設定で受け付ける。
+  - 既定: `cache_max_age=0`、`with_zip=true`、`when=[]`。これらのnullも既定値になる。
+  - 排他: `local_stack`と`endpoints`が両方非nullなら設定読み込み時に`ValueError: miroir config: endpoints and local_stack cannot be used together`で停止する。`local_stack.use=false`でも同じ。
+  - 条件: `not_empty`はtrial数0、`has_different`はdifferent数0で送信をスキップする。複数指定時は両方を満たす必要がある。スキップ時は認証情報の読み込みも行わない。
+  - prefix: 未指定・null・空文字は`results/<key>/`、それ以外は`<prefix>/results/<key>/`。末尾スラッシュはそのまま保持する。
+- DynamoDBは`PutItem`で1項目を保存する。
+
+| 属性 | DynamoDB型 |
+| --- | --- |
+| hashkey・title・one_host・other_host・begin_time・end_time・check_status | S |
+| same_count・different_count・failure_count・elapsed_sec | N |
+| with_zip | BOOL |
+| retry_hash | S、未指定時はNULL |
+| description・checklist | 指定された場合だけS |
+| tags | 空でない場合だけSS。重複を除く |
+
+- S3は次のオブジェクトを保存する。
+
+| キー末尾 | 本文 | Cache-Control |
+| --- | --- | --- |
+| report-without-trials.json | trialsを除いたreport。UTF-8、挿入順、カンマ後に空白 | 未指定 |
+| trials.json | trial配列。UTF-8、キーをソート、カンマ後の空白なし | 未指定 |
+| one・one-props・other・other-props配下の各ファイル | ローカルファイルのbytes | max-age=<cache_max_age> |
+| <key先頭7文字>.zip | with_zip=trueの場合だけ、report保存ディレクトリ全体 | max-age=<cache_max_age> |
+
+- Content-TypeはPython版と同じく全オブジェクトで未指定とする。
+  - 実装: Rust SDKが補う`application/octet-stream`も署名前に除く。サービスが保存時に補う値はサービス側の挙動に従う。
+- ZIP作成前に`report.json`を4スペースインデントで上書きする。
+  - encoding: `output.encoding`を適用する。S3へ直接保存する2つのJSONは常にUTF-8。
+  - 内容: 4つのレスポンスディレクトリ以外のファイル・サブディレクトリ・空ディレクトリも含める。
+  - 差異: ZIPコンテナのエントリ順・圧縮bytes・付加情報は同一を保証しない。比較対象は全エントリ名と展開後bytes。ファイル時刻とUnixパーミッションは元ファイルから設定する。
+  - 一時ファイル: `<response_dir>/<key>.zip`を作成して送信後に削除する。Rustは送信失敗時にも削除する。Pythonは送信失敗時に残す。
+- AWSクライアントは`aws-config`と`aws-sdk-s3`・`aws-sdk-dynamodb`・`aws-sdk-sts`を使用する。
+  - TLS: `aws-smithy-http-client`の`rustls-ring`を明示構築し、認証プロバイダを含むSDK全体へ渡す。AWS crateの`default-https-client`を無効にし、既存HTTPクライアントとcrypto providerをringへ統一する。aws-lc-rs・aws-lc-sysへの依存とOpenSSLライブラリへのリンクはない。
+  - 認証: SDK既定の環境変数・共有プロファイル・Web Identity・コンテナ・IMDSv2のチェーンに従う。aws-configのSSOとcredential_processは引き続き有効にする。boto2設定ファイルなどboto3固有のプロバイダは移植しない。
+  - リージョン: aws-config 1.13.0は`AWS_REGION`、`AWS_DEFAULT_REGION`、共有設定、IMDSの順に解決する。基準Python版のbotocoreは通常のリージョン設定に`AWS_DEFAULT_REGION`を使うため、両環境変数が異なる場合は差が生じる。
+    - `AWS_REGION`だけを設定し、共有設定などにリージョンがない場合、Rustはその値を使う。基準Python版はDynamoDBクライアント生成時に`NoRegionError`になる。
+    - Rustでもリージョンを解決できない場合は、STS・DynamoDB・S3への送信前に`NoRegionError: You must specify a region.`で停止する。
+  - AssumeRole: `RoleSessionName=jumeaux_with_miroir_add-on`で1回取得し、返却されたアクセスキー・シークレット・セッショントークンをDynamoDBとS3へ共有する。アドオン実行途中の再取得は行わない。
+  - endpoint: 明示`endpoints`をサービス単位で優先する。未指定サービスはSDK既定へ戻る。`local_stack.use=true`はPythonどおり`<endpoint>:4569`と`<endpoint>:4572`。既定endpointは`http://localhost`。STSはこれらの設定を使わず、SDKの`AWS_ENDPOINT_URL_STS`などに従う。
+  - S3 addressing: アドオン・環境変数・共有プロファイルのどこでendpointを上書きしてもpath-styleを使う。`http://localhost:9000`なら`http://localhost:9000/<bucket>/<key>`へ送り、`<bucket>.localhost`へ書き換えない。上書きがない場合はSDK既定に従う。
+  - S3 PUT: `RequestChecksumCalculation::WhenRequired`と本文署名無効化を明示する。自動CRC32チェックサム、`aws-chunked`、ストリーミング署名を付けず、JSON・レスポンス・ZIPとも元のbytesを`UNSIGNED-PAYLOAD`で送る。`Content-Encoding`・checksum trailerは付けない。
+    - 差異: boto3 1.35のHTTP接続は本文のSHA256を署名する。RustはHTTPでも`UNSIGNED-PAYLOAD`を使う。boto3が付ける`Content-MD5`もRustでは追加しない。
+  - リトライ: 初回を含む最大試行回数は基準botocore 1.35.91のlegacyでDynamoDBが10回、S3が5回。Rustのstandardは3回。SDKの環境変数・プロファイルで上書きしない場合の値。
+  - 接続タイムアウト: 基準botocoreは60秒、Rustは3.1秒。Rustのリクエスト全体・1試行全体のタイムアウトは既定で未設定。CLIのAPI比較用タイムアウトをAWS SDKには適用しない。
+  - SDK差異: User-Agent・API操作クエリ・CA読み込みは各SDKに従う。SDKエラーは`AWSError`に続けて、`source()`の各段のDisplayを`: `で連結する。連続する同一Displayは1回だけ表示し、Responseを含む末尾のDebug出力は付けない。Pythonのbotocore例外名とは一致させない。
+  - 詳細: [AWS Rust認証プロバイダ](https://docs.aws.amazon.com/sdk-for-rust/latest/dg/credproviders.html)
+  - 詳細: [aws-config 1.13.0のリージョン解決](https://docs.rs/aws-config/1.13.0/src/aws_config/environment/region.rs.html)
+  - 詳細: [Boto3の環境変数・設定](https://docs.aws.amazon.com/boto3/latest/guide/configuration.html)
+  - 詳細: [Boto3のリトライ](https://docs.aws.amazon.com/boto3/latest/guide/retries.html)
+  - 詳細: [AWS Rustのタイムアウト](https://docs.aws.amazon.com/sdk-for-rust/latest/dg/timeouts.html)
+- `compat/fixtures/miroir.json`はPython実装からローカルHTTPモックで採取する。
+  - 採取: `JUMEAUX_PYTHON_ROOT=<Pythonリポジトリ> <Pythonリポジトリ>/.venv/bin/python -B compat/gen/miroir.py`。stdoutへJSONを出す。
+  - 比較: `cargo test --test miroir -- --nocapture`。9ケース、S3の47キーと本文・Content-Type・Cache-Control、DynamoDBの7件94属性と型を照合する。S3本文のうち5件はZIPの展開後比較。AssumeRoleの引数とセッショントークンも比較する。
+  - 追加検証: 共有プロファイル、SDKのendpoint環境変数、local_stack無効、片方だけのendpoint指定をローカルで確認する。DynamoDB・S3 JSON・S3 ZIPの失敗時に後続finalを止めることと一時ZIPの削除も検証する。
+  - レビュー回帰: `localhost`をサービス別・共通の環境変数とプロファイルから指定したときの接続先・パス、アドオン設定の優先を検証する。全PUTで`Content-Encoding`・CRC32・trailerがなく`UNSIGNED-PAYLOAD`であること、2MiBの非圧縮性データを含むZIPも直接展開できることを固定する。リージョン不足時のCLI終了コード1と明示メッセージ、feature無効時の実行前拒否も検証する。
+  - 境界: `local_stack`の既定・カスタムURLとポート、サービス単位のendpoint選択をユニットテストで固定する。実際のAWSへの接続は試験に含めない。
+
 ## 未決
 
 - `rustpython-parser`への依存。
@@ -1409,9 +1473,6 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
 
 ### その他の未決
 
-- `final/miroir` の `local_stack` と `endpoints` の同時指定。
-  - Python版: ValueErrorで停止する。
-  - 申し送り: Rustの型付きConfigは両方を保持できる。後続のfinal miroirタスクで排他検証を接続する。
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
 
 ## 受入の段階

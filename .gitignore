@@ -4,3 +4,7 @@
 __pycache__/
 compat/harness/.venv/
 compat/actual/
+/.venv/
+/.cache/
+/site/
+/dist/
