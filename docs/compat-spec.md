@@ -168,7 +168,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - JSONの整数は桁を落とさず保持し、多倍長整数として比較する。小数・指数表記はPythonと同じくf64として比較する。
   - 例: `18446744073709551616` と `18446744073709551617` はchanged、`1e2` と `100.0` は同値。
   - 実装: serde_jsonの `arbitrary_precision` を有効にする。通常の `Value` の等値比較は数値リテラルの表記に依存するため、差分判定には使わない。
-  - 保存への影響: 大きな整数はJSON numberのまま往復できる。小数・指数の再出力はserde_jsonで正規化した表記とし、「許容した差異」で固定する。
+  - 保存への影響: 大きな整数はJSON numberのまま往復できる。report.json・propの小数・指数は保存時にPythonのfloat reprへ正規化する。モデル内の値は変更しない。
 - HTMLはBeautifulSoup+lxmlの補完とprettify後のdictを基準にする。
   - 内容: 属性 `#attr`、本文 `##value`、同名タグのリスト、空タグ、script、混在テキストの空白。
 - XMLはxmltodictのdictを基準にする。
@@ -388,9 +388,10 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - blockのtupleヘッダはJSONへ保存できない。
   - Python版: アドオン実行は成功し、prop fileのJSON保存時にTypeErrorとなる。
   - Rust版: 保存前のblock実行時にTypeErrorとなる。fixtureは保存時の失敗までを境界契約とする。
-- JSON numberはserde_jsonで正規化した表記を使う。
-  - 例: `1e2` は `1e+2`。Pythonの `100.0` とは一致しない。`1.2300` はRustで `1.2300`、Pythonで `1.23`。
-  - 検証: RequestとReportの数値表記fixture2件で固定する。大きな整数 `18446744073709551617` は両者で一致する。
+- モデル内部のJSON numberはserde_jsonの表記を保持する。
+  - 例: Requestの内部値は`1e2`が`1e+2`、`1.2300`が`1.2300`となる。
+  - 保存: report.jsonはPythonと一致する。`1.5e-7`・`1e+2`・`0.00001`・`1.10`は`1.5e-07`・`100.0`・`1e-05`・`1.1`として出力する。旧方針の「serde_jsonの正規化表記」はReport保存には適用しない。
+  - 検証: 既存Request・Reportの数値fixtureを維持し、Reportは期待bytesとの一致を検証する。整数はBigIntのまま出力し、`18446744073709551617`も丸めない。
 - YAML 1.1固有の数値表記を受理しない。
   - 例: Pythonの `010` は8、`1_000` は1000となる。Rustの数値フィールドではエラーとする。
 - YAML入力のjson・form本文はYAML 1.2相当の文字列解釈を許容する。
@@ -1382,12 +1383,18 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 進捗: exec_with_progressのコールバック内でtrialごとに表示する。完了後の再出力はしない。
   - 書式: 起動AA、config AA、ヘッダ、結果行、入力変換・アドオンのログ、WARNING・ERROR・DEBUGのANSI色をPython基準と比較する。
   - config: 数値をJSON Numberの文字列表現からYAMLへ書き、arbitrary_precisionの内部mapを露出させない。複数行文字列はJSONの引用符付き表現で有効なYAMLにする。
+  - 文字列: PyYAMLのYAML 1.1 resolverに従い、bool・null・日付・数値として解決される文字列をクォートする。`yes`・`NO`・`2001-01-01`は引用し、`1e3`は引用しない。構文上必要なクォートも維持する。
+  - 時間: `⏰`行はマイクロ秒未満を切り捨て、ミリ秒をfloat表記で出す。`0.057ms`・`0.0ms`のように小数1〜3桁を持つ。ハーネスもこの精度だけを正規化する。
+  - 再試行: HTTP転送層が再試行ごとに`HttpEvent::Retrying`を通知し、CLIでurllib3の`Retrying (Retry(total=...)) after connection broken by ...`へ整形する。verbosityにかかわらず出し、urllib3と同じく色・WARNING接頭辞は付けない。
+  - 接続拒否: `NewConnectionError`の接続先・errno・理由・パス・クエリを維持する。既定3回では両側から計6行を出し、残り回数は各側2・1・0。`max_retries=0`では出さない。
 - initは16テンプレートとAPIファイルをバイナリへ埋め込む。
   - 一覧: ソート順。config.yml・requests・apiの作成ログはPythonと一致する。
   - addon: 外部コマンド方式の契約が未決のため、案内と終了コード1で停止する。
 - serverはカレントディレクトリを静的配信する。
   - POST: JSON・form・plainをContent-Typeに従ってログ表示し、GETと同じファイルを返す。
   - 検証: GET・HEAD・POST、MIME、URLデコード、ディレクトリへのredirect、404をローカルプロセスで確認する。
+  - アクセスログ: ファイルの200だけでなく、ディレクトリ一覧・301・404・501も出す。404・501は`code N, message ...`をアクセス行の前に出す。
+  - MIME: mime_guessの拡張子表を使用する。JavaScriptと圧縮ファイルはPythonの定義を優先し、未知の拡張子はapplication/octet-streamとする。
   - 実装差: Serverヘッダは`Jumeaux/<version>`。ディレクトリ一覧と404のHTMLはRustで生成する。Pythonのランタイム名や動的HTMLの完全一致は保証しない。
 - viewerはresponses-dir/latestを配信する。
   - リロード: 配信するHTMLへ500ms間隔の監視スクリプトを追加し、report.jsonのmtime・内容変更とlatestの切り替えで再読込する。ディスク上の同梱HTMLは改変しない。

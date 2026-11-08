@@ -66,7 +66,7 @@ uv run --project compat/harness python compat/harness/run.py
 
 - Rust CLIの受入結果は35/35一致。
   - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
-  - 自己検証: 比較規則のmutationテストを含む39テストが成功する。
+  - 自己検証: 比較規則のmutationテストを含む40テストが成功する。`⏰`行の小数4桁以上を正規化しないことも検証する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
 
@@ -243,7 +243,7 @@ diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
 
 - `config-models.json` は32件。
   - Python一致: 設定6件、モデル12件、TextIOWrapperの出力12件。
-  - 許容した差異: RequestとReportの数値表記2件。serde_jsonで正規化した表記を使い、Python期待値との差を明示検証する。
+  - 数値表記: Request内部はserde_jsonの表記を維持する。Report保存はPythonのfloat reprへ正規化し、既存fixtureの期待bytesと一致する。BigIntは丸めない。
 - 基準report31件はJSON値とbytesの往復を検証する。
   - 対象: テンプレート15種と追加ケース。可変値も除外しない。
   - 例外: encoding_hellは終了コード1とreport不存在を確認する。既存基準を作り直さない。
