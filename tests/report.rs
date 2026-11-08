@@ -34,7 +34,7 @@ fn aggregates_every_baseline_report() {
             logs: vec![],
             started_at: chrono::DateTime::parse_from_rfc3339(&expected.summary.time.start).unwrap(),
             ended_at: chrono::DateTime::parse_from_rfc3339(&expected.summary.time.end).unwrap(),
-            concurrency: expected.summary.concurrency.clone(),
+            concurrency: expected.summary.concurrency,
             comparison: config.comparison(),
         };
         let actual = create_report(

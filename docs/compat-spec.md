@@ -73,13 +73,13 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 実装済み: res2resのjson_sort・type、res2dictの4種、judgementの2種は各レイヤーの`Factory`から生成する。条件式と正規表現は生成時にコンパイルする。
   - 入力系: log2reqsのInputFactoryとreqs2reqsのPipelineは本体を実行する。条件式とempty_guardの通知テンプレートはPipeline生成時にコンパイルする。
   - 保存系: store_criterion/free、dumpの4種、did_challengeの2種も各レイヤーのFactoryから生成する。`executor::Pipeline`が実装済み6レイヤーを`Chain::build`で接続する。
-  - 残件: final本体は後続タスク。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
+  - final: summary・json・csv・viewer・notifyはasyncの`addons::final::Pipeline`で設定順に実行する。miroir本体は後続タスク。SkeletonFactoryとExecutor::skeletonは副作用を持たない検証用入口として残す。
 - `output.encoding` はreport、stdout、`summary.txt`、stderrへの直接書き込みに適用する。
   - ログ: Pythonのロガーは起動時のstderrを保持する。差し替え後もログ行はUTF-8で出力する。直接書き込みとtracebackは差し替えたwrapperを通る。
   - ストリーム: stdoutと直接書き込み用stderrはプロセス内でencodingごとにwriterを共有する。取得し直してもBOMやISO-2022-JPの状態をリセットしない。
   - ハンドル: `write_text(&self)`・`flush(&self)` の内部だけでロックする。同じスレッドでの再取得と別encodingの併用を受理する。
   - 変換: compatのstrictエンコーダーを使う。BOMは最大1回。Python同様、seek不能なパイプへのUTF-16・UTF-32出力はBOMなし、UTF-8-SIGはBOM付きとなる。
-  - JSON: キーを再帰的にソートし、Pythonの区切り文字に合わせる。CLIへの接続とfinal/jsonのindent指定は後続タスク。
+  - JSON: キーを再帰的にソートし、Pythonの区切り文字に合わせる。final/jsonのindent未指定は1行、0以下は改行のみ、正数は指定スペース数とする。
 
 ### 入力ファイルとreqs2reqs
 
@@ -1353,6 +1353,24 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - key: 既存の`executor::hash_from_args`へ渡す。時刻固定のhash fixture8件を維持する。
 - `report::template_value`はfinal通知用にモデルの未指定フィールドをnullで公開する。
   - 保持: Trialのjson・formとAddon.config内のnullは保存用Reportと異なり削除しない。
+
+## finalの実装境界
+
+- `addons::final::Pipeline`はsummary・json・csv・viewer・notifyを設定順に実行する。
+  - 出力: stdoutは呼出元が渡すcallback、ログはExecution.logs・Failure.logsへ返す。ライブラリはstderrへ直接書かない。
+  - 停止: I/O・テンプレート・通信例外はログを保持して返す。通知のHTTPエラーとnotifiers未設定はexit_code=1で後続finalを止める。
+- summaryとjsonはsysout=trueならstdoutだけに出し、末尾に改行を1つ追加する。
+  - ファイル: sysout=falseなら結果ディレクトリのsummary.txt・report.jsonへoutput.encodingで保存する。
+- csvは任意のoutput_pathへUTF-8・LFで保存する。
+  - 根拠: Pythonのto_csvfはoutput.encodingを渡さず、既定のutf8を使う。未知カラムは空欄、追加のTrialフィールドは無視する。
+- viewerはPython基準のHTMLをそのまま同梱する。
+  - 順序: 実行時にreport.jsonがなければPythonと同じ2警告を返す。後続のjsonより前でもコピーする。
+- notifyは全whenを先に評価し、選ばれた通知を順に送る。
+  - 条件: CheckedContextを使う。メッセージとwhenはPipeline生成時にコンパイルする。
+  - HTTPエラー: 残りの選択済み通知も送ってからエラーを返す。通信例外はその時点で停止する。
+- Python比較fixtureは`compat/fixtures/final-addons.json`の41件。
+  - 内訳: 4文字コードでsummary・json・csvの40ケースと、nullを保持する通知context1ケース。
+  - 追加検証: 保存順、Viewerのbytes、stdout、UTF-16保存、UTF-8 CSV、ローカル通知、通知失敗時の後続final停止。
 
 ## 未決
 
