@@ -50,3 +50,19 @@ Markdown拡張は従来の設定を維持する。
 絵文字の関数参照は `zensical.extensions.emoji` に切り替える。
 snippetsの `base_path` は `docs/site` に合わせ、参照先がなければビルドを失敗させる。
 ナビゲーションの見出しにあった装飾用の絵文字は外す。
+
+## GitHub Pagesを有効にする
+
+1. GitHubのリポジトリ設定で `Settings > Pages` を開く。
+2. `Build and deployment > Source` を `GitHub Actions` にする。
+3. この変更をmainへマージし、pushする。
+4. `Documentation` ワークフローの成功と公開URLを確認する。
+
+公開URLの案は `https://tadashi-aikawa.github.io/jumeaux-rs/`。
+リポジトリ名を変えた場合は `zensical.toml` の `site_url` も変更する。
+
+`.github/workflows/pages.yaml` がmainへのpushでビルドと公開を行う。
+Actionsの画面から手動実行もできる。
+PythonとZensicalはサイトのビルドにだけ必要で、Jumeauxの実行には不要。
+
+Pagesの公開元設定とGitHub上でのデプロイは、ローカルでは検証できない。
