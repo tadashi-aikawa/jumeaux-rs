@@ -651,7 +651,14 @@ async fn execution_times_cover_trials_after_storage_and_before_latest() {
         assert!(before <= execution.started_at);
         assert!(execution.started_at <= execution.ended_at);
         assert!(execution.ended_at <= after);
-        // key直下のディレクトリ構成とlatestのmtimeで計測位置を検証する。
+        // Linuxのmtimeはtick単位の粗い時計で刻まれ、直前に取った現在時刻より古くなりうる
+        // (ubuntu-latest: CONFIG_HZ=1000、実測の遅れは最大2ms。HZ=100の環境なら25ms要る)。
+        // macOSはナノ秒精度なので厳密に比べる。
+        let mtime_lag = if cfg!(target_os = "linux") {
+            chrono::TimeDelta::milliseconds(10)
+        } else {
+            chrono::TimeDelta::zero()
+        };
         let created: chrono::DateTime<chrono::Utc> = std::fs::metadata(temp.0.join(key))
             .unwrap()
             .modified()
@@ -664,7 +671,7 @@ async fn execution_times_cover_trials_after_storage_and_before_latest() {
                 .unwrap()
                 .into();
         assert!(created <= execution.started_at);
-        assert!(execution.ended_at <= linked);
+        assert!(execution.ended_at <= linked + mtime_lag);
         assert_eq!(summaries(&execution.logs).len(), execution.trials.len());
         if key == "one" {
             assert!((execution.ended_at - execution.started_at).num_milliseconds() >= 20);
