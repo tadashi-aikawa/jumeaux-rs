@@ -8,12 +8,12 @@
 
 ## Viewer削除後の検証
 
-検証日時: 2026-11-08T21:33 JST。
+検証日時: 2026-11-08T21:46 JST。
 
 | 検証 | 結果 |
 | --- | --- |
-| `cargo test` | 170件成功。doctest 3件を含む |
-| `cargo test --no-default-features` | 167件成功。doctest 3件を含む |
+| `cargo test` | 171件成功。doctest 3件を含む |
+| `cargo test --no-default-features` | 168件成功。doctest 3件を含む |
 | `cargo test -- --ignored` | 2件成功 |
 | serverのHTML・MIME・本文配信 | 両feature構成で各2件成功 |
 | 比較ハーネスの自己検証 | 45件成功 |
