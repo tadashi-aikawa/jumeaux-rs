@@ -46,6 +46,7 @@ struct Prepared {
     executable: PathBuf,
     cwd: PathBuf,
     env: BTreeMap<OsString, OsString>,
+    transformer: Option<super::res2res::json::Compiled>,
 }
 pub struct Runtime {
     commands: Vec<Prepared>,
@@ -82,16 +83,32 @@ impl Runtime {
         for (layer, addons) in layers {
             for (index, addon) in addons.iter().enumerate() {
                 let path = format!("addons.{}[{index}]", layer.name());
-                if let AddonConfig::Exec(config) = parse_config(layer, addon, &path)? {
-                    commands.push(Prepared::new(
-                        layer,
-                        index,
-                        format!("{path}.config"),
-                        config,
-                        &invocation_cwd,
-                        &environment,
-                    )?);
-                }
+                let parsed = parse_config(layer, addon, &path)?;
+                let (config, transformer, command_path) = match parsed {
+                    AddonConfig::Exec(config) => (config, None, format!("{path}.config")),
+                    AddonConfig::Res2ResJson(config) => {
+                        let compiled = super::res2res::json::Compiled::new(
+                            config.clone(),
+                            format!("{path}.config"),
+                        )?;
+                        (
+                            config.transformer,
+                            Some(compiled),
+                            format!("{path}.config.transformer"),
+                        )
+                    }
+                    _ => continue,
+                };
+                let mut command = Prepared::new(
+                    layer,
+                    index,
+                    command_path,
+                    config,
+                    &invocation_cwd,
+                    &environment,
+                )?;
+                command.transformer = transformer;
+                commands.push(command);
             }
         }
         Ok(Arc::new(Self {
@@ -183,6 +200,19 @@ impl Runtime {
         S::Payload: Wire,
         S::Reference: Wire,
     {
+        if let Some(transformer) = self
+            .commands
+            .iter()
+            .find(|c| c.layer == S::LAYER && c.index == index)
+            .and_then(|c| c.transformer.as_ref())
+        {
+            let payload = super::payload::Res2ResPayload::from_wire(payload.wire()?)?;
+            return S::Payload::from_wire(
+                transformer
+                    .apply(self, index, payload, invocation)?
+                    .wire()?,
+            );
+        }
         self.invoke(
             S::LAYER,
             index,
@@ -309,6 +339,7 @@ impl Prepared {
             executable,
             cwd,
             env,
+            transformer: None,
         })
     }
 }

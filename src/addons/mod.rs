@@ -168,7 +168,7 @@ impl<S: Stage> Chain<S> {
                     addon,
                     &format!("addons.{}[{index}]", S::LAYER.name()),
                 )?;
-                if addon.name == "exec" {
+                if addon.name == "exec" || (S::LAYER == Layer::Res2Res && addon.name == "json") {
                     Ok(None)
                 } else {
                     factory.create(addon).map(Some)

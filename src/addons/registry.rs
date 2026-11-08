@@ -23,6 +23,14 @@ macro_rules! register {
             validate_registration(layer, addon, path)?;
             let value = Value::Object(addon.config.clone().unwrap_or_default());
             let path = format!("{path}.config");
+            if layer == Layer::Res2Res && addon.name == "json" {
+                for key in ["module", "function"] {
+                    if value.get("transformer").and_then(|v| v.get(key)).is_some() {
+                        return Err(invalid(&format!("{path}.transformer.{key}"), format!(
+                            "Python transformerのmodule/function指定は使用できません。transformer.commandへ置き換えてください。whenとdefault_encodingはそのまま使えます。変換結果をJSON文字列としてstdoutへ返してください。\n{}", super::exec::MIGRATION)));
+                    }
+                }
+            }
             if addon.name == "exec" {
                 let config: super::exec::Config = deserialize(&value, &path)?;
                 config.validate(&path)?;
@@ -32,9 +40,8 @@ macro_rules! register {
                 $($( (Layer::$layer, $name) => AddonConfig::$variant(deserialize(&value, &path)?), )+)+
                 _ => return Err(invalid(&path, "unsupported addon")),
             };
-            if matches!(&config, AddonConfig::Res2ResJson(_)) {
-                return Err(invalid(&format!("{path}.transformer"),
-                    "Python transformer is unsupported; external command contract is undecided"));
+            if let AddonConfig::Res2ResJson(c) = &config {
+                c.transformer.validate(&format!("{path}.transformer"))?;
             }
             if let AddonConfig::FinalMiroir(config) = &config {
                 config.validate()?;

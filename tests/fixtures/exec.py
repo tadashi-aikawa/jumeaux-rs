@@ -28,6 +28,10 @@ if action == "output":
     sys.exit(0)
 if message["mode"] == "validate":
     result = {"valid": action != "invalid_validate"}
+elif message["mode"] == "json_transformer":
+    if message["options"].get("expect_null_encoding"):
+        assert message["payload"]["encoding"] is None
+    result = message["options"].get("text", "transformed")
 elif action == "environment":
     result = {"cwd": os.getcwd(), "env": dict(os.environ), "args": sys.argv[1:]}
 elif message["layer"] == "log2reqs":

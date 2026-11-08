@@ -281,3 +281,66 @@ fn descendant_holding_pipes_does_not_defeat_timeout() {
     );
     assert!(start.elapsed().as_secs_f64() < 3.0);
 }
+
+#[test]
+fn transformer_preserves_when_encoding_and_response_metadata() {
+    let transformer = addon("echo").config.unwrap();
+    for (when, encoding, expected) in [
+        ("True", None, b"?".as_slice()),
+        ("True", Some("utf8"), "あ".as_bytes()),
+        ("False", None, &[0, 255]),
+    ] {
+        let mut a: Addon = serde_json::from_value(json!({"name":"json","config":{"transformer":transformer,"when":when,"default_encoding":"ascii"}})).unwrap();
+        a.config.as_mut().unwrap()["transformer"]["options"] =
+            json!({"text":"あ","expect_null_encoding":encoding.is_none()});
+        let rt = Runtime::prepare_layer(Layer::Res2Res, &[a]).unwrap();
+        rt.validate().unwrap();
+        let mut response = response();
+        response.body = vec![0, 255].into();
+        response.encoding = encoding.map(str::to_owned);
+        response.headers.insert("Content-Length".into(), "2".into());
+        let before = response.clone();
+        let result = rt
+            .payload::<addons::Res2Res>(
+                0,
+                Res2ResPayload {
+                    response,
+                    req: Request {
+                        path: "/sample".into(),
+                        ..Default::default()
+                    },
+                    tags: vec!["tag".into()],
+                },
+                &(),
+                Invocation::default(),
+            )
+            .unwrap();
+        assert_eq!(&*result.response.body, expected);
+        assert_eq!(result.response.headers, before.headers);
+        assert_eq!(result.response.elapsed, before.elapsed);
+        assert_eq!(result.tags, ["tag"]);
+        if when == "True" {
+            assert_eq!(result.response.response_type, "json");
+        }
+    }
+}
+
+#[test]
+fn transformer_old_keys_and_syntax_errors_are_rejected_before_start() {
+    for old in [
+        json!({"module":"old"}),
+        json!({"function":"transform"}),
+        json!({"command":["python3"],"module":"old"}),
+    ] {
+        let a: Addon =
+            serde_json::from_value(json!({"name":"json","config":{"transformer":old}})).unwrap();
+        let err = addons::parse_config(Layer::Res2Res, &a, "addons.res2res[0]").unwrap_err();
+        assert!(err.message.contains("旧.py"));
+        assert!(err.message.contains("https://"));
+    }
+    let a: Addon = serde_json::from_value(
+        json!({"name":"json","config":{"transformer":addon("echo").config,"when":"("}}),
+    )
+    .unwrap();
+    assert!(Runtime::prepare_layer(Layer::Res2Res, &[a]).is_err());
+}
