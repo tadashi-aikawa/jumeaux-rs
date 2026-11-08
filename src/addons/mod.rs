@@ -1,6 +1,7 @@
 //! 組み込みアドオンの静的登録。現段階のexecutorは副作用を持たない骨組み。
 pub mod did_challenge;
 pub mod dump;
+pub mod exec;
 pub mod r#final;
 pub mod judgement;
 pub mod log;
@@ -81,6 +82,18 @@ pub trait Stage: Send + Sync + 'static {
     const LAYER: Layer;
     type Payload;
     type Reference;
+    fn external(
+        _runtime: &exec::Runtime,
+        _index: usize,
+        _payload: Self::Payload,
+        _reference: &Self::Reference,
+        _invocation: exec::Invocation,
+    ) -> Result<Self::Payload> {
+        Err(invalid(
+            Self::LAYER.name(),
+            "custom Stage has no external wire contract",
+        ))
+    }
 }
 pub trait AddonExecutor<S: Stage>: Send + Sync {
     fn exec(&self, payload: S::Payload, reference: &S::Reference) -> Result<S::Payload>;
@@ -100,6 +113,9 @@ macro_rules! stages {
             const LAYER: Layer = Layer::$stage;
             type Payload = $payload;
             type Reference = $reference;
+            fn external(runtime: &exec::Runtime, index: usize, payload: Self::Payload, reference: &Self::Reference, invocation: exec::Invocation) -> Result<Self::Payload> {
+                runtime.payload::<Self>(index, payload, reference, invocation)
+            }
         }
     )+};
 }
@@ -136,8 +152,9 @@ impl<S: Stage> Factory<S> for SkeletonFactory {
     }
 }
 pub struct Chain<S: Stage> {
-    executors: Vec<Box<dyn AddonExecutor<S>>>,
+    executors: Vec<Option<Box<dyn AddonExecutor<S>>>>,
     names: Vec<String>,
+    runtime: std::sync::Arc<exec::Runtime>,
 }
 impl<S: Stage> Chain<S> {
     pub fn build(addons: &Addons, factory: &impl Factory<S>) -> Result<Self> {
@@ -151,11 +168,16 @@ impl<S: Stage> Chain<S> {
                     addon,
                     &format!("addons.{}[{index}]", S::LAYER.name()),
                 )?;
-                factory.create(addon)
+                if addon.name == "exec" {
+                    Ok(None)
+                } else {
+                    factory.create(addon).map(Some)
+                }
             })
             .collect::<Result<_>>()?;
         Ok(Self {
             executors,
+            runtime: exec::Runtime::prepare_layer(S::LAYER, S::LAYER.configured(addons))?,
             names: S::LAYER
                 .configured(addons)
                 .iter()
@@ -163,20 +185,38 @@ impl<S: Stage> Chain<S> {
                 .collect(),
         })
     }
+    pub fn with_runtime(mut self, runtime: std::sync::Arc<exec::Runtime>) -> Self {
+        self.runtime = runtime;
+        self
+    }
     /// Pythonのreduceと同じ順序。直前の戻り値を次へ渡し、最初のエラーで停止する。
     pub fn exec(&self, payload: S::Payload, reference: &S::Reference) -> Result<S::Payload> {
         self.exec_with_log(payload, reference, &|_, _, _| {})
     }
     pub fn exec_with_log(
         &self,
-        mut payload: S::Payload,
+        payload: S::Payload,
         reference: &S::Reference,
         log: &dyn Fn(usize, &str, log::AddonLog),
     ) -> Result<S::Payload> {
+        self.exec_at(payload, reference, exec::Invocation::default(), log)
+    }
+    pub fn exec_at(
+        &self,
+        mut payload: S::Payload,
+        reference: &S::Reference,
+        invocation: exec::Invocation,
+        log: &dyn Fn(usize, &str, log::AddonLog),
+    ) -> Result<S::Payload> {
         for (index, executor) in self.executors.iter().enumerate() {
-            payload = executor.exec_with_log(payload, reference, &|event| {
-                log(index, &self.names[index], event)
-            })?;
+            self.runtime.check_cancelled()?;
+            payload = if let Some(executor) = executor {
+                executor.exec_with_log(payload, reference, &|event| {
+                    log(index, &self.names[index], event)
+                })?
+            } else {
+                S::external(&self.runtime, index, payload, reference, invocation)?
+            };
         }
         Ok(payload)
     }
@@ -213,15 +253,20 @@ pub(crate) fn validate_registration(layer: Layer, addon: &Addon, path: &str) -> 
         return Err(invalid(
             &format!("{path}.name"),
             format!(
-                "unsupported addon {:?}; Python modules cannot be loaded",
-                addon.name
+                "unsupported addon {:?}; 登録済みの名前: {}\nPython modules cannot be loaded. name: exec と config.command へ移行し、従来のconfigをconfig.optionsへ移してください。cls_nameは削除してください。\n{}",
+                addon.name,
+                layer.names().join(", "),
+                exec::MIGRATION
             ),
         ));
     }
     if addon.cls_name != "Executor" {
         return Err(invalid(
             &format!("{path}.cls_name"),
-            "only Executor is supported",
+            format!(
+                "only Executor is supported; cls_nameを削除し、name: exec のconfig.commandと引数で処理を指定してください。\n{}",
+                exec::MIGRATION
+            ),
         ));
     }
     if addon.include.is_some() {

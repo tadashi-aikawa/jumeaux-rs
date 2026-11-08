@@ -170,13 +170,28 @@ impl TrialEvents {
         payload: S::Payload,
         reference: &S::Reference,
     ) -> Result<S::Payload> {
-        chain.exec_with_log(payload, reference, &|index, name, log| {
-            self.emit(Event::Addon {
-                stage,
-                index,
-                name: name.into(),
-                log,
-            });
-        })
+        let side = match stage {
+            Stage::Res2Res(side) | Stage::Res2Dict(side) | Stage::Dump(side) => Some(match side {
+                Side::One => "one",
+                Side::Other => "other",
+            }),
+            _ => None,
+        };
+        chain.exec_at(
+            payload,
+            reference,
+            addons::exec::Invocation {
+                trial_seq: Some(self.seq),
+                side,
+            },
+            &|index, name, log| {
+                self.emit(Event::Addon {
+                    stage,
+                    index,
+                    name: name.into(),
+                    log,
+                });
+            },
+        )
     }
 }

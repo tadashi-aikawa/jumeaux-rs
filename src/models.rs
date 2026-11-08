@@ -99,6 +99,7 @@ impl Default for Request {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Response {
     pub body: Arc<[u8]>,
     pub encoding: Option<String>,

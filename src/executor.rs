@@ -78,6 +78,15 @@ pub struct Pipeline {
     did: Chain<DidChallenge>,
 }
 impl Pipeline {
+    pub fn with_runtime(mut self, runtime: Arc<addons::exec::Runtime>) -> Self {
+        self.res2res = self.res2res.with_runtime(Arc::clone(&runtime));
+        self.res2dict = self.res2dict.with_runtime(Arc::clone(&runtime));
+        self.judgement = self.judgement.with_runtime(Arc::clone(&runtime));
+        self.store = self.store.with_runtime(Arc::clone(&runtime));
+        self.dump = self.dump.with_runtime(Arc::clone(&runtime));
+        self.did = self.did.with_runtime(runtime);
+        self
+    }
     pub fn build(config: &Config) -> Result<Self> {
         config.concurrency()?;
         Ok(Self {

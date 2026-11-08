@@ -11,11 +11,11 @@ macro_rules! register {
     ($($layer:ident, $module:ident { $($variant:ident: $name:literal => $config:ident),+ $(,)? });+ $(;)?) => {
         #[derive(Debug, Clone, serde::Serialize)]
         #[serde(untagged)]
-        pub enum AddonConfig { $($( $variant(super::$module::$config::Config), )+)+ }
+        pub enum AddonConfig { Exec(super::exec::Config), $($( $variant(super::$module::$config::Config), )+)+ }
 
         impl Layer {
             pub fn names(self) -> &'static [&'static str] {
-                match self { $( Self::$layer => &[$($name),+], )+ }
+                match self { $( Self::$layer => &["exec", $($name),+], )+ }
             }
         }
 
@@ -23,6 +23,11 @@ macro_rules! register {
             validate_registration(layer, addon, path)?;
             let value = Value::Object(addon.config.clone().unwrap_or_default());
             let path = format!("{path}.config");
+            if addon.name == "exec" {
+                let config: super::exec::Config = deserialize(&value, &path)?;
+                config.validate(&path)?;
+                return Ok(AddonConfig::Exec(config));
+            }
             let config = match (layer, addon.name.as_str()) {
                 $($( (Layer::$layer, $name) => AddonConfig::$variant(deserialize(&value, &path)?), )+)+
                 _ => return Err(invalid(&path, "unsupported addon")),
