@@ -1,4 +1,5 @@
 //! Python版がHTTPで送った項目・オブジェクトをRustの実HTTPと比較する。
+#![cfg(feature = "miroir")]
 use jumeaux::{
     addons::{
         Layer,
@@ -108,6 +109,21 @@ fn receive(mut stream: TcpStream, records: &Mutex<Vec<Value>>, mode: &str) {
         json!({"service":"sts", "body":values})
     } else {
         assert!(headers["authorization"].contains("/ap-northeast-1/s3/"));
+        assert_eq!(headers["x-amz-content-sha256"], "UNSIGNED-PAYLOAD");
+        for header in [
+            "content-encoding",
+            "transfer-encoding",
+            "x-amz-trailer",
+            "x-amz-decoded-content-length",
+            "x-amz-checksum-crc32",
+            "x-amz-sdk-checksum-algorithm",
+        ] {
+            assert!(
+                !headers.contains_key(header),
+                "unexpected {header}: {headers:?}"
+            );
+        }
+        assert!(!headers["host"].starts_with("test-bucket."));
         let uri = first.split_whitespace().nth(1).unwrap();
         let path = decode(uri.split('?').next().unwrap());
         let mut record = json!({"service":"s3", "path":path,
@@ -132,9 +148,14 @@ fn receive(mut stream: TcpStream, records: &Mutex<Vec<Value>>, mode: &str) {
         || mode == "zip-failure" && record.get("members").is_some();
     records.lock().unwrap().push(record);
     if fail {
+        let body = if headers.contains_key("x-amz-target") {
+            r#"{"__type":"com.amazonaws.dynamodb.v20120810#ResourceNotFoundException","message":"Requested table does not exist"}"#
+        } else {
+            "<Error><Code>AccessDenied</Code><Message>Upload denied</Message></Error>"
+        };
         write!(
             stream,
-            "HTTP/1.1 400 Bad Request\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}"
+            "HTTP/1.1 400 Bad Request\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()
         )
         .unwrap();
     } else {
@@ -157,6 +178,13 @@ fn python_http_objects_items_and_assume_role() {
                 "failure",
                 "s3-failure",
                 "zip-failure",
+                "localhost-env",
+                "localhost-global-env",
+                "localhost-profile",
+                "localhost-global-profile",
+                "explicit-overrides-env",
+                "no-region",
+                "large-zip",
             ]
         } else {
             vec!["env"]
@@ -184,7 +212,16 @@ fn python_http_objects_items_and_assume_role() {
             std::fs::create_dir_all(&root).unwrap();
             let config = root.join("config");
             let credentials = root.join("credentials");
-            std::fs::write(&config, "[profile miroir-test]\nregion = ap-northeast-1\n").unwrap();
+            let profile = match mode {
+                "localhost-profile" => format!(
+                    "[profile miroir-test]\nregion = ap-northeast-1\nservices = local\n[services local]\ns3 =\n  endpoint_url = http://localhost:{port}\n"
+                ),
+                "localhost-global-profile" => format!(
+                    "[profile miroir-test]\nregion = ap-northeast-1\nendpoint_url = http://localhost:{port}\n"
+                ),
+                _ => "[profile miroir-test]\nregion = ap-northeast-1\n".into(),
+            };
+            std::fs::write(&config, profile).unwrap();
             std::fs::write(
                 &credentials,
                 "[miroir-test]\naws_access_key_id = test\naws_secret_access_key = test\n",
@@ -213,13 +250,33 @@ fn python_http_objects_items_and_assume_role() {
                 )
                 .env("AWS_MAX_ATTEMPTS", "1")
                 .env("NO_PROXY", "*");
-            if mode == "profile" {
+            if mode == "profile" || mode.ends_with("profile") {
                 command.env("AWS_PROFILE", "miroir-test");
             } else {
                 command
                     .env("AWS_ACCESS_KEY_ID", "test")
                     .env("AWS_SECRET_ACCESS_KEY", "test")
                     .env("AWS_REGION", "ap-northeast-1");
+            }
+            match mode {
+                "localhost-env" => {
+                    command.env("AWS_ENDPOINT_URL_S3", format!("http://localhost:{port}"));
+                }
+                "localhost-global-env" => {
+                    command
+                        .env_remove("AWS_ENDPOINT_URL_S3")
+                        .env("AWS_ENDPOINT_URL", format!("http://localhost:{port}"));
+                }
+                "localhost-profile" | "localhost-global-profile" => {
+                    command.env_remove("AWS_ENDPOINT_URL_S3");
+                }
+                "explicit-overrides-env" => {
+                    command.env("AWS_ENDPOINT_URL_S3", "http://localhost:1");
+                }
+                "no-region" => {
+                    command.env_remove("AWS_REGION");
+                }
+                _ => (),
             }
             let mut child = command
                 .stdout(Stdio::piped())
@@ -246,6 +303,10 @@ fn python_http_objects_items_and_assume_role() {
                 String::from_utf8_lossy(&output.stderr)
             );
             let actual = records.lock().unwrap();
+            if mode == "no-region" {
+                assert!(actual.is_empty());
+                continue;
+            }
             if mode.ends_with("failure") {
                 let count = match mode {
                     "failure" => 1,
@@ -257,6 +318,10 @@ fn python_http_objects_items_and_assume_role() {
             }
             let expected = case["expected"].as_array().unwrap();
             assert_eq!(actual.len(), expected.len(), "{} {mode}", case["name"]);
+            // 大きなZIPもHTTP本文が展開不要であることをreceive内で検査する。
+            if mode == "large-zip" {
+                continue;
+            }
             for want in expected {
                 let got = actual
                     .iter()
@@ -303,6 +368,11 @@ fn miroir_child() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, unhex(body.as_str().unwrap())).unwrap();
     }
+    if std::env::var("MIROIR_MODE").unwrap() == "large-zip" {
+        let mut bytes = vec![0; 2 * 1024 * 1024];
+        ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut bytes).unwrap();
+        std::fs::write(destination.join("nested/large.bin"), bytes).unwrap();
+    }
     let mut config: Value = serde_json::from_str(
         &case["config"]
             .to_string()
@@ -310,7 +380,11 @@ fn miroir_child() {
     )
     .unwrap();
     match std::env::var("MIROIR_MODE").unwrap().as_str() {
-        "sdk-endpoints" => {
+        "sdk-endpoints"
+        | "localhost-env"
+        | "localhost-global-env"
+        | "localhost-profile"
+        | "localhost-global-profile" => {
             config.as_object_mut().unwrap().shift_remove("endpoints");
         }
         "disabled-local-stack" => {
@@ -348,8 +422,43 @@ fn miroir_child() {
                 Ok(())
             },
         ));
+    if std::env::var("MIROIR_MODE").unwrap() == "no-region" {
+        let error = result.err().unwrap().error;
+        assert_eq!(error.kind, "NoRegionError");
+        assert_eq!(error.message, "You must specify a region.");
+        assert!(stdout.is_empty());
+        let mut cli_config: Value =
+            serde_yaml_ng::from_str(include_str!("../compat/python-baseline/simple/config.yml"))
+                .unwrap();
+        cli_config["addons"]["final"] = json!([
+            {"name":"miroir","config":{"table":"t","bucket":"b"}},
+            {"name":"json"}
+        ]);
+        std::fs::write(root.join("config.yml"), cli_config.to_string()).unwrap();
+        std::fs::write(root.join("requests"), "").unwrap();
+        let cli = Command::new(env!("CARGO_BIN_EXE_jumeaux"))
+            .current_dir(&root)
+            .args(["run", "requests"])
+            .output()
+            .unwrap();
+        assert_eq!(cli.status.code(), Some(1));
+        let stderr = String::from_utf8(cli.stderr).unwrap();
+        assert!(
+            stderr.contains("NoRegionError: You must specify a region."),
+            "{stderr}"
+        );
+        assert!(!root.join("responses/latest/report.json").exists());
+        return;
+    }
     if fail {
-        assert!(result.is_err());
+        let error = result.err().unwrap().error;
+        assert!(error.message.starts_with("service error:"), "{error}");
+        let reason = if std::env::var("MIROIR_MODE").unwrap() == "failure" {
+            "Requested table does not exist"
+        } else {
+            "Upload denied"
+        };
+        assert!(error.message.contains(reason), "{error}");
         assert!(stdout.is_empty());
         assert!(
             !destination

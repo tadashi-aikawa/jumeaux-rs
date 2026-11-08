@@ -7,12 +7,19 @@ license = "MIT"
 description = "Check difference between two responses of API."
 repository = "https://github.com/tadashi-aikawa/jumeaux-rs"
 
+[features]
+default = ["miroir"]
+miroir = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-sdk-dynamodb", "dep:aws-sdk-sts", "dep:aws-smithy-http-client", "dep:aws-smithy-types", "dep:aws-types", "dep:zip"]
+
 [dependencies]
-aws-config = "1.13.0"
-aws-sdk-s3 = { version = "1.157.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
-aws-sdk-dynamodb = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
-aws-sdk-sts = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
-zip = { version = "9.4.2", default-features = false, features = ["deflate-flate2"] }
+aws-config = { version = "1.13.0", optional = true, default-features = false, features = ["rt-tokio", "credentials-process", "sso"] }
+aws-sdk-s3 = { version = "1.157.0", optional = true, default-features = false, features = ["rt-tokio"] }
+aws-sdk-dynamodb = { version = "1", optional = true, default-features = false, features = ["rt-tokio"] }
+aws-sdk-sts = { version = "1", optional = true, default-features = false, features = ["rt-tokio"] }
+aws-smithy-http-client = { version = "1.5.2", optional = true, default-features = false, features = ["rustls-ring"] }
+aws-smithy-types = { version = "1.9.3", optional = true }
+aws-types = { version = "1.7.0", optional = true }
+zip = { version = "9.4.2", optional = true, default-features = false, features = ["deflate-flate2"] }
 clap = { version = "4.6.7", features = ["derive"] }
 chardetng = "1.0.0"
 chrono = "0.4.45"

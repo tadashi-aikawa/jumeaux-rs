@@ -40,6 +40,7 @@ fn error_class(error: &compat::Error) -> &str {
 fn python_review_regressions() {
     let mut count = 0;
     let mut differences = 0;
+    let mut disabled_features = 0;
     for case in cases() {
         let input = &case["input"];
         let actual = match case["operation"].as_str().unwrap() {
@@ -94,6 +95,15 @@ fn python_review_regressions() {
             op => panic!("unknown operation {op}"),
         };
         let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        if !cfg!(feature = "miroir") && input["name"] == "miroir" && expected.get("value").is_some()
+        {
+            let error = actual.unwrap_err();
+            assert_eq!(error.kind, "ConfigError");
+            assert!(error.message.contains("--features miroir"));
+            disabled_features += 1;
+            count += 1;
+            continue;
+        }
         if case.get("rust_expected").is_some() {
             assert_ne!(expected, &case["expected"]);
             assert!(
@@ -113,9 +123,13 @@ fn python_review_regressions() {
     }
     assert_eq!(count, 184);
     assert_eq!(differences, 6);
+    assert_eq!(
+        disabled_features,
+        if cfg!(feature = "miroir") { 0 } else { 2 }
+    );
     eprintln!(
-        "Review fixtures: {count}/{count}; Python matches {}; explicit differences {differences}",
-        count - differences
+        "Review fixtures: {count}/{count}; Python matches {}; explicit differences {differences}; disabled features {disabled_features}",
+        count - differences - disabled_features
     );
 }
 
