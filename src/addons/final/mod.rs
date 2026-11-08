@@ -50,22 +50,13 @@ impl Pipeline {
             .enumerate()
             .map(|(i, addon)| {
                 let config = parse_config(Layer::Final, addon, &format!("addons.final[{i}]"))?;
-                match &config {
-                    AddonConfig::FinalNotify(c) => {
-                        for item in &c.notifies {
-                            engine.load(&item.message)?;
-                            if let Some(when) = &item.when {
-                                engine.load(&format!("{{{{{when}}}}}"))?;
-                            }
+                if let AddonConfig::FinalNotify(c) = &config {
+                    for item in &c.notifies {
+                        engine.load(&item.message)?;
+                        if let Some(when) = &item.when {
+                            engine.load(&format!("{{{{{when}}}}}"))?;
                         }
                     }
-                    AddonConfig::FinalMiroir(_) => {
-                        return Err(Error::new(
-                            "ConfigError",
-                            format!("addons.final[{i}]: miroir is not implemented"),
-                        ));
-                    }
-                    _ => (),
                 }
                 Ok(config)
             })
@@ -137,6 +128,7 @@ impl Pipeline {
                     .map_err(|e| io_error(Path::new(&c.output_path), e))?;
             }
             AddonConfig::FinalViewer(_) => viewer::save(&root, &mut result.logs)?,
+            AddonConfig::FinalMiroir(c) => c.send(payload, &mut result.logs).await?,
             AddonConfig::FinalNotify(c) => {
                 c.send(
                     &payload.report,

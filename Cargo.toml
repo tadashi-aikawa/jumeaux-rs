@@ -8,6 +8,11 @@ description = "Check difference between two responses of API."
 repository = "https://github.com/tadashi-aikawa/jumeaux-rs"
 
 [dependencies]
+aws-config = "1.13.0"
+aws-sdk-s3 = { version = "1.157.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-sdk-dynamodb = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-sdk-sts = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
+zip = { version = "9.4.2", default-features = false, features = ["deflate-flate2"] }
 clap = { version = "4.6.7", features = ["derive"] }
 chardetng = "1.0.0"
 chrono = "0.4.45"
