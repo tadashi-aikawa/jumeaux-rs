@@ -223,8 +223,16 @@ def transport(rust=None):
                     body = b"not gzip"
                 if self.path == "/redirect-bad-gzip":
                     status, headers["Location"] = 302, "/done"
-            if self.path == "/zstd":
+            if self.path in {"/zstd", "/zstd-truncated", "/zstd-cut-last-byte", "/zstd-cut-header", "/zstd-corrupt"}:
                 body, headers["Content-Encoding"] = zstd.compress(b"expanded"), "zstd"
+                if self.path == "/zstd-truncated":
+                    body = body[:-5]
+                if self.path == "/zstd-cut-last-byte":
+                    body = body[:-1]
+                if self.path == "/zstd-cut-header":
+                    body = body[:5]
+                if self.path == "/zstd-corrupt":
+                    body = b"not zstd"
             if self.path in {"/deflate", "/raw-deflate"}:
                 body = zlib.compress(b"expanded")
                 if self.path == "/raw-deflate":
@@ -268,7 +276,7 @@ def transport(rust=None):
                 ("raw-deflate", "GET", "/raw-deflate", 2, {}),
                 ("empty-gzip", "GET", "/empty-gzip", 2, {}),
                 *[(path, "GET", "/" + path, 2, {}) for path in
-                  ("gzip-upper", "gzip-trailing", "gzip-truncated", "gzip-multi", "gzip-corrupt", "zstd", "redirect-bad-gzip", "retry-after-empty")],
+                  ("gzip-upper", "gzip-trailing", "gzip-truncated", "gzip-multi", "gzip-corrupt", "zstd", "zstd-truncated", "zstd-cut-last-byte", "zstd-cut-header", "zstd-corrupt", "redirect-bad-gzip", "retry-after-empty")],
                 ("status-503", "GET", "/status-503", 2, {}),
                 ("retry-after-get", "GET", "/retry-after", 2, {}),
                 ("retry-after-post", "POST", "/retry-after", 2, {}),

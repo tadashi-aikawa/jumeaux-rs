@@ -156,15 +156,12 @@ async fn send(url: &str, payload: &Value) -> Result<Outcome> {
         .header("accept", "*/*")
         .header("accept-encoding", "gzip, deflate, zstd")
         .header("connection", "keep-alive")
-        .header(
-            "user-agent",
-            concat!("python-requests/", env!("CARGO_PKG_VERSION")),
-        )
+        .header("user-agent", concat!("jumeaux/", env!("CARGO_PKG_VERSION")))
         .body(json_bytes(payload)?)
         .send()
         .await
         .map_err(|e| Error::new("ConnectionError", e.to_string()))?;
-    let ok = response.status().as_u16() == 200;
+    let ok = response.status().as_u16() < 400;
     let error = if ok {
         None
     } else {

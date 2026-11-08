@@ -41,6 +41,7 @@
   },
   "text_report_references": ["key"],
   "request_records": "multiset_with_occurrence_count",
+  "notification_header_exclusions": ["user-agent"],
   "request_header_rules": {
     "always_compare": ["content-type", "accept", "accept-encoding", "connection", "content-length", "cookie", "user-agent"],
     "configured_sources": ["summary.one.headers", "summary.other.headers", "trials.*.headers"],

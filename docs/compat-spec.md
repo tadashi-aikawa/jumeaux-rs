@@ -124,7 +124,8 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
 - 通知のHTTP送信はasyncのreqwestを使う専用関数へ閉じる。
   - runtime: ライブラリ内でruntimeを生成・block_onしない。HTTP転送側のtokio runtime内からそのままawaitできる。クライアント共有は統合タスクで接続する。
   - 本文: Python同様にキーを再帰ソートし、UTF-8のJSON bytesを送る。Content-Typeは自動付与しない。
-  - 結果: HTTP 200だけを成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
+  - 結果: requests.Response.okに合わせてHTTP 400未満を成功とし、それ以外の本文をOutcome.errorへ返す。通信例外はConnectionErrorとして返す。
+  - User-Agent: 転送と同じ`jumeaux/<version>`を使う。
 - SLACK_INCOMING_WEBHOOKS_URLが無い場合は送信をスキップし、3件のwarningログをOutcome.logsへ返す。
   - 検証順: notifierのversionを先に検証する。未対応のversionはWebhook未設定でも`Type slack@vN is not valid.`でエラーにする。
   - ログ: ライブラリは直接出力しない。表示とプロセス終了はCLI側の責務とする。
@@ -227,6 +228,7 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - 規則: ヘッダ名は大小無視、並び順も無視する。値は完全一致とする。
   - 比較対象外: 自動付与のHost。明示した場合は比較する。
   - User-Agent: 自動値は製品名を維持しバージョン部分だけ正規化する。明示値は完全一致とする。
+  - 通知の例外: User-Agentは比較しない。`notification_header_exclusions`で通知記録だけに適用する。API記録の比較は維持する。
   - 同一URL: trialごとの明示値の組を保持する。別trialの明示User-Agentを自動値の比較へ適用しない。
   - 維持: メソッド、URL、本文bytes、回数は完全比較する。原記録には自動ヘッダも残す。
 - PythonランタイムのDeprecationWarningは基準採取時に抑制する。
@@ -245,9 +247,15 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
 - `.netrc`由来のAuthorizationは自動付与しない。
   - Python版: trust_envがtrueならnetrcから認証情報を取得する。
   - Rust版: 設定・Requestで明示したAuthorizationを使う。
-- HTTPSのCA bundle読込失敗はfailureのTrialにする。
-  - Python版: 存在しないパスはOSErrorで停止する。
-  - Rust版: HTTPS送信時のSSLErrorとして扱う。HTTPのみのtrialは継続できる。
+- CA bundleの読取権限がない場合もOSErrorとしてchallengeの外へ返す。
+  - Python実測: 存在しないパスはOSError。存在するが読めないファイルはSSLErrorとなりfailureのTrialになる。
+  - Rust版: 指定方針に従いファイル読込失敗をOSErrorへ統一する。空・不正なPEMはSSLErrorのまま扱う。
+- 通知のUser-Agentを`jumeaux/<version>`にする。
+  - Python版: `python-requests/<version>`を送る。
+  - 比較: 通知のUser-Agentだけを除外し、他の自動ヘッダと本文は比較する。
+- 通知の成功判定をrequests.Response.okに合わせて400未満にする。
+  - Python実測: 基準Jumeauxの通知は独自のmodels.Response.okを使い、200だけを成功とする。
+  - Rust版: 指定方針に従い201・204・302・399も成功とする。redirectは通常どおり追跡し、最終応答で判定する。
 - Slack v1もWebhook未設定時は警告して送信をスキップする。
   - Python版: SLACK_INCOMING_WEBHOOKS_URLが無いとKeyErrorになる。
   - Rust版: v2と同じ3件のwarningログを返す。ライブラリから直接ログを出さない。
@@ -1062,7 +1070,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 
 ## HTTP転送の接続契約
 
-`compat/fixtures/http-transport.json`に58件のPython観測値を保存する。
+`compat/fixtures/http-transport.json`に62件のPython観測値を保存する。
 
 - `compat/gen/http_transport.py --rust <http_probe>`でPython実測・保存済みfixture・Rust転送を照合する。
   - 比較: メソッド、URL、自動・明示ヘッダ、本文bytes、再試行回数、エラー分類。
@@ -1095,7 +1103,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
 | --- | --- | --- |
 | Session | exec全体で1個。one/otherと各trialで共有 | 1個のCookieStoreを両endpointで共有。挿入順を保持してpath長の降順で安定ソートし送信 |
 | Session.close | 各http_get/http_postのfinallyで呼ぶ。Cookieは残る | idle接続をプールしない。Cookieは独立したCookieStoreに残す |
-| gzip・deflate・zstd | Accept-Encodingは`gzip, deflate, zstd`。展開済みbytesと元の圧縮ヘッダを保持 | flate2・zstdで展開。reqwestの圧縮featureは無効。Content-Encodingの大小無視、gzipの末尾ゴミ・途中切れ・複数memberを検証 |
+| gzip・deflate・zstd | Accept-Encodingは`gzip, deflate, zstd`。展開済みbytesと元の圧縮ヘッダを保持 | flate2・zstdで展開。reqwestの圧縮featureは無効。Content-Encodingの大小無視、gzipの末尾ゴミ・途中切れ・複数member、zstdの途中切れを検証 |
 | redirect | 最大30回。31回目の応答を受信後にTooManyRedirects | 本文の展開・途中切断エラーは無視して追跡する。ローカル受信31回を実測済み |
 | POSTのredirect | 301・302・303ではGETへ変更して本文を消す。307・308ではPOSTと本文を維持 | 5ステータスを実測済み |
 | proxy | endpoint.proxyからhttp用は`http://<host>`、https用は`https://<host>`を生成 | 明示proxyを環境変数より優先しNO_PROXYでも除外しない。HTTP proxy・HTTPS proxyをローカルで検証 |
@@ -1120,7 +1128,8 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 理由: native-tlsがmacOSで追加する有効期間・EKUの制限を持ち込まない。EKUなしの10年・1年証明書で転送と通知の成功を検証する。
   - ルート: Mozilla系のwebpki-rootsを使う。certifiと更新時期まで同一とは限らない。明示CA bundleを指定した場合は既定ルートを無効にする。
   - 読込: CA bundleはHTTPS接続時だけ読む。HTTPのみの実行は不正なbundleの影響を受けない。
-  - エラー: 読込不能・不正なbundleはHTTPS送信のConnectionError系として扱い、challengeでfailureにする。
+  - 読込エラー: 存在しない・読めないファイルはOSErrorとしてchallengeの外へ返す。存在しないパスはPythonと同じ停止範囲になる。権限エラーの差異は「意図的に変える差異」に記載する。
+  - 内容エラー: 空・不正なPEMはSSLErrorとしてchallengeでfailureにする。
 - reqwestが返すTLS・proxyの接続失敗はConnectionError系へ写す。
   - 契約: Pythonの例外クラスの派生構造ではなく、failureになる範囲を維持する。ネイティブなエラー詳細はError.messageに保持する。
 
@@ -1136,7 +1145,13 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 優先順位: 非空dataがjsonより優先する。空dataとjsonを渡すとjsonになる。
 - fixtureの記録はmethod・path/query・比較対象ヘッダ・body_hexを保持する。
   - 正規化: ホストはループバックの一時ポートなので省く。ヘッダ名は小文字。リストの順序は比較契約に含めない。
-  - 検証: 58ケースすべてをRustと比較し、保存済みPython fixtureの再現も検査する。
+  - 検証: 62ケースすべてをRustと比較し、保存済みPython fixtureの再現も検査する。
+- zstdの途中切れは展開済みbytesを返す。
+  - 実測: ヘッダの途中なら空本文、本文の途中なら展開できた部分を保持する。不正なフレームはContentDecodingErrorとする。
+- `http-review2.json`にCAの5ケースと通知の14ケースを保存する。
+  - 採取: `compat/gen/http_review2.py`でPython実測をexpectedに保存する。ローカルのTLS受信先と通知受信先だけを使う。
+  - 指定差異: 読取権限のないCAの1件と通知201・204・302・399の8件はrust_expectedを別に保持する。
+  - 検証: 19件すべてをRust期待値と照合する。通知v1・v2の本文bytesとUser-Agent以外の自動ヘッダはPython記録と比較する。
 - `http-request.json`の18ケースでpath置換の後方参照、queryの`/i`・削除・`$DATETIME`、CP932のURL、ヘッダ・本文を固定する。
   - URL: 既存のパーセントエンコードも`%HH`の大文字表記へそろえる。
   - query: overwriteとremoveの`/i`は元のqsから最初に一致したキーを選ぶ。追加したキーを再検索しない。

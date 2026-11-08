@@ -154,7 +154,7 @@ def request_headers(row, rules, configured):
     matches = [v for v in variants if all(received.get(k) == value for k, value in v.items())]
     require(bool(matches), f"configured headers missing/changed: {row}")
     explicit = max(matches, key=len)
-    names = set(rules["always_compare"]) | explicit.keys()
+    names = (set(rules["always_compare"]) | explicit.keys()) - set(rules.get("exclude", []))
     selected = {k: v for k, v in received.items() if k in names}
     if "user-agent" in selected and "user-agent" not in explicit:
         selected["user-agent"] = re.sub(r"^(jumeaux|python-requests)/[^ ]+$", r"\1/<version>", selected["user-agent"])
@@ -206,6 +206,8 @@ def compare_case(baseline, actual, rules, input_baseline=None):
         if not (baseline / path).exists():
             continue
         header_rules = rules["request_header_rules"]
+        if path == "notifications.jsonl":
+            header_rules = {**header_rules, "exclude": rules["notification_header_exclusions"]}
         configured = configured_headers(expect_reports, header_rules) if path == "api.jsonl" else {}
         equal(records(baseline / path, header_rules, configured), records(actual / path, header_rules, configured), path)
     if actual.name.startswith("notify_"):

@@ -109,6 +109,19 @@ class ComparisonTests(unittest.TestCase):
     def test_configured_user_agent_is_compared(self):
         self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, "wrong" if name.lower() == "user-agent" else value] for name, value in headers]))
 
+    def test_notification_user_agent_is_excluded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "notify_v1"
+            shutil.copytree(BASELINE / "notify_v1", target, symlinks=True)
+            self.change_headers(target, lambda headers: [[k, "jumeaux/0.1.0" if k.lower() == "user-agent" else v] for k, v in headers], "notifications.jsonl")
+            compare_case(BASELINE / "notify_v1", target, RULES)
+
+    def test_notification_other_automatic_headers_are_compared(self):
+        for name in ("accept", "accept-encoding", "connection", "content-length", "cookie"):
+            with self.subTest(name=name):
+                self.mutated_case("notify_v1", lambda target: self.change_headers(target,
+                    lambda headers: [[k, v] for k, v in headers if k.lower() != name] + [[name, "wrong"]], "notifications.jsonl"))
+
     def test_missing_configured_header_is_detected(self):
         self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, value] for name, value in headers if name.lower() != "xxx-header-key"]))
 

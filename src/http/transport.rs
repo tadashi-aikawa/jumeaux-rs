@@ -236,7 +236,7 @@ fn client_builder(
     });
     if let Some(path) = ca_bundle.filter(|_| https) {
         let pem = std::fs::read(&path)
-            .map_err(|e| Error::new("SSLError", format!("{}: {e}", path.display())))?;
+            .map_err(|e| Error::new("OSError", format!("{}: {e}", path.display())))?;
         let certificates = reqwest::Certificate::from_pem_bundle(&pem)
             .map_err(|e| Error::new("SSLError", e.to_string()))?;
         if certificates.is_empty() {
@@ -334,7 +334,14 @@ fn expand(mut body: Vec<u8>, headers: &Headers) -> Result<Vec<u8>> {
         let result = match coding {
             "gzip" | "x-gzip" => expand_gzip(&body, &mut decoded),
             "zstd" => zstd::stream::read::Decoder::new(body.as_slice())
-                .and_then(|mut decoder| decoder.read_to_end(&mut decoded)),
+                .and_then(|mut decoder| decoder.read_to_end(&mut decoded))
+                .or_else(|error| {
+                    if error.kind() == std::io::ErrorKind::UnexpectedEof {
+                        Ok(decoded.len())
+                    } else {
+                        Err(error)
+                    }
+                }),
             "deflate" => {
                 let result =
                     flate2::read::ZlibDecoder::new(body.as_slice()).read_to_end(&mut decoded);

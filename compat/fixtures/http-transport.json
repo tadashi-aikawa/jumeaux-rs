@@ -789,6 +789,179 @@
     }
   },
   {
+    "name": "zstd-truncated",
+    "input": {
+      "method": "GET",
+      "path": "/zstd-truncated",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870",
+      "path": "/zstd-truncated",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/zstd-truncated",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "zstd-cut-last-byte",
+    "input": {
+      "method": "GET",
+      "path": "/zstd-cut-last-byte",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "657870616e6465",
+      "path": "/zstd-cut-last-byte",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/zstd-cut-last-byte",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "zstd-cut-header",
+    "input": {
+      "method": "GET",
+      "path": "/zstd-cut-header",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "status_code": 200,
+      "body_hex": "",
+      "path": "/zstd-cut-header",
+      "records": [
+        {
+          "method": "GET",
+          "path": "/zstd-cut-header",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "zstd-corrupt",
+    "input": {
+      "method": "GET",
+      "path": "/zstd-corrupt",
+      "max_retries": 2,
+      "timeout": 3.0
+    },
+    "expected": {
+      "error": "ContentDecodingError",
+      "challenge": {
+        "error": "ContentDecodingError"
+      },
+      "records": [
+        {
+          "method": "GET",
+          "path": "/zstd-corrupt",
+          "headers": [
+            [
+              "accept",
+              "*/*"
+            ],
+            [
+              "accept-encoding",
+              "gzip, deflate, zstd"
+            ],
+            [
+              "connection",
+              "keep-alive"
+            ],
+            [
+              "user-agent",
+              "jumeaux/<version>"
+            ],
+            [
+              "x-test",
+              "request"
+            ]
+          ],
+          "body_hex": ""
+        }
+      ]
+    }
+  },
+  {
     "name": "redirect-bad-gzip",
     "input": {
       "method": "GET",

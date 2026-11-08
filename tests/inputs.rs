@@ -116,8 +116,14 @@ fn receiver(status: u16) -> (Context, mpsc::Receiver<Value>, thread::JoinHandle<
                         bytes.extend_from_slice(&buffer[..n]);
                     }
                     let raw = std::str::from_utf8(&bytes[end..end + len]).unwrap();
+                    assert_eq!(
+                        header("user-agent").as_deref(),
+                        Some(concat!("jumeaux/", env!("CARGO_PKG_VERSION")))
+                    );
+                    let body = if status == 204 { "" } else { "reply" };
                     let response = format!(
-                        "HTTP/1.1 {status} Result\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"
+                        "HTTP/1.1 {status} Result\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
                     );
                     if status != 0 {
                         stream.write_all(response.as_bytes()).unwrap();
@@ -311,11 +317,34 @@ fn empty_guard_stops_before_following_addon_and_returns_warnings() {
 #[test]
 fn notification_http_errors_are_returned() {
     let notifier = serde_json::from_value(json!({"type":"slack","version":2})).unwrap();
-    let (context, rx, handle) = receiver(201);
+    let (context, rx, handle) = receiver(400);
     let result = block_on(notification::notify(&notifier, "hello", &context)).unwrap();
-    assert_eq!(result.error.as_deref(), Some("ok"));
+    assert_eq!(result.error.as_deref(), Some("reply"));
     rx.recv_timeout(Duration::from_secs(10)).unwrap();
     handle.join().unwrap();
+}
+
+#[test]
+fn notification_status_fixtures_match_requests_ok() {
+    let cases: Vec<Value> =
+        serde_json::from_str(include_str!("../compat/fixtures/http-review2.json")).unwrap();
+    for case in cases
+        .iter()
+        .filter(|case| case["input"].get("notifier").is_some())
+    {
+        let notifier = serde_json::from_value(case["input"]["notifier"].clone()).unwrap();
+        let (context, rx, handle) = receiver(case["input"]["status"].as_u64().unwrap() as u16);
+        let result = block_on(notification::notify(&notifier, "status fixture", &context)).unwrap();
+        let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        assert_eq!(
+            json!({"ok": result.error.is_none(), "notification_error": result.error}),
+            json!({"ok": expected["ok"], "notification_error": expected["notification_error"]}),
+            "{}",
+            case["name"]
+        );
+        rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        handle.join().unwrap();
+    }
 }
 
 #[test]

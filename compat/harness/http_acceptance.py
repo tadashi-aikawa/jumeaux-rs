@@ -187,7 +187,7 @@ def connection_contracts(binary):
                 count += 1
                 actual = rust_probe(binary, {"name": "one", "host": host}, [{"path": "/mixed-invalid-ca"}],
                                     other={"name": "other", "host": "https://localhost:1"}, trust_env=True, action="challenge")
-                assert actual["results"][0]["status"] == "failure", actual
+                assert actual["results"][0]["error"] == "OSError", actual
                 assert records[-1] == "/mixed-invalid-ca", records
                 count += 1
         with patch.dict(os.environ, {**base_env, "HTTP_PROXY": "http://127.0.0.1:9", "http_proxy": "http://" + proxy_address}, clear=True):

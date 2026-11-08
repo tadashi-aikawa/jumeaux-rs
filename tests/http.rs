@@ -72,6 +72,70 @@ fn options() -> TransportOptions {
     }
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn ca_file_errors_propagate_but_invalid_contents_become_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("target")
+        .join(format!("ca-errors-{}", std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    let cases: Vec<Value> =
+        serde_json::from_str(include_str!("../compat/fixtures/http-review2.json")).unwrap();
+    for case in cases
+        .iter()
+        .filter(|case| case["input"].get("bundle").is_some())
+    {
+        let label = case["input"]["bundle"].as_str().unwrap();
+        let bundle = directory.join(label);
+        let body: &[u8] = match label {
+            "empty" => b"",
+            "bad-certificate" => {
+                b"-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----\n"
+            }
+            _ => b"not pem",
+        };
+        if label != "missing" {
+            std::fs::write(&bundle, body).unwrap();
+        }
+        if label == "unreadable" {
+            std::fs::set_permissions(&bundle, std::fs::Permissions::from_mode(0o0)).unwrap();
+        }
+        let access = endpoint("https://localhost:1");
+        let transport = HttpTransport::with_options(
+            &access,
+            &access,
+            0,
+            TransportOptions {
+                ca_bundle: Some(bundle.clone()),
+                ..options()
+            },
+        )
+        .unwrap();
+        let request = Request {
+            path: "/".into(),
+            ..Request::default()
+        };
+        let sent = transport.send_one(&request).await;
+        let challenged = transport.challenge(1, &request).await;
+        if label == "unreadable" {
+            std::fs::set_permissions(&bundle, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        let expected = case.get("rust_expected").unwrap_or(&case["expected"]);
+        assert_eq!(
+            sent.unwrap_err().kind,
+            expected["send_error"].as_str().unwrap()
+        );
+        let actual = match challenged {
+            Err(error) => error.kind,
+            Ok(ChallengeOutcome::Failure(_)) => "failure",
+            _ => panic!("CA error expected"),
+        };
+        assert_eq!(actual, expected["challenge"].as_str().unwrap(), "{label}");
+    }
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 #[tokio::test]
 async fn pair_runs_both_endpoints_and_headers_are_case_insensitive_in_templates() {
     let reply = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nX-Test: A\r\nX-Test: B\r\nContent-Length: 2\r\n\r\n{}".to_vec();

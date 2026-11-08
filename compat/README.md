@@ -80,17 +80,20 @@ uv run --project compat/harness python compat/harness/run.py
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --encoding > /tmp/jumeaux-http-encoding.json
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --prepare > /tmp/jumeaux-http-request.json
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --time > /tmp/jumeaux-http-time.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_review2.py > /tmp/jumeaux-http-review2.json
 diff compat/fixtures/http-transport.json /tmp/jumeaux-http-transport.json
 diff compat/fixtures/encoding/http.json /tmp/jumeaux-http-encoding.json
 diff compat/fixtures/http-request.json /tmp/jumeaux-http-request.json
 diff compat/fixtures/http-time.json /tmp/jumeaux-http-time.json
+diff compat/fixtures/http-review2.json /tmp/jumeaux-http-review2.json
 cargo test --test http --test http_encoding -- --nocapture
 cargo build --example http_probe
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_review2.py --rust target/debug/examples/http_probe
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/harness/http_acceptance.py
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B -m unittest discover -s compat/harness -p test_compare.py
 ```
 
-- 転送fixtureは58件のPython実測。動的ポートのループバック受信先だけを使う。
+- 転送fixtureは62件のPython実測。動的ポートのループバック受信先だけを使う。
   - 対象: 本文bytes、自動・明示ヘッダ、redirect、Cookieの順序、gzip・zstd、retry、通信失敗とchallengeの捕捉。
   - 注入: DNS失敗・接続拒否・connect timeoutはソケット入口で注入し、外部へ通信しない。
   - 比較: Rustの送信・受信結果と保存済みPython観測値を照合する。timeoutの0.2秒は実測用であり、製品の設定ではない。
@@ -99,6 +102,9 @@ cargo build --example http_probe
 - encodingは23件すべてRustでPython期待値と比較する。
   - 対象: 決定順、空本文、charsetの引用符・重複・空値、MIME typeとパラメータの区別。
 - request_timeはPythonのisoformatから採取した4件でオフセットと小数部を検証する。
+- `http-review2.json`はCAの5件と通知の14件を検証する。
+  - 指定差異: 読取権限のないCAの1件、通知201・204・302・399の8件はPython観測値とRust期待値を分ける。根拠は互換仕様の「意図的に変える差異」に記載する。
+  - 通知: 本文bytesと自動ヘッダを比較する。User-Agentは比較から除外し、Rustが`jumeaux/<version>`を送ることを別途検証する。
 - `http_acceptance.py`は既存31ケースのapi.jsonlの124リクエストも比較する。
   - 入力: 基準Pythonの入力アドオンで生成したRequest。転送はRustのone/other並行送信。
   - ヘッダ: 共通のcompare.pyでtrialごとの明示値を識別する。自動ヘッダも比較し、User-Agentはバージョン部分だけ正規化する。

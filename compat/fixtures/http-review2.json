@@ -1,0 +1,505 @@
+[
+  {
+    "name": "ca-missing",
+    "input": {
+      "bundle": "missing"
+    },
+    "expected": {
+      "send_error": "OSError",
+      "challenge": "OSError"
+    }
+  },
+  {
+    "name": "ca-unreadable",
+    "input": {
+      "bundle": "unreadable"
+    },
+    "expected": {
+      "send_error": "SSLError",
+      "challenge": "failure"
+    },
+    "rust_expected": {
+      "send_error": "OSError",
+      "challenge": "OSError"
+    },
+    "difference": "docs/compat-spec.md: CAの読込失敗をOSErrorとして伝播する"
+  },
+  {
+    "name": "ca-empty",
+    "input": {
+      "bundle": "empty"
+    },
+    "expected": {
+      "send_error": "SSLError",
+      "challenge": "failure"
+    }
+  },
+  {
+    "name": "ca-not-pem",
+    "input": {
+      "bundle": "not-pem"
+    },
+    "expected": {
+      "send_error": "SSLError",
+      "challenge": "failure"
+    }
+  },
+  {
+    "name": "ca-bad-certificate",
+    "input": {
+      "bundle": "bad-certificate"
+    },
+    "expected": {
+      "send_error": "SSLError",
+      "challenge": "failure"
+    }
+  },
+  {
+    "name": "notify-v1-200",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 200
+    },
+    "expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    }
+  },
+  {
+    "name": "notify-v1-201",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 201
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v1-204",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 204
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v1-302",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 302
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v1-399",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 399
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v1-400",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 400
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    }
+  },
+  {
+    "name": "notify-v1-500",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 1,
+        "channel": "#local"
+      },
+      "status": 500
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "84"
+        },
+        "body_hex": "7b226368616e6e656c223a2022236c6f63616c222c226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265222c22757365726e616d65223a20226a756d65617578227d"
+      }
+    }
+  },
+  {
+    "name": "notify-v2-200",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 200
+    },
+    "expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    }
+  },
+  {
+    "name": "notify-v2-201",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 201
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v2-204",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 204
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v2-302",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 302
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v2-399",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 399
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "rust_expected": {
+      "ok": true,
+      "notification_error": null,
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    },
+    "difference": "docs/compat-spec.md: 通知の成功判定をrequests.Response.okに合わせる"
+  },
+  {
+    "name": "notify-v2-400",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 400
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    }
+  },
+  {
+    "name": "notify-v2-500",
+    "input": {
+      "notifier": {
+        "type": "slack",
+        "version": 2,
+        "channel": "#local"
+      },
+      "status": 500
+    },
+    "expected": {
+      "ok": false,
+      "notification_error": "reply",
+      "record": {
+        "headers": {
+          "accept-encoding": "gzip, deflate, zstd",
+          "accept": "*/*",
+          "connection": "keep-alive",
+          "content-length": "42"
+        },
+        "body_hex": "7b226c696e6b5f6e616d6573223a20312c2274657874223a20227374617475732066697874757265227d"
+      }
+    }
+  }
+]
