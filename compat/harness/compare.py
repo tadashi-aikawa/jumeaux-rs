@@ -134,12 +134,31 @@ def configured_headers(report_list, rules):
     for report in report_list:
         for trial in report["trials"]:
             for side in ("one", "other"):
-                names = result.setdefault((trial["method"], trial[side]["url"]), set())
+                access, request = {}, {}
                 if f"summary.{side}.headers" in rules["configured_sources"]:
-                    names.update(key.lower() for key in report["summary"][side]["headers"])
+                    access = report["summary"][side].get("headers", {})
                 if "trials.*.headers" in rules["configured_sources"]:
-                    names.update(key.lower() for key in trial["headers"])
+                    request = trial.get("headers", {})
+                names = {k.lower() for k in access.keys() | request.keys()}
+                merged = {"User-Agent": "jumeaux/<version>", **access, **request}
+                merged = {k.lower(): v for k, v in merged.items()}
+                variant = {k: v for k, v in merged.items() if k in names}
+                result.setdefault((trial["method"], trial[side]["url"]), []).append(variant)
     return result
+
+
+def request_headers(row, rules, configured):
+    require(rules["name_case"] == "insensitive" and rules["order"] == "ignore" and rules["unconfigured"] == "ignore", "unsupported request header rule")
+    received = {name.lower(): value for name, value in row["headers"]}
+    variants = (configured or {}).get((row["method"], row["url"]), [{}])
+    matches = [v for v in variants if all(received.get(k) == value for k, value in v.items())]
+    require(bool(matches), f"configured headers missing/changed: {row}")
+    explicit = max(matches, key=len)
+    names = (set(rules["always_compare"]) | explicit.keys()) - set(rules.get("exclude", []))
+    selected = {k: v for k, v in received.items() if k in names}
+    if "user-agent" in selected and "user-agent" not in explicit:
+        selected["user-agent"] = re.sub(r"^(jumeaux|python-requests)/[^ ]+$", r"\1/<version>", selected["user-agent"])
+    return sorted(selected.items())
 
 
 def records(path, header_rules=None, configured=None):
@@ -152,9 +171,7 @@ def records(path, header_rules=None, configured=None):
         occurrences[identity] += 1
         require(occurrence == occurrences[identity], f"{path}: occurrence count mismatch")
         if header_rules:
-            require(header_rules["name_case"] == "insensitive" and header_rules["order"] == "ignore" and header_rules["unconfigured"] == "ignore", "unsupported request header rule")
-            names = set(header_rules["always_compare"]) | (configured or {}).get((row["method"], row["url"]), set())
-            row["headers"] = sorted((name.lower(), value) for name, value in row["headers"] if name.lower() in names)
+            row["headers"] = request_headers(row, header_rules, configured)
         result[json.dumps(row, sort_keys=True)] += 1
     return dict(result)
 
@@ -189,6 +206,8 @@ def compare_case(baseline, actual, rules, input_baseline=None):
         if not (baseline / path).exists():
             continue
         header_rules = rules["request_header_rules"]
+        if path == "notifications.jsonl":
+            header_rules = {**header_rules, "exclude": rules["notification_header_exclusions"]}
         configured = configured_headers(expect_reports, header_rules) if path == "api.jsonl" else {}
         equal(records(baseline / path, header_rules, configured), records(actual / path, header_rules, configured), path)
     if actual.name.startswith("notify_"):

@@ -835,6 +835,10 @@ pub fn content_encodings(body: &[u8]) -> Result<Vec<String>> {
 }
 
 pub fn detect(body: &[u8]) -> String {
+    // 基準環境のrequests/charset-normalizerは空本文をutf-8とする。
+    if body.is_empty() {
+        return "utf-8".into();
+    }
     if body.starts_with(b"\xef\xbb\xbf") {
         return "UTF-8-SIG".into();
     }
@@ -890,18 +894,22 @@ pub fn http_encoding(
     default: Option<&str>,
 ) -> Result<Option<String>> {
     let ct = content_type.unwrap_or("");
+    let mime_type = ct.split(';').next().unwrap_or("").trim();
     let mut selected = None;
     for item in ct.split(';').skip(1) {
         if let Some((key, value)) = item.split_once('=')
-            && key.trim().eq_ignore_ascii_case("charset")
+            && key
+                .trim()
+                .trim_matches(['\'', '"', ' '])
+                .eq_ignore_ascii_case("charset")
         {
-            selected = Some(value.trim().trim_matches(['\'', '"']));
+            selected = Some(value.trim().trim_matches(['\'', '"', ' ']));
         }
     }
     let selected = selected.or_else(|| {
-        if ct.contains("text") {
+        if mime_type.contains("text") {
             Some("ISO-8859-1")
-        } else if ct.contains("application/json") {
+        } else if mime_type.contains("application/json") {
             Some("utf-8")
         } else {
             None

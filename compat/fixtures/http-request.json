@@ -1,0 +1,514 @@
+[
+  {
+    "name": "empty-query",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "unicode-path",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/日本 語"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/日本 語?",
+        "url": "http://localhost/base/%E6%97%A5%E6%9C%AC%20%E8%AA%9E",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "unreserved-percent",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/%7E%41%2F%zz"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/%7E%41%2F%zz?",
+        "url": "http://localhost/base/%257E%2541%252F%25zz",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "valid-percent",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/%7E%41%2F"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/%7E%41%2F?",
+        "url": "http://localhost/base/~A%2F",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "percent-uppercase",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/%e6%97%a5/%2f",
+        "qs": {
+          "x": [
+            "%ab"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/%e6%97%a5/%2f?x=%25ab",
+        "url": "http://localhost/base/%E6%97%A5/%2F?x=%25ab",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "path-backreference",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "path": {
+          "before": "/old/(\\w+)",
+          "after": "/new/\\1/\\1"
+        }
+      },
+      "request": {
+        "path": "/old/api"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/new/api/api?",
+        "url": "http://localhost/base/new/api/api",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "query-cp932",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "qs": {
+          "key": [
+            "日本",
+            "",
+            "+ &"
+          ]
+        },
+        "url_encoding": "cp932"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?key=%93%FA%96%7B&key=&key=%2B+%26",
+        "url": "http://localhost/base/?key=%93%FA%96%7B&key=&key=%2B+%26",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "query-first-case",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "query": {
+          "overwrite": {
+            "key/i": [
+              "new"
+            ]
+          },
+          "remove": [
+            "DROP/i"
+          ]
+        }
+      },
+      "request": {
+        "path": "/",
+        "qs": {
+          "Key": [
+            "1"
+          ],
+          "KEY": [
+            "2"
+          ],
+          "drop": [
+            "x"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?Key=new&KEY=2",
+        "url": "http://localhost/base/?Key=new&KEY=2",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "query-original-keys",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "query": {
+          "overwrite": {
+            "NEW": [
+              "a"
+            ],
+            "new/i": [
+              "b"
+            ]
+          },
+          "remove": [
+            "new/i"
+          ]
+        }
+      },
+      "request": {
+        "path": "/"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?NEW=a",
+        "url": "http://localhost/base/?NEW=a",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "query-datetime",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "query": {
+          "overwrite": {
+            "time": [
+              "$DATETIME(fixed)(3600)"
+            ]
+          }
+        }
+      },
+      "request": {
+        "path": "/"
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?time=fixed",
+        "url": "http://localhost/base/?time=fixed",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "query-datetime-error",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "query": {
+          "overwrite": {
+            "time": [
+              "$DATETIME(fixed)(invalid)"
+            ]
+          }
+        }
+      },
+      "request": {
+        "path": "/"
+      }
+    },
+    "expected": {
+      "error": "ValueError"
+    }
+  },
+  {
+    "name": "header-case-order",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "headers": {
+          "X-Key": "one",
+          "x-key": "two"
+        }
+      },
+      "request": {
+        "path": "/",
+        "headers": {
+          "X-Key": "request"
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>",
+          "x-key": "two"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "header-overwrite",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base",
+        "headers": {
+          "X-Key": "one",
+          "User-Agent": "custom"
+        }
+      },
+      "request": {
+        "path": "/",
+        "headers": {
+          "X-Key": "request"
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "custom",
+          "x-key": "request"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "form-nested",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "method": "POST",
+        "form": {
+          "dict": {
+            "a": 1
+          },
+          "list": [
+            [
+              "x",
+              "y"
+            ],
+            null
+          ],
+          "bool": false
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body_hex": "646963743d61266c6973743d78266c6973743d7926626f6f6c3d46616c7365"
+      }
+    }
+  },
+  {
+    "name": "json-ascii",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "method": "POST",
+        "json": {
+          "text": "日本😀",
+          "integer": 18446744073709551617,
+          "float": 1e+20,
+          "small": 1e-07
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>",
+          "content-type": "application/json"
+        },
+        "body_hex": "7b2274657874223a20225c75363565355c75363732635c75643833645c75646530305c7530303766222c2022696e7465676572223a2031383434363734343037333730393535313631372c2022666c6f6174223a2031652b32302c2022736d616c6c223a2031652d30377d"
+      }
+    }
+  },
+  {
+    "name": "body-priority",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "method": "POST",
+        "raw": "raw",
+        "form": {
+          "x": 1
+        },
+        "json": {
+          "y": 2
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": "726177"
+      }
+    }
+  },
+  {
+    "name": "get-ignores-body",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "method": "GET",
+        "raw": "raw",
+        "json": {
+          "x": 1
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>"
+        },
+        "body_hex": ""
+      }
+    }
+  },
+  {
+    "name": "content-length",
+    "input": {
+      "endpoint": {
+        "name": "one",
+        "host": "http://localhost/base"
+      },
+      "request": {
+        "path": "/",
+        "method": "POST",
+        "raw": "日本",
+        "headers": {
+          "Content-Length": "100"
+        }
+      }
+    },
+    "expected": {
+      "value": {
+        "original_url": "http://localhost/base/?",
+        "url": "http://localhost/base/",
+        "headers": {
+          "user-agent": "jumeaux/<version>",
+          "content-length": "6"
+        },
+        "body_hex": "e697a5e69cac"
+      }
+    }
+  }
+]

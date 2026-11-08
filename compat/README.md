@@ -74,6 +74,47 @@ uv run --project compat/harness python compat/harness/run.py
 
 ## 関数fixture
 
+### HTTP転送の受入
+
+```sh
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py > /tmp/jumeaux-http-transport.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --encoding > /tmp/jumeaux-http-encoding.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --prepare > /tmp/jumeaux-http-request.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_transport.py --time > /tmp/jumeaux-http-time.json
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_review2.py > /tmp/jumeaux-http-review2.json
+diff compat/fixtures/http-transport.json /tmp/jumeaux-http-transport.json
+diff compat/fixtures/encoding/http.json /tmp/jumeaux-http-encoding.json
+diff compat/fixtures/http-request.json /tmp/jumeaux-http-request.json
+diff compat/fixtures/http-time.json /tmp/jumeaux-http-time.json
+diff compat/fixtures/http-review2.json /tmp/jumeaux-http-review2.json
+cargo test --test http --test http_encoding -- --nocapture
+cargo build --example http_probe
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/http_review2.py --rust target/debug/examples/http_probe
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/harness/http_acceptance.py
+"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B -m unittest discover -s compat/harness -p test_compare.py
+```
+
+- 転送fixtureは62件のPython実測。動的ポートのループバック受信先だけを使う。
+  - 対象: 本文bytes、自動・明示ヘッダ、redirect、Cookieの順序、gzip・zstd、retry、通信失敗とchallengeの捕捉。
+  - 注入: DNS失敗・接続拒否・connect timeoutはソケット入口で注入し、外部へ通信しない。
+  - 比較: Rustの送信・受信結果と保存済みPython観測値を照合する。timeoutの0.2秒は実測用であり、製品の設定ではない。
+- リクエスト組み立ては18件すべてRustとPython期待値を比較する。
+  - 対象: path・query・ヘッダのマージ、URL文字コード、本文の優先順位・JSON・formの表記。
+- encodingは23件すべてRustでPython期待値と比較する。
+  - 対象: 決定順、空本文、charsetの引用符・重複・空値、MIME typeとパラメータの区別。
+- request_timeはPythonのisoformatから採取した4件でオフセットと小数部を検証する。
+- `http-review2.json`はCAの5件と通知の14件を検証する。
+  - 比較: 19件すべてをPython観測値と照合する。存在しないCAはOSError、読取権限のないCAはSSLError、通知は200だけを成功とする。
+  - 通知: 本文bytesと自動ヘッダを比較する。User-Agentは比較から除外し、Rustが`jumeaux/<version>`を送ることを別途検証する。
+- `http_acceptance.py`は既存31ケースのapi.jsonlの124リクエストも比較する。
+  - 入力: 基準Pythonの入力アドオンで生成したRequest。転送はRustのone/other並行送信。
+  - ヘッダ: 共通のcompare.pyでtrialごとの明示値を識別する。自動ヘッダも比較し、User-Agentはバージョン部分だけ正規化する。
+  - proxy・TLS: 26ケース。OpenSSLで一時CAと証明書を生成する。EKUなしの10年・1年証明書による転送・通知も含む。外部のDNS失敗はresolver注入で検証し、外部へ通信しない。
+  - 実行: `--phase transport|baseline|connection`で対象を限定できる。Python版の.venvとopensslコマンドが必要。
+  - 制限: 製品CLIを通した保存成果物・アドオンのE2Eは全体統合の対象。
+
+### 入力系アドオンと通知
+
 入力系アドオンと通知の基準は次で追加採取する。
 
 ```sh
@@ -86,6 +127,8 @@ cargo test --test inputs -- --nocapture
   - 対象: 4形式の入力、8種のreqs2reqs、Slack v1・v2の本文bytesとContent-Type。
   - shuffle: countからpathが`/0`～`/(count-1)`のRequestを生成し、並び替えたpath配列を比較する。1000件のケースでMT19937の状態更新も検証する。
   - CLI: empty_guardで通知して終了コード1になる経路も別テストで検証する。
+
+### 既存の関数fixture
 
 ```sh
 "$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/fixtures.py

@@ -86,15 +86,41 @@ class ComparisonTests(unittest.TestCase):
             row["headers"] = transform(row["headers"])
         path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
 
-    def test_automatic_headers_and_header_order_are_ignored(self):
+    def test_host_and_header_order_are_ignored(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "simple"
             shutil.copytree(BASELINE / "simple", target, symlinks=True)
             self.change_headers(target, lambda headers: [[name.swapcase(), "different-client" if name.lower() in RULES["request_header_rules"]["automatic_examples"] else value] for name, value in reversed(headers)])
             compare_case(BASELINE / "simple", target, RULES)
 
+    def test_automatic_header_changes_are_detected(self):
+        for name in ("accept", "accept-encoding", "connection", "content-length", "cookie", "user-agent"):
+            with self.subTest(name=name):
+                self.mutated_case("simple", lambda target: self.change_headers(target,
+                    lambda headers: [[k, v] for k, v in headers if k.lower() != name] + [[name, "wrong"]]))
+
+    def test_default_user_agent_version_is_normalized_per_trial(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "request_headers"
+            shutil.copytree(BASELINE / "request_headers", target, symlinks=True)
+            self.change_headers(target, lambda headers: [[k, "jumeaux/0.1.0" if k.lower() == "user-agent" and v == "jumeaux/7.0.0" else v] for k, v in headers])
+            compare_case(BASELINE / "request_headers", target, RULES)
+
     def test_configured_user_agent_is_compared(self):
         self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, "wrong" if name.lower() == "user-agent" else value] for name, value in headers]))
+
+    def test_notification_user_agent_is_excluded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "notify_v1"
+            shutil.copytree(BASELINE / "notify_v1", target, symlinks=True)
+            self.change_headers(target, lambda headers: [[k, "jumeaux/0.1.0" if k.lower() == "user-agent" else v] for k, v in headers], "notifications.jsonl")
+            compare_case(BASELINE / "notify_v1", target, RULES)
+
+    def test_notification_other_automatic_headers_are_compared(self):
+        for name in ("accept", "accept-encoding", "connection", "content-length", "cookie"):
+            with self.subTest(name=name):
+                self.mutated_case("notify_v1", lambda target: self.change_headers(target,
+                    lambda headers: [[k, v] for k, v in headers if k.lower() != name] + [[name, "wrong"]], "notifications.jsonl"))
 
     def test_missing_configured_header_is_detected(self):
         self.mutated_case("request_headers", lambda target: self.change_headers(target, lambda headers: [[name, value] for name, value in headers if name.lower() != "xxx-header-key"]))

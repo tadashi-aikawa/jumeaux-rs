@@ -151,8 +151,12 @@ pub async fn notify(notifier: &Notifier, message: &str, context: &Context) -> Re
 
 /// requests.post(data=bytes)に合わせ、Content-Typeを自動設定しない。
 async fn send(url: &str, payload: &Value) -> Result<Outcome> {
-    let response = reqwest::Client::new()
+    let response = crate::http::client_for_url(url)?
         .post(url)
+        .header("accept", "*/*")
+        .header("accept-encoding", "gzip, deflate, zstd")
+        .header("connection", "keep-alive")
+        .header("user-agent", concat!("jumeaux/", env!("CARGO_PKG_VERSION")))
         .body(json_bytes(payload)?)
         .send()
         .await
