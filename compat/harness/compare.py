@@ -1,6 +1,7 @@
 """除外は設定の明示パスにのみ適用する。本文や任意のJSONキーは除外しない。"""
 
 from collections import Counter
+import copy
 from datetime import datetime
 import json
 import math
@@ -189,13 +190,17 @@ def workspace_tree(workspace, report_list, snapshot=False):
     return result
 
 
-def compare_case(baseline, actual, rules, input_baseline=None):
+def compare_case(baseline, actual, rules, input_baseline=None, rust=False):
     baseline, actual = Path(baseline), Path(actual)
     expect_reports, actual_reports = reports(baseline), reports(actual)
     validate_case_contract(baseline.name, expect_reports, rules)
     validate_case_contract(baseline.name, actual_reports, rules)
     equal(len(expect_reports), len(actual_reports), "report count")
     for one, other in zip(expect_reports, actual_reports):
+        if rust:
+            one = copy.deepcopy(one)
+            settings = rules["rust_comparison_by_case"].get(actual.name, rules["rust_comparison_default"])
+            one["summary"]["comparison"] = settings
         equal(normalize_report(one, rules), normalize_report(other, rules), "report")
         left, right = baseline / "responses" / one["key"], actual / "responses" / other["key"]
         equal(tree(left, snapshot=True), tree(right, snapshot=baseline == actual), "saved file tree")
@@ -231,7 +236,12 @@ def compare_case(baseline, actual, rules, input_baseline=None):
             continue
         if input_baseline and name == "config.yml":
             file = Path(input_baseline) / name
-        equal(file.read_bytes(), other_file.read_bytes(), name)
+        expected_bytes = file.read_bytes()
+        if rust and actual.name in ("encoding_hell", "encoding_fixed") and name in ("config.yml", "init-config.yml"):
+            expected_bytes = expected_bytes.replace(b"conditions:\n              - path:\n                  items:\n                    - regexp: .+", b"when: 'True'")
+        if rust and actual.name == "encoding_hell" and name == "requests":
+            expected_bytes = b"Invalid encoding,GET,/diff-1.json\n\n"
+        equal(expected_bytes, other_file.read_bytes(), name)
 
 
 def validate_case_contract(case, report_list, rules):

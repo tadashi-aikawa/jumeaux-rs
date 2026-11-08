@@ -148,7 +148,7 @@ def run_case(binary, case, workspace, server, extra_args=()):
     server.stdin.flush()
     wait_ready(server, workspace, workspace.parent / "receiver.log")
     code = execute(binary, ["run", "requests", *RUN_ARGS.get(case, []), *extra_args], workspace, "run")
-    if code != (1 if case == "encoding_hell" else 0):
+    if code != (1 if case == "encoding_hell" and binary == HERE / "python-jumeaux" else 0):
         raise AssertionError(f"{case}: unexpected run exit {code}")
     if case.startswith("retry_"):
         shutil.copyfile(workspace / "responses/latest/report.json", workspace / "source-report.json")
@@ -201,7 +201,9 @@ def main():
                 if not args.record:
                     from compare import compare_case
                     corrected = RULES["python_mismatches"].get(case) if binary != HERE / "python-jumeaux" else None
-                    compare_case(args.baseline / (corrected or case), output / case, RULES, input_baseline=args.baseline / case)
+                    if case == "encoding_hell" and binary != HERE / "python-jumeaux":
+                        corrected = "encoding_fixed"
+                    compare_case(args.baseline / (corrected or case), output / case, RULES, input_baseline=args.baseline / case, rust=binary != HERE / "python-jumeaux")
                 print(f"PASS {case}", flush=True)
             except Exception as error:
                 failures.append(case)

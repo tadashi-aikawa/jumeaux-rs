@@ -29,6 +29,12 @@
     {"streams": ["cli.stderr"], "start": "✨ [Valid names] ✨", "line_pattern": "[a-z][a-z0-9_]*"}
   ],
   "python_mismatches": {"header_ignore_case": "header_ignore_control"},
+  "rust_comparison_default": {"judge_response_header": false, "ignore_response_header_keys": ["Content-Length", "Date"]},
+  "rust_comparison_by_case": {
+    "judge_response_headers": {"judge_response_header": true, "ignore_response_header_keys": ["Last-Modified"]},
+    "header_ignore_control": {"judge_response_header": true, "ignore_response_header_keys": ["Last-Modified"]},
+    "header_ignore_case": {"judge_response_header": true, "ignore_response_header_keys": ["last-modified"]}
+  },
   "case_contracts": {
     "threads_2": {"summary.concurrency": {"threads": 2, "processes": 1}},
     "processes_2": {"summary.concurrency": {"threads": 1, "processes": 2}},

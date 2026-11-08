@@ -62,7 +62,11 @@ uv run --project compat/harness python compat/harness/run.py
 - `PYTHONWARNINGS=ignore` を設定し、Pythonラッパーはowlmixinのimport後にも警告抑制を設定する。
   - 理由: owlmixinが環境変数によるignoreを上書きするため。
 - 失敗時のtracebackは基準に残る。
-  - 制限: encoding_hellのstderrはPython版の絶対パスとランタイム版に依存する。別環境やRust版のエラー表現の許容範囲は未決であり、暗黙に除外しない。
+  - Rust: Pythonのスタックは生成せず、CLIのERROR行へ理由を出す。encoding_hellは承認済み修正を適用し、encoding_fixedの成功基準と比較する。
+
+- Rust CLIの受入結果は35/35一致。
+  - 比較: summary.comparisonの追加をケース別に厳密検証する。encoding_hellの変更許可は指定した設定ブロックとGET列だけに限定する。
+  - 自己検証: 比較規則のmutationテストを含む39テストが成功する。
 
 追加ケースはthreads/processesの優先順位、help、initエラー、3段階のverbose、notifierのretry、文字コード、ヘッダ名の大小を検証する。
 
@@ -90,7 +94,7 @@ cargo test --test challenge_e2e -- --ignored --nocapture
   - 比較: ログの実測時間だけを0.0秒へ正規化する。構造化ログから名前なし・失敗・保存エラー時の行とverbosityを復元する。
 - E2Eは記録用受信先を動的なローカルportで起動する。
   - 対象: 既存22ケースとverbose_2・verbose_3の計24ケース、Trial 47件、本文・prop 102ファイル。
-  - 比較: 既存python-baselineのtrialと保存bytes。Report書き出し・final・CLIは後続タスク。
+  - 比較: 既存python-baselineのtrialと保存bytes。Report書き出し・final・CLI全体はE2E比較ハーネスで検証する。
   - processes: 公開APIの既定値PerTrialで検証する。threadsではCookieを共有し、processesではtrialごとに分離する。
 - verbose_2の33行・verbose_3の45行に必要なデータとレベルを構造化イベントで検証する。
   - 比較: trial開始からDid challengeまでのアプリ側の行。計測時間・動的port・User-Agentのversionだけを正規化する。
@@ -260,8 +264,9 @@ diff compat/fixtures/config-models.json "$CONFIG_MODEL_FIXTURE"
   - 並列性: 出力ハンドルの再取得・別encodingの併用・16スレッドの書き込みを検証する。ライブラリが警告を直接出力しないことも確認する。
   - 実行: `cargo test --test review_round2 -- --nocapture`。
   - 再採取: `"$JUMEAUX_PYTHON_ROOT/.venv/bin/python" -B compat/gen/review_round2.py` を一時ファイルへ出力して比較する。
-- CLIのrun/retryは引き続きスケルトン。
-  - 残件: HTTP・各アドオン本体・CLI接続後にE2Eハーネスを実行する。
+- CLIのrun/retryはHTTP・Report集計・finalまで接続済み。
+  - 追加検証: `cargo test --test report --test final_addons --test cli_execution --test server_cli`。
+  - finalのPython観測値: `.venv/bin/python -B compat/gen/final_addons.py`で41ケースを再採取できる。既存fixtureとの比較時は一時ファイルへ出力する。
 
 ### JSON差分エンジンの検証
 

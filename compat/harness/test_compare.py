@@ -19,6 +19,23 @@ RULES = load(HERE / "comparison.json")
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_rust_comparison_settings_are_required_and_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "simple"
+            shutil.copytree(BASELINE / "simple", target, symlinks=True)
+            with self.assertRaises(AssertionError):
+                compare_case(BASELINE / "simple", target, RULES, rust=True)
+            report = load(target / "report.json")
+            report["summary"]["comparison"] = copy.deepcopy(RULES["rust_comparison_default"])
+            for path in [target / "report.json", target / "responses" / report["key"] / "report.json"]:
+                path.write_text(json.dumps(report))
+            compare_case(BASELINE / "simple", target, RULES, rust=True)
+            report["summary"]["comparison"]["judge_response_header"] = True
+            for path in [target / "report.json", target / "responses" / report["key"] / "report.json"]:
+                path.write_text(json.dumps(report))
+            with self.assertRaises(AssertionError):
+                compare_case(BASELINE / "simple", target, RULES, rust=True)
+
     def test_all_baselines_are_self_consistent(self):
         from run import TEMPLATES, EXTRAS, CLI_CASES
         for case in TEMPLATES + list(EXTRAS) + list(CLI_CASES):

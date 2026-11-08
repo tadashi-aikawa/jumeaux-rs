@@ -116,7 +116,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 戻り値: asyncのPipeline::execはrequests・notifications・logs・exit_codeを返す。後続アドオンは実行しない。
   - ログ: Logはlevelとmessageを持つ。空入力のwarning、`Notify using slack@vN`のinfo、通知結果のログの順に返す。エラー時はFailure.logsにそれ以前のログを保持し、CLIはエラーより先に出力する。
   - テンプレート: config.to_dict(ignore_none=False)相当を渡す。入れ子の未設定フィールドもnullで公開する。
-  - CLI: tokioのruntimeからblock_onで入力段階を実行する。infoは本文のみ、warningは黄色の`[WARNING]`、errorは赤色の`[ ERROR ]`でstderrへ出す。通常のrun・retry・initの全体実行は後続のCLI統合タスクで接続する。
+  - CLI: run・retryをtokioのruntimeへ接続する。infoは本文のみ、warningは黄色の`[WARNING]`、errorは赤色の`[ ERROR ]`でstderrへ出す。
 
 ### 通知基盤
 
@@ -175,7 +175,7 @@ Python版 `v7.0.0`、コミット `dc276b8e3a0486bd8d4de2c8e3900aa36cbb7a66` と
   - 内容: 属性 `@attr`、本文 `#text`、空要素null、同名要素のリスト、名前空間、CDATA、エンティティ。
 - APIは`markup::html::{to_dict, pretty}`と`markup::xml::{to_dict, pretty}`。
   - 入出力: デコード済み文字列を受け取り、dictはJSON値、prettyは末尾改行を含む文字列を返す。
-  - 境界: res2dictがencoding、force、適用判断を担当する。CLI接続は後続タスク。
+  - 境界: res2dictがencoding、force、適用判断を担当する。CLIからexecutor経由で接続する。
 - table内テキストの移動と不正なインラインタグの複製は修正済み。
   - 検証: 以前の4差異fixtureもPython期待値と一致する。
 - コメント前後の空白とSVG・MathML名の大小は修正済み。
@@ -338,7 +338,7 @@ HTTP転送のPython実測とRustへの接続状況は「HTTP転送の接続契�
   - Python版: `7.0.0` のみ。
 - Rust版は同梱テンプレート `encoding_hell` の不具合を直す。
   - 修正: `res2res/json_sort` の `conditions` にある廃止済みの `path` キーを `when` へ置き換え、`requests` にメソッド列 `GET` を補う。
-  - 実装時期: 後続の「Report集計・final・CLI」タスクで、initの同梱テンプレートを置くときに修正する。
+  - 同梱: `assets/templates/encoding_hell`は既存のencoding_fixed基準と同じ`when: 'True'`とGET列を持つ。元の廃止済みconditionsブロックを置き換える。
   - 基準: Python版リポジトリは変更せず、同梱テンプレートの失敗を観測値として維持する。
 - Rust版はinitのテンプレート名一覧をソート順で出す。
   - Python版: ファイルシステムの列挙順で出す。一覧の並びは互換対象にしない。
@@ -1162,7 +1162,7 @@ MiniJinjaのASTを走査してfilter/test名を登録済みの名前と照合す
   - 比較: メソッド、URL、自動・明示ヘッダ、本文bytes、再試行回数、エラー分類。
 - `compat/harness/http_acceptance.py`で既存31ケースのAPI記録124リクエストも比較する。
   - 入力: 基準Pythonの入力アドオンが生成したRequestをRustへ渡す。one/otherは並行送信する。
-  - 接続: `executor::Pipeline::challenge`がHTTPの結果をアドオン・Trial・保存へ接続する。製品CLIとReportの書き出しは後続タスク。
+  - 接続: `executor::Pipeline::challenge`がHTTPの結果をアドオン・Trial・保存へ接続する。製品CLIからReport集計とfinalまで実行する。
 
 ### HTTPモジュールのAPI
 
@@ -1323,7 +1323,7 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - スラッシュ: 名前に含まれる場合もサニタイズや中間ディレクトリ作成をしない。Python同様に保存エラーとなる。
   - 順序: oneのdumpと書き込み、otherのdumpと書き込み、one-props、other-props。propは解析結果がある側だけ保存する。
   - prop: owlmixin同様に入れ子のnullも除外し、再帰キーソートと区切り`(',', ': ')`を適用する。`1E2`→`100.0`、`-0`→`0`等は保存時だけ正規化する。res2dictの値は書き換えない。
-  - encoding: 本文はdumpの指定、propは固定UTF-8。propはoutputのwriterをUTF-8で使う。output.encodingは後続Report・summary・stdout等の設定として保持する。
+  - encoding: 本文はdumpの指定、propは固定UTF-8。propはoutputのwriterをUTF-8で使う。output.encodingはReport・summary・stdoutへ適用する。
   - scalar: propのルートがdict/list以外ならPythonと同じTypeError。本文2ファイルが既に保存されている場合も消さない。
   - ディレクトリ: 4サブディレクトリのmodeはUnixで0777。keyが既存でも保存用サブディレクトリが未作成なら使用できる。one・other・one-props・other-propsを順に作成し、既存サブディレクトリに達した時点でエラーとする。それ以前の作成分は巻き戻さない。
 - keyは`sha256((str(now()) + args_str).encode('utf-8')).hexdigest()`。
@@ -1372,13 +1372,40 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - 内訳: 4文字コードでsummary・json・csvの40ケースと、nullを保持する通知context1ケース。
   - 追加検証: 保存順、Viewerのbytes、stdout、UTF-16保存、UTF-8 CSV、ローカル通知、通知失敗時の後続final停止。
 
+## CLIの実装と受入
+
+- runとretryは`commands::execute`で入力・challenge・Report集計・finalを接続する。
+  - 終了コード: different・failureのTrialがあっても0。empty_guard・設定エラー・final通知エラーは1。
+  - retry: rawを復元し、summary.comparisonを維持する。旧Reportの既定値補完と未知フィールド破棄の両方の警告を表示する。
+  - 検証: 旧Report・比較設定付きReport、raw、タグ未指定でのクリア、CLI上書き、空リクエストを追加テストで固定する。
+- `logging::Logger`は4段階のログをstderrへUTF-8で出す。
+  - 進捗: exec_with_progressのコールバック内でtrialごとに表示する。完了後の再出力はしない。
+  - 書式: 起動AA、config AA、ヘッダ、結果行、入力変換・アドオンのログ、WARNING・ERROR・DEBUGのANSI色をPython基準と比較する。
+  - config: 数値をJSON Numberの文字列表現からYAMLへ書き、arbitrary_precisionの内部mapを露出させない。複数行文字列はJSONの引用符付き表現で有効なYAMLにする。
+- initは16テンプレートとAPIファイルをバイナリへ埋め込む。
+  - 一覧: ソート順。config.yml・requests・apiの作成ログはPythonと一致する。
+  - addon: 外部コマンド方式の契約が未決のため、案内と終了コード1で停止する。
+- serverはカレントディレクトリを静的配信する。
+  - POST: JSON・form・plainをContent-Typeに従ってログ表示し、GETと同じファイルを返す。
+  - 検証: GET・HEAD・POST、MIME、URLデコード、ディレクトリへのredirect、404をローカルプロセスで確認する。
+  - 実装差: Serverヘッダは`Jumeaux/<version>`。ディレクトリ一覧と404のHTMLはRustで生成する。Pythonのランタイム名や動的HTMLの完全一致は保証しない。
+- viewerはresponses-dir/latestを配信する。
+  - リロード: 配信するHTMLへ500ms間隔の監視スクリプトを追加し、report.jsonのmtime・内容変更とlatestの切り替えで再読込する。ディスク上の同梱HTMLは改変しない。
+  - ブラウザ: 起動後1秒で既定ブラウザを開く。`JUMEAUX_NO_BROWSER`が設定されていれば起動しない。
+  - 検証: ブラウザを抑止したローカル試験で配信・変更検出・latest切り替えを確認する。目視は後続の全体受入に残す。
+- RustはPython固有のtracebackを出力しない。
+  - 表示: エラー種別・理由・設定パスをCLIのERROR行で示す。empty_guardの通知エラーはPythonと同じ理由本文を出す。
+  - 範囲: Pythonソースの絶対パス、行番号、スタックフレームの一致は要求しない。設定エラーの終了コード1と成果物を生成しない契約は維持する。
+- 製品CLIの比較ハーネスは35/35ケースで一致する。
+  - 対象: 16テンプレートと追加19ケース。report・保存bytes・stdout・stderr・終了コード・API記録・通知を比較する。
+  - 比較規則の補完: Rustのsummary.comparisonは除外せず、comparison.jsonのケース別期待値と厳密比較する。欠落・設定値の改変をmutationテストで拒否する。
+  - encoding_hell: Rustは承認済み修正版をencoding_fixed基準と比較する。変更を許す入力ファイルはconfig.yml・init-config.ymlの廃止ブロックとrequestsのGET列だけ。Python自己比較は元の失敗基準を維持する。
+  - 維持: 既存の可変値・transport行以外の除外は追加しない。
+
 ## 未決
 
 - `rustpython-parser`への依存。
   - 現実装: `ast.literal_eval`相当の構文検査に0.4.0を使う。tuple・set・bytes等のliteral fixtureで契約を固定する。
-- `-vv` のconfig YAMLダンプ。
-  - 申し送り: arbitrary_precisionを有効にしたserde_json::ValueをYAMLへ直列化すると、数値が `{$serde_json::private::Number: '1'}` と露出する。
-  - 残件: CLIのconfigダンプ実装時に数値の変換境界を設ける。今回のYAML読み込みとマージ展開はデシリアライズ方向だけであり、この問題を起こさない。
 
 ### その他の未決
 
@@ -1386,8 +1413,6 @@ Rustもこの捕捉範囲を互換契約として維持する。ReadTimeoutな�
   - Python版: ValueErrorで停止する。
   - 申し送り: Rustの型付きConfigは両方を保持できる。後続のfinal miroirタスクで排他検証を接続する。
 - 外部コマンドアドオンの設定・入出力・エラー・タイムアウトの契約と、`cls_name`・`init addon` の移行方法。
-- Python固有のtracebackをRust版のstderrでどこまで一致させるか。
-  - 実測: Python版のencoding_hellは `Sorter.conditions` のUnknownPropertiesErrorで終了コード1。reportとresponsesは生成されない。この結果を基準に保存する。
 
 ## 受入の段階
 
