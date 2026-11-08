@@ -4,10 +4,10 @@ Template
 一部の設定ではJinja形式のテンプレート表現を受けつけます。
 Rust版はMiniJinjaを使い、既存の条件式と描画を互換テストで検証しています。
 
-細かな差異は [互換仕様](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/compat-spec.md#許容した差異) を参照してください。
+使えないfilter、test、Python文字列メソッドは [テンプレートのサポート外](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/compat-spec.md#テンプレートのサポート外) を参照してください。
 
 
-:fontawesome-solid-pencil: Property rules
+Property rules
 --------------------------
 
 条件を記載するwhenプロパティと、値を記載するその他プロパティで記載の仕方が少し異なります。
@@ -75,7 +75,7 @@ Typeが[Trial][trial]であるtrial変数を使った場合の一例です。
 ```
 
 
-:fontawesome-solid-filter: Filters
+Filters
 -------------------
 
 JumeauxオリジナルのFilterをいくつか利用できます。
@@ -92,7 +92,7 @@ JumeauxオリジナルのFilterをいくつか利用できます。
 `age|reg("[0-9]{2}")`
 
 
-:fontawesome-solid-calculator: Functions
+Functions
 -------------------------
 
 Jumeauxオリジナルの関数をいくつか利用できます。

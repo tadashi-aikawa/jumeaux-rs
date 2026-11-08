@@ -7,7 +7,7 @@ Rust版の初回リリースとドキュメント公開後に掲載する。
 
 > JumeauxはRust版へ移行しました。今後の開発は [jumeaux-rs](https://github.com/tadashi-aikawa/jumeaux-rs) で行います。
 >
-> Rust版は `0.1.0` から始まります。macOSとLinux向けのバイナリを [GitHub Releases](https://github.com/tadashi-aikawa/jumeaux-rs/releases) から取得できます。実行にPythonは不要です。
+> macOSとLinux向けのバイナリを [GitHub Releases](https://github.com/tadashi-aikawa/jumeaux-rs/releases) から取得できます。実行にPythonは不要です。
 >
 > 既存設定の移行前に [Python版との差異](https://tadashi-aikawa.github.io/jumeaux-rs/ja/getstarted/migration/) を確認してください。
 

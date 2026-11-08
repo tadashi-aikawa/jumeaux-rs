@@ -43,13 +43,14 @@ Zensical 0.1.0を `pyproject.toml` と `uv.lock` で固定する。
 - Notifierの古い廃止予定を、Rust版の互換対応に合わせる。
 - 設定例のYAML構文、条件式の引用符、レイヤー名、必須項目の欠落を修正する。
 - Python版との差異ページを追加する。
-- ReleasesはRust版の0.1.0から始め、Python版の履歴へリンクする。
+- ReleasesはRust版の履歴を掲載し、Python版の履歴へリンクする。
 - Python版へ掲載する移行案内は [原稿](python-notice.md) に分ける。
 
 Markdown拡張は従来の設定を維持する。
 絵文字の関数参照は `zensical.extensions.emoji` に切り替える。
 snippetsの `base_path` は `docs/site` に合わせ、参照先がなければビルドを失敗させる。
 ナビゲーションの見出しにあった装飾用の絵文字は外す。
+本文と見出しのFont Awesomeアイコン、ソーシャルアイコン、不要なCDN CSSは使わない。
 
 ## GitHub Pagesを有効にする
 
@@ -62,7 +63,7 @@ snippetsの `base_path` は `docs/site` に合わせ、参照先がなければ�
 リポジトリ名を変えた場合は `zensical.toml` の `site_url` も変更する。
 
 `.github/workflows/pages.yaml` がmainへのpushでビルドと公開を行う。
-Actionsの画面から手動実行もできる。
+PRとActionsの画面からの手動実行ではビルド確認だけを行う。
 PythonとZensicalはサイトのビルドにだけ必要で、Jumeauxの実行には不要。
 
 Pagesの公開元設定とGitHub上でのデプロイは、ローカルでは検証できない。

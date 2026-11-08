@@ -1,15 +1,19 @@
-judgement [:fontawesome-brands-github:][s1]
+judgement
 ===========================
 
 [s1]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/judgement
 
+[ソースコード][s1]
+
 プロパティ差分情報を元に ステータス(Same/Different)を決定します。
 
 
-[:fontawesome-brands-github:][_ignore] ignore
+ignore
 -----------------------------
 
 [_ignore]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/judgement/ignore.rs
+
+[ソースコード][_ignore]
 
 以下2つの情報を生成します。
 
@@ -47,7 +51,7 @@ judgement [:fontawesome-brands-github:][s1]
 
 | Key     | Type              | Description                                      | Example                          | Default |
 |---------|-------------------|--------------------------------------------------|----------------------------------|---------|
-| when    | (string)          | 条件式 :fontawesome-solid-triangle-exclamation:                 | <pre>"req.path == '/test'"</pre> |         |
+| when    | (string)          | 条件式                  | <pre>"req.path == '/test'"</pre> |         |
 | added   | ([Case[]](#case)) | 追加されていても無視するプロパティのリストと条件 |                                  |         |
 | changed | ([Case[]](#case)) | 変更されていても無視するプロパティのリストと条件 |                                  |         |
 | removed | ([Case[]](#case)) | 削除されていても無視するプロパティのリストと条件 |                                  |         |
@@ -73,8 +77,8 @@ judgement [:fontawesome-brands-github:][s1]
 
 | Key  | Type   | Description                    | Example                                | Default |
 |------|--------|--------------------------------|----------------------------------------|---------|
-| path | string | プロパティの正規表現(完全一致) | `root<'id'>` :fontawesome-solid-triangle-exclamation: |         |
-| when | (str)  | 条件式 :fontawesome-solid-circle-exclamation:        | <pre>"one.name == 'hoge'"</pre>        |         |
+| path | string | プロパティの正規表現(完全一致) | `root<'id'>`  |         |
+| when | (str)  | 条件式         | <pre>"one.name == 'hoge'"</pre>        |         |
 
 
 ??? info "whenについて"
@@ -160,10 +164,12 @@ judgement [:fontawesome-brands-github:][s1]
 ```
 
 
-[:fontawesome-brands-github:][same] same
+same
 ------------------------
 
 [same]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/judgement/same.rs
+
+[ソースコード][same]
 
 指定した条件のいずれかに一致する場合、ステータスをSameにします。
 
@@ -176,7 +182,7 @@ judgement [:fontawesome-brands-github:][s1]
 
 | Key      | Type  | Description             | Example                      | Default |
 |----------|-------|-------------------------|------------------------------|---------|
-| when_any | str[] | 条件式 :fontawesome-solid-circle-exclamation: | <pre>'"2" in req.path'</pre> |         |
+| when_any | str[] | 条件式  | <pre>'"2" in req.path'</pre> |         |
 
 
 ??? info "when_anyで指定できるプロパティ"

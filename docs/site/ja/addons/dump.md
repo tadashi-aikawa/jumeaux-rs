@@ -1,15 +1,19 @@
-dump [:fontawesome-brands-github:][dump]
+dump
 ========================
 
 [dump]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/dump
 
+[ソースコード][dump]
+
 APIレスポンスを保存前に加工します。
 
 
-[:fontawesome-brands-github:][json] json
+json
 ------------------------
 
 [json]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/dump/json.rs
+
+[ソースコード][json]
 
 レスポンスがJSONの場合にJSON形式でフォーマットします。
 
@@ -59,10 +63,12 @@ APIレスポンスを保存前に加工します。
 ```
 
 
-[:fontawesome-brands-github:][xml] xml
+xml
 -----------------------
 
 [xml]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/dump/xml.rs
+
+[ソースコード][xml]
 
 レスポンスがXMLの場合にXML形式でフォーマットします。
 
@@ -108,10 +114,12 @@ APIレスポンスを保存前に加工します。
 ```
 
 
-[:fontawesome-brands-github:][html] html
+html
 -------------------------
 
 [html]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/dump/html.rs
+
+[ソースコード][html]
 
 レスポンスをHTML形式でフォーマットします。
 
@@ -157,10 +165,12 @@ APIレスポンスを保存前に加工します。
 ```
 
 
-[:fontawesome-brands-github:][encoding] encoding
+encoding
 --------------------------------
 
 [encoding]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/dump/encoding.rs
+
+[ソースコード][encoding]
 
 レスポンスのエンコーディングを変換します。
 

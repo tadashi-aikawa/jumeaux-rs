@@ -1,15 +1,19 @@
-log2reqs [:fontawesome-brands-github:][s1]
+log2reqs
 ==========================
 
 [s1]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/log2reqs
 
+[ソースコード][s1]
+
 任意のFormatで記載されたリクエストを、Jumeaux内部で使用する形式([Request])に変換します。
 
 
-[:fontawesome-brands-github:][s2] plain
+plain
 -----------------------
 
 [s2]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/log2reqs/plain.rs
+
+[ソースコード][s2]
 
 最もシンプルな入力形式に対応しています。
 要件が単純な場合に適しています。
@@ -37,7 +41,7 @@ log2reqs [:fontawesome-brands-github:][s1]
 |-----------------------------------------------|------------|------------------------------------------|-----------------------------|---------|
 | encoding                                      | (string)   | 読みこみファイルのエンコーディング       | euc-jp                      | utf-8   |
 | keep_blank                                    | (bool)     | 値が指定されていないクエリを有効にするか | true                        | false   |
-| candidate_for_url_encodings  :fontawesome-solid-circle-exclamation: | (string[]) | URLエンコーディングの候補                | <pre>- sjis<br>- euc-jp</pre> |         |
+| candidate_for_url_encodings   | (string[]) | URLエンコーディングの候補                | <pre>- sjis<br>- euc-jp</pre> |         |
 
 ??? info "candidate_for_url_encodings"
 
@@ -76,10 +80,12 @@ log2reqs [:fontawesome-brands-github:][s1]
 ```
 
 
-[:fontawesome-brands-github:][s3] csv
+csv
 ---------------------
 
 [s3]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/log2reqs/csv.rs
+
+[ソースコード][s3]
 
 CSV入力形式に対応しています。
 ほぼ全ての項目を指定することができます。
@@ -92,7 +98,7 @@ CSV入力形式に対応しています。
 | Col |            Type             | Description  |       Example       |
 | --- | --------------------------- | ------------ | ------------------- |
 | 1   | (string)                    | 名前         | ex1                 |
-| 2   | HttpMethod :fontawesome-solid-circle-exclamation: | HTTPメソッド | POST                |
+| 2   | HttpMethod  | HTTPメソッド | POST                |
 | 3   | string                      | path         | /api                |
 | 4   | (string)                    | query        | a=1&b=2             |
 | 5   | (string)                    | header       | header1=1&header2=2 |
@@ -131,7 +137,7 @@ CSV入力形式に対応しています。
 |------------|----------|------------------------------------------|-----------|---------|
 | encoding   | (string) | 読みこみファイルのエンコーディング       | euc-jp    | utf-8   |
 | keep_blank | (bool)   | 値が指定されていないクエリを有効にするか | true      | false   |
-| dialect    | (string) | csv読みこみの方言 :fontawesome-solid-circle-exclamation:       | excel-tab | excel   |
+| dialect    | (string) | csv読みこみの方言        | excel-tab | excel   |
 
 ??? info "dialectの有効値"
 
@@ -161,10 +167,12 @@ CSV入力形式に対応しています。
 ```
 
 
-[:fontawesome-brands-github:][s4] json
+json
 ----------------------
 
 [s4]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/log2reqs/json.rs
+
+[ソースコード][s4]
 
 JSON入力形式に対応しています。
 全ての項目を指定することができます。
@@ -244,10 +252,12 @@ JSON入力形式に対応しています。
 ```
 
 
-[:fontawesome-brands-github:][s5] yaml
+yaml
 ----------------------
 
 [s5]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/log2reqs/yaml.rs
+
+[ソースコード][s5]
 
 YAML入力形式に対応しています。
 全ての項目を指定することができます。
@@ -268,13 +278,13 @@ YAML入力形式に対応しています。
   method: GET
   qs:
     id:
-      - 147
+      - "147"
 - path: "/users"
   method: POST
   form:
     ids:
-      - 100
-      - 200
+      - "100"
+      - "200"
   qs:
     name:
       - auto

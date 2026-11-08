@@ -72,7 +72,7 @@ Viewerは `http://localhost:5500/` で開きます。
 
 カスタムアドオンとPython transformerの代替は準備中です。
 
-詳細: [カスタムアドオン](docs/site/ja/addons/custom.md)
+詳細: [カスタムアドオン](https://tadashi-aikawa.github.io/jumeaux-rs/ja/addons/custom/)
 
 ## 開発
 
@@ -114,7 +114,7 @@ uv run zensical build --clean --strict
 
 ## リリース
 
-配布先はGitHub Releasesです。バージョンは `0.1.0` から始めます。
+配布先はGitHub Releasesです。
 
 1. `Cargo.toml` と `Cargo.lock` のバージョンを更新します。
 2. テストとビルドを確認し、変更をmainへマージします。
@@ -125,7 +125,8 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-`release.yaml` がタグとCargoのバージョンを照合し、4ターゲットをビルドします。
+`release.yaml` がタグとCargoのバージョンを照合し、既定featureで `cargo test --locked` を実行します。
+テスト成功後に4ターゲットをビルドします。
 すべて成功すると `tar.gz` と各アーカイブの `.sha256` をGitHub Releaseへ公開します。
 タグが `v<Cargo.tomlのversion>` と一致しない場合は失敗します。
 

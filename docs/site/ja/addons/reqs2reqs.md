@@ -1,15 +1,19 @@
-reqs2reqs [:fontawesome-brands-github:][s1]
+reqs2reqs
 ===========================
 
 [s1]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs
 
+[ソースコード][s1]
+
 リクエストを変換します。
 
 
-[:fontawesome-brands-github:][head] head
+head
 ------------------------
 
 [head]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/head.rs
+
+[ソースコード][head]
 
 リクエストの先頭部分を抽出します。
 
@@ -34,10 +38,12 @@ reqs2reqs [:fontawesome-brands-github:][s1]
 ```
 
 
-[:fontawesome-brands-github:][filter] filter
+filter
 ----------------------------
 
 [filter]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/filter.rs
+
+[ソースコード][filter]
 
 条件に一致するリクエストのみを抽出します。
 
@@ -49,7 +55,7 @@ reqs2reqs [:fontawesome-brands-github:][s1]
 
 | Key  | Type |       Description       |          Example          | Default |
 | ---- | ---- | ----------------------- | ------------------------- | ------- |
-| when | str  | 条件式 :fontawesome-solid-circle-exclamation: | <pre>"qs.id.0 == 1"</pre> |         |
+| when | str  | 条件式  | <pre>"qs.id.0 == 1"</pre> |         |
 
 
 ??? info "when"
@@ -70,10 +76,12 @@ reqs2reqs [:fontawesome-brands-github:][s1]
 ```
 
 
-[:fontawesome-brands-github:][add] add
+add
 ----------------------
 
 [add]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/add.rs
+
+[ソースコード][add]
 
 先頭または末尾にリクエストを追加します。
 
@@ -112,10 +120,12 @@ reqs2reqs [:fontawesome-brands-github:][s1]
 ```
 
 
-[:fontawesome-brands-github:][replace] replace
+replace
 ------------------------------
 
 [replace]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/replace.rs
+
+[ソースコード][replace]
 
 条件に一致するリクエストを置換します。
 
@@ -133,8 +143,8 @@ reqs2reqs [:fontawesome-brands-github:][s1]
 
 | Key     | Type         | Description                     | Example                                 | Default |
 | ------- | ------------ | ------------------------------- | --------------------------------------- | ------- |
-| when    | (str)        | 条件式 :fontawesome-solid-circle-exclamation:         | <pre>"qs.id.0 == 1"</pre>               |         |
-| queries | dict[str[]]) | 置換するクエリ :fontawesome-solid-circle-exclamation: | <pre>{"a": [1], "b": [2, 3]}</pre>      |         |
+| when    | (str)        | 条件式          | <pre>"qs.id.0 == 1"</pre>               |         |
+| queries | dict[str[]]) | 置換するクエリ  | <pre>{"a": [1], "b": [2, 3]}</pre>      |         |
 | headers | dict[str]    | 置換するヘッダ                  | <pre>{"header1": 1, "header2": 2}</pre> |         |
 
 ??? info "when"
@@ -182,10 +192,12 @@ reqs2reqs [:fontawesome-brands-github:][s1]
               time: ["$DATETIME(%Y-%m-%dT%H:%M:%S)(3600)"]
 ```
 
-[:fontawesome-brands-github:][shuffle] shuffle
+shuffle
 ------------------------------
 
 [shuffle]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/shuffle.rs
+
+[ソースコード][shuffle]
 
 リクエストの順序をシャッフルします。
 
@@ -205,10 +217,12 @@ Config設定はありません。
 ```
 
 
-[:fontawesome-brands-github:][repeat] repeat
+repeat
 ----------------------------
 
 [repeat]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/repeat.rs
+
+[ソースコード][repeat]
 
 リクエスト全体を指定回数だけ複製します。
 
@@ -233,10 +247,12 @@ Config設定はありません。
 ```
 
 
-[:fontawesome-brands-github:][empty_guard] empty_guard
+empty_guard
 --------------------------------------
 
 [empty_guard]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/empty_guard.rs
+
+[ソースコード][empty_guard]
 
 リクエストが空の場合に処理を中断します。
 
@@ -260,8 +276,8 @@ Config設定はありません。
 
 |   Key    |  Type  |               Description                |             Example              | Default |
 | -------- | ------ | ---------------------------------------- | -------------------------------- | ------- |
-| notifier | string | 使用する通知設定の名前  :fontawesome-solid-circle-exclamation: | jumeaux                          |         |
-| message  | string | 送信するメッセージ :fontawesome-solid-circle-exclamation:      | <pre>{{ title }}を中断しました</pre> |         |
+| notifier | string | 使用する通知設定の名前   | jumeaux                          |         |
+| message  | string | 送信するメッセージ       | <pre>{{ title }}を中断しました</pre> |         |
 
 
 !!! info "notifierについて"
@@ -306,10 +322,12 @@ Config設定はありません。
     ```
 
 
-[:fontawesome-brands-github:][rename] rename
+rename
 ----------------------------
 
 [rename]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/reqs2reqs/rename.rs
+
+[ソースコード][rename]
 
 条件に一致するリクエストの名称を変更します。
 
@@ -327,8 +345,8 @@ Config設定はありません。
 
 | Key  | Type |          Description          |              Example               | Default |
 | ---- | ---- | ----------------------------- | ---------------------------------- | ------- |
-| name | str  | 変更後の名称 :fontawesome-solid-circle-exclamation: | <pre>{{ name }} ({{ path }})</pre> |         |
-| when | str  | 条件式 :fontawesome-solid-circle-exclamation:       | <pre>"qs.id.0 == 1"</pre>          |         |
+| name | str  | 変更後の名称  | <pre>{{ name }} ({{ path }})</pre> |         |
+| when | str  | 条件式        | <pre>"qs.id.0 == 1"</pre>          |         |
 
 !!! info "nameおよびwhenについて"
 

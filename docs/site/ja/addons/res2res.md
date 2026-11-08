@@ -1,15 +1,19 @@
-res2res [:fontawesome-brands-github:][s1]
+res2res
 =========================
 
 [s1]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/res2res
 
+[ソースコード][s1]
+
 APIから返却されたレスポンスを判定前に変換します。
 
 
-[:fontawesome-brands-github:][json] json
+json
 ------------------------
 
 [json]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/res2res/json.rs
+
+[ソースコード][json]
 
 任意のレスポンスをJSONへ変換するアドオンです。
 
@@ -21,10 +25,12 @@ APIから返却されたレスポンスを判定前に変換します。
 詳細: [カスタムアドオン](custom.md#transformer)
 
 
-[:fontawesome-brands-github:][json-sort] json_sort
+json_sort
 ----------------------------------
 
 [json-sort]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/res2res/json_sort.rs
+
+[ソースコード][json-sort]
 
 JSONレスポンスの並び順をソートします。
 
@@ -49,7 +55,7 @@ JSONレスポンスの並び順をソートします。
 
 |   Key   |        Type         |       Description       |          Example          | Default |
 | ------- | ------------------- | ----------------------- | ------------------------- | ------- |
-| when    | str                 | 条件式 :fontawesome-solid-circle-exclamation: | <pre>"qs.id.0 == 1"</pre> |         |
+| when    | str                 | 条件式  | <pre>"qs.id.0 == 1"</pre> |         |
 | targets | [Target[]](#target) |                         |                           |         |
 
 ??? info "when"
@@ -63,7 +69,7 @@ JSONレスポンスの並び順をソートします。
 |    Key    |    Type    |                            Description                             |         Example          |     Default      |
 | --------- | ---------- | ------------------------------------------------------------------ | ------------------------ | ---------------- |
 | path      | string     | ソート対象となるプロパティの正規表現                               | root<'dict1'><'list1-1'> |                  |
-| sort_keys | (string[]) | pathで指定したプロパティがObjectだった場合のソートプロパティリスト | `[id, name]`             | :fontawesome-solid-circle-exclamation: |
+| sort_keys | (string[]) | pathで指定したプロパティがObjectだった場合のソートプロパティリスト | `[id, name]`             |  |
 
 !!! info "`sort_keys`が未指定の場合"
 
@@ -97,10 +103,12 @@ JSONレスポンスの並び順をソートします。
 ```
 
 
-[:fontawesome-brands-github:][type] type
+type
 ------------------------
 
 [type]: https://github.com/tadashi-aikawa/jumeaux-rs/tree/main/src/addons/res2res/type.rs
+
+[ソースコード][type]
 
 レスポンスのtypeを変更します。
 typeはJumeauxのアドオンや連携先アプリケーションでファイル形式を判定するために使用されます。
@@ -120,7 +128,7 @@ typeはJumeauxのアドオンや連携先アプリケーションでファイル
 | Key  | Type | Description             | Example                             | Default |
 |------|------|-------------------------|-------------------------------------|---------|
 | type | str  | 変更後のtype            | json                                |         |
-| when | str  | 条件式 :fontawesome-solid-circle-exclamation: | <pre>"res.status_code == 200"</pre> |         |
+| when | str  | 条件式  | <pre>"res.status_code == 200"</pre> |         |
 
 !!! info "whenで指定できるプロパティ"
 

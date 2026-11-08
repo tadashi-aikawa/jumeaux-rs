@@ -18,7 +18,7 @@ Configuration
 | title                       | (string)                        | タイトル                                    | Test                           | No title                     |
 | description                 | (string)                        | 説明                                        | Running for test               |                              |
 | tags                        | (string[])                      | タグ                                        | <pre>- test<br>- jumeaux</pre> |                              |
-| notifiers                   | (dict[[Notifier][notifier]])    | 通知設定  :fontawesome-solid-circle-exclamation:                  |                                |                              |
+| notifiers                   | (dict[[Notifier][notifier]])    | 通知設定                    |                                |                              |
 | judge_response_header       | (bool)                          | レスポンスヘッダも判定に加えるかどうか      | `true`                         | `false`                      |
 | ignore_response_header_keys | (string[])                      | レスポンスヘッダの比較で無視するkeyのリスト | `["Date", "Server"]`           | `["Content-Length", "Date"]` |
 | addons                      | [Addons][addons]                | 利用するアドオンの設定                      |                                |                              |

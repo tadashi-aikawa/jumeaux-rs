@@ -1,4 +1,4 @@
-# Quickstart
+# クイックスタート
 
 ## 動作要件
 
@@ -50,14 +50,7 @@ jumeaux --version
 
 [ダウンロード一覧](https://github.com/tadashi-aikawa/jumeaux-rs/releases)
 
-### カスタムアドオンのひな形
-
-`jumeaux init addon` は準備中です。現在は案内を表示して終了コード1で停止します。
-
-詳細: [カスタムアドオン](../addons/custom.md)
-
-
-## Create files
+## 設定とリクエストを作成する
 
 Jumeauxを実行するには、以下2つのファイルを用意する必要があります。
 
@@ -79,7 +72,7 @@ $ jumeaux init simple
     `jumeaux init help`コマンドで`simple`以外の有効な値を確認できます。
 
 
-## Run mock server
+## モックサーバーを起動する
 
 `jumeaux init`コマンドでは上記2ファイルの他に`api`ディレクトリが作成されます。
 `api`ディレクトリの中には、`jumeaux init`で指定したファイルの種類に応じて確認用のダミーhttpレスポンスが作成されます。
@@ -88,7 +81,7 @@ $ jumeaux init simple
 ローカル環境で動作確認をするため、`jumeaux server`コマンドを実行しましょう。
 
 
-## Execute
+## 比較を実行する
 
 `config.yml`と`requests`を指定して実行しましょう。
 
@@ -96,7 +89,7 @@ $ jumeaux init simple
 $ jumeaux run requests
 ```
 
-* デフォルトでは標準出力に何も出力されません :fontawesome-solid-circle-info:
+* デフォルトでは標準出力に何も出力されません
 * 標準エラー出力にはログまたはエラーが出力されます
 
 !!! info "標準出力"
@@ -113,7 +106,7 @@ $ jumeaux run requests
     ```
 
 
-## Check
+## 結果を確認する
 
 結果は設定ファイルの[response_dir]で指定したディレクトリ配下に作成されます。
 配下には、実行ごとに生成されるユニークなハッシュに基づいたディレクトリが存在します。

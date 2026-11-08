@@ -1,6 +1,6 @@
 # Python版からの移行
 
-Rust版はPython版 `7.0.0` を基準にしています。バージョンは `0.1.0` から始まります。
+Rust版はPython版 `7.0.0` を基準にしています。
 
 CLI、設定ファイル、リクエスト形式、レポート、Viewerの互換性を検証しています。
 既存設定では、以下の差異を確認してください。
@@ -13,6 +13,11 @@ CLI、設定ファイル、リクエスト形式、レポート、Viewerの互�
     - 移行先: 外部コマンド方式を準備中です。
     - 詳細: [カスタムアドオン](../addons/custom.md)
 - `jumeaux init addon` は準備中の案内を表示し、終了コード1で停止します。
+- `final/miroir` はRust版でも利用できます。
+    - ビルド: Cargo feature `miroir` は既定で有効です。配布バイナリにも含まれます。
+    - 無効時: `--no-default-features` のビルドでは設定がエラーになります。
+    - 再有効化: `--features miroir` を付けてビルドしてください。
+    - 詳細: [Miroirの認証と接続](../addons/final.md#miroir)
 
 ## 設定と認証
 
@@ -45,6 +50,25 @@ CLI、設定ファイル、リクエスト形式、レポート、Viewerの互�
 - lone surrogateを含むJSONを拒否します。
 - JSONの配列と辞書は1,000段まで扱います。1,001段でエラーになります。
 - Optionに `is_some()` が加わります。互換の値参照には `value`、`get()`、`get_or()` を使えます。
+
+### サポート外のテンプレート表現
+
+以下は設定エラーで停止します。
+
+| 分類 | サポート外 |
+| --- | --- |
+| filter | `center`、`forceescape`、`urlize`、`xmlattr` |
+| test | `callable` |
+| Python文字列メソッド | `rsplit`、`index`、`partition`、`zfill`、`encode` |
+| 演算 | `"%d" % n` |
+
+未実行の分岐やmacro内でも、未対応のfilterとtestは検査します。
+MiniJinja固有の以下の拡張も使えません。
+
+- filter: `bool`、`chain`、`lines`、`split`、`zip`
+- test: `startingwith`、`endingwith`、`safe`
+
+詳細: [テンプレートのサポート外](https://github.com/tadashi-aikawa/jumeaux-rs/blob/main/docs/compat-spec.md#テンプレートのサポート外)
 
 ## CLIと通知
 

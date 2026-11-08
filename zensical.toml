@@ -3,19 +3,19 @@ site_name = "Jumeaux"
 site_description = "2つのAPIレスポンスの差分を確認するツール"
 site_url = "https://tadashi-aikawa.github.io/jumeaux-rs/"
 site_author = "tadashi-aikawa"
+copyright = "© 2021 tadashi-aikawa"
 repo_name = "tadashi-aikawa/jumeaux-rs"
 repo_url = "https://github.com/tadashi-aikawa/jumeaux-rs"
 edit_uri = "edit/main/docs/site/"
 docs_dir = "docs/site"
 site_dir = "site"
 extra_css = [
-  "https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css",
   "css/custom.css",
 ]
 nav = [
   { "Home" = "index.md" },
   { "Get Started" = [
-    { "Quickstart" = "ja/getstarted/quickstart.md" },
+    { "クイックスタート" = "ja/getstarted/quickstart.md" },
     { "Configuration" = "ja/getstarted/configuration.md" },
     { "Report" = "ja/getstarted/report.md" },
     { "Python版からの移行" = "ja/getstarted/migration.md" },
@@ -54,6 +54,9 @@ variant = "classic"
 logo = "img/logo.png"
 favicon = "img/favicon.ico"
 
+[project.theme.icon]
+repo = "material/source-repository"
+
 [project.markdown_extensions]
 meta = {}
 wikilinks = {}
@@ -68,9 +71,3 @@ pymdownx.emoji = { emoji_index = "zensical.extensions.emoji.twemoji", emoji_gene
 pymdownx.magiclink = {}
 pymdownx.snippets = { base_path = ["docs/site"], check_paths = true }
 pymdownx.superfences = {}
-
-[project.extra]
-social = [
-  { icon = "fontawesome/brands/github-alt", link = "https://github.com/tadashi-aikawa" },
-  { icon = "fontawesome/brands/twitter", link = "https://twitter.com/Tadashi_MAMAN" },
-]
